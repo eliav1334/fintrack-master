@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Budget, CategoryType } from "@/types";
 import { PlusCircle, Trash2 } from "lucide-react";
-import { v4 as uuidv4 } from "@/lib/utils";
+import { generateId } from "@/utils/generateId";
 
 const Budgets = () => {
   const { state, setBudget, deleteBudget } = useFinance();
@@ -211,7 +211,68 @@ const Budgets = () => {
                 </Button>
               </DialogTrigger>
               <DialogContent>
-                {/* תוכן הדיאלוג זהה לקודם */}
+                <DialogHeader>
+                  <DialogTitle>הגדרת תקציב חדש</DialogTitle>
+                </DialogHeader>
+                
+                <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="category">קטגוריה</Label>
+                    <Select 
+                      value={newBudget.categoryId} 
+                      onValueChange={value => setNewBudget({...newBudget, categoryId: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="בחר קטגוריה" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {expenseCategories.map(category => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="amount">סכום תקציב</Label>
+                    <Input
+                      id="amount"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={newBudget.amount}
+                      onChange={e => setNewBudget({...newBudget, amount: e.target.value})}
+                      placeholder="הזן סכום תקציב"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="period">תקופה</Label>
+                    <Select 
+                      value={newBudget.period} 
+                      onValueChange={value => setNewBudget({...newBudget, period: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="daily">יומי</SelectItem>
+                        <SelectItem value="weekly">שבועי</SelectItem>
+                        <SelectItem value="monthly">חודשי</SelectItem>
+                        <SelectItem value="yearly">שנתי</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button variant="outline">ביטול</Button>
+                    </DialogClose>
+                    <Button type="submit">שמור</Button>
+                  </DialogFooter>
+                </form>
               </DialogContent>
             </Dialog>
           </div>
