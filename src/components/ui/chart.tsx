@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import * as RechartsPrimitive from "recharts"
 
@@ -238,7 +239,12 @@ const ChartTooltipContent = React.forwardRef<
                       </div>
                       {item.value && (
                         <span className="font-mono font-medium tabular-nums text-foreground">
-                          {item.value.toLocaleString()}
+                          {typeof item.value === 'number' 
+                            ? new Intl.NumberFormat('he-IL', { 
+                                style: 'currency', 
+                                currency: 'ILS' 
+                              }).format(item.value)
+                            : item.value.toLocaleString()}
                         </span>
                       )}
                     </div>

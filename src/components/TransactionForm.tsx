@@ -63,8 +63,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     // Validate form
     if (!formData.description.trim()) {
       toast({
-        title: "Error",
-        description: "Please enter a description",
+        title: "שגיאה",
+        description: "נא להזין תיאור",
         variant: "destructive",
       });
       return;
@@ -72,8 +72,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     
     if (!formData.amount || isNaN(Number(formData.amount)) || Number(formData.amount) <= 0) {
       toast({
-        title: "Error",
-        description: "Please enter a valid amount",
+        title: "שגיאה",
+        description: "נא להזין סכום תקין",
         variant: "destructive",
       });
       return;
@@ -81,8 +81,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     
     if (!formData.categoryId) {
       toast({
-        title: "Error",
-        description: "Please select a category",
+        title: "שגיאה",
+        description: "נא לבחור קטגוריה",
         variant: "destructive",
       });
       return;
@@ -101,14 +101,14 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
       if (isEditing && transaction) {
         updateTransaction({ ...transactionData, id: transaction.id });
         toast({
-          title: "Success",
-          description: "Transaction updated successfully",
+          title: "הצלחה",
+          description: "העסקה עודכנה בהצלחה",
         });
       } else {
         addTransaction(transactionData);
         toast({
-          title: "Success",
-          description: "Transaction added successfully",
+          title: "הצלחה",
+          description: "העסקה נוספה בהצלחה",
         });
       }
 
@@ -129,8 +129,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "An error occurred. Please try again.",
+        title: "שגיאה",
+        description: "אירעה שגיאה. נא לנסות שוב.",
         variant: "destructive",
       });
     }
@@ -144,7 +144,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="type">Transaction Type</Label>
+          <Label htmlFor="type">סוג עסקה</Label>
           <RadioGroup
             defaultValue={formData.type}
             value={formData.type}
@@ -154,24 +154,24 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="expense" id="expense" />
               <Label htmlFor="expense" className="cursor-pointer">
-                Expense
+                הוצאה
               </Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="income" id="income" />
               <Label htmlFor="income" className="cursor-pointer">
-                Income
+                הכנסה
               </Label>
             </div>
           </RadioGroup>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="description">Description</Label>
+          <Label htmlFor="description">תיאור</Label>
           <Input
             id="description"
             name="description"
-            placeholder="e.g., Grocery shopping"
+            placeholder="לדוגמה, קניות במרכול"
             value={formData.description}
             onChange={handleInputChange}
             className="transition-all"
@@ -179,7 +179,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="amount">Amount</Label>
+          <Label htmlFor="amount">סכום</Label>
           <Input
             id="amount"
             name="amount"
@@ -194,7 +194,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="date">Date</Label>
+          <Label htmlFor="date">תאריך</Label>
           <Input
             id="date"
             name="date"
@@ -206,13 +206,13 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="category">Category</Label>
+          <Label htmlFor="category">קטגוריה</Label>
           <Select
             value={formData.categoryId}
             onValueChange={(value) => handleSelectChange("categoryId", value)}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Select a category" />
+              <SelectValue placeholder="בחר קטגוריה" />
             </SelectTrigger>
             <SelectContent>
               {filteredCategories.length > 0 ? (
@@ -220,7 +220,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                   <SelectItem key={category.id} value={category.id}>
                     <div className="flex items-center">
                       <span
-                        className="w-2 h-2 rounded-full mr-2"
+                        className="w-2 h-2 rounded-full ml-2"
                         style={{ backgroundColor: category.color }}
                       />
                       {category.name}
@@ -229,7 +229,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                 ))
               ) : (
                 <SelectItem disabled value="none">
-                  No categories available for this type
+                  אין קטגוריות זמינות לסוג זה
                 </SelectItem>
               )}
             </SelectContent>
@@ -237,11 +237,11 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="notes">Notes (Optional)</Label>
+          <Label htmlFor="notes">הערות (אופציונלי)</Label>
           <Input
             id="notes"
             name="notes"
-            placeholder="Additional details..."
+            placeholder="פרטים נוספים..."
             value={formData.notes}
             onChange={handleInputChange}
             className="transition-all"
@@ -252,11 +252,11 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
       <DialogFooter>
         {onClose && (
           <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
+            ביטול
           </Button>
         )}
-        <Button type="submit" className="ml-2">
-          {isEditing ? "Update" : "Add"} Transaction
+        <Button type="submit" className="mr-2">
+          {isEditing ? "עדכן" : "הוסף"} עסקה
         </Button>
       </DialogFooter>
     </form>

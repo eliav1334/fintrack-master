@@ -45,15 +45,15 @@ const TransactionList = () => {
   const getDateFilterLabel = (filter: string) => {
     switch (filter) {
       case "today":
-        return "Today";
+        return "היום";
       case "this-week":
-        return "This Week";
+        return "השבוע";
       case "this-month":
-        return "This Month";
+        return "החודש";
       case "this-year":
-        return "This Year";
+        return "השנה";
       default:
-        return "All Time";
+        return "כל הזמן";
     }
   };
 
@@ -143,26 +143,26 @@ const TransactionList = () => {
 
   return (
     <div className="animate-fade-in p-6 space-y-6">
-      <h1 className="text-3xl font-semibold mb-6">Transactions</h1>
+      <h1 className="text-3xl font-semibold mb-6">עסקאות</h1>
 
       {/* Filters */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Search transactions..."
+              placeholder="חיפוש עסקאות..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="pr-10"
             />
           </div>
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
             <SelectTrigger>
-              <SelectValue placeholder="Category" />
+              <SelectValue placeholder="קטגוריה" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="all">כל הקטגוריות</SelectItem>
               {state.categories.map((category) => (
                 <SelectItem key={category.id} value={category.id}>
                   {category.name}
@@ -172,37 +172,37 @@ const TransactionList = () => {
           </Select>
           <Select value={typeFilter} onValueChange={setTypeFilter}>
             <SelectTrigger>
-              <SelectValue placeholder="Type" />
+              <SelectValue placeholder="סוג" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="income">Income</SelectItem>
-              <SelectItem value="expense">Expense</SelectItem>
+              <SelectItem value="all">כל הסוגים</SelectItem>
+              <SelectItem value="income">הכנסה</SelectItem>
+              <SelectItem value="expense">הוצאה</SelectItem>
             </SelectContent>
           </Select>
           <Select value={dateFilter} onValueChange={setDateFilter}>
             <SelectTrigger>
-              <SelectValue placeholder="Date Range" />
+              <SelectValue placeholder="טווח תאריכים" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Time</SelectItem>
-              <SelectItem value="today">Today</SelectItem>
-              <SelectItem value="this-week">This Week</SelectItem>
-              <SelectItem value="this-month">This Month</SelectItem>
-              <SelectItem value="this-year">This Year</SelectItem>
+              <SelectItem value="all">כל הזמן</SelectItem>
+              <SelectItem value="today">היום</SelectItem>
+              <SelectItem value="this-week">השבוע</SelectItem>
+              <SelectItem value="this-month">החודש</SelectItem>
+              <SelectItem value="this-year">השנה</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div className="flex justify-between mt-4">
           <div className="text-sm text-gray-500">
-            {filteredTransactions.length} transactions found
+            נמצאו {filteredTransactions.length} עסקאות
           </div>
           <Button 
             variant="outline"
             size="sm"
             onClick={resetFilters}
           >
-            Reset Filters
+            איפוס סינון
           </Button>
         </div>
       </div>
@@ -214,12 +214,12 @@ const TransactionList = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>תאריך</TableHead>
+                  <TableHead>תיאור</TableHead>
+                  <TableHead>קטגוריה</TableHead>
+                  <TableHead>סוג</TableHead>
+                  <TableHead className="text-left">סכום</TableHead>
+                  <TableHead className="text-left">פעולות</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -238,34 +238,34 @@ const TransactionList = () => {
                       <TableCell>
                         <span className="inline-flex items-center">
                           <span
-                            className="w-2 h-2 rounded-full mr-2"
+                            className="w-2 h-2 rounded-full ml-2"
                             style={{ backgroundColor: category?.color || "#9ca3af" }}
                           />
-                          {category?.name || "Uncategorized"}
+                          {category?.name || "ללא קטגוריה"}
                         </span>
                       </TableCell>
                       <TableCell>
                         <span className="inline-flex items-center">
                           {transaction.type === "income" ? (
-                            <ArrowUpCircle className="mr-1 h-4 w-4 text-finance-income" />
+                            <ArrowUpCircle className="ml-1 h-4 w-4 text-finance-income" />
                           ) : (
-                            <ArrowDownCircle className="mr-1 h-4 w-4 text-finance-expense" />
+                            <ArrowDownCircle className="ml-1 h-4 w-4 text-finance-expense" />
                           )}
-                          {transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}
+                          {transaction.type === "income" ? "הכנסה" : "הוצאה"}
                         </span>
                       </TableCell>
                       <TableCell className={cn(
-                        "text-right font-medium",
+                        "text-left font-medium",
                         transaction.type === "income" ? "text-finance-income" : "text-finance-expense"
                       )}>
                         {formatCurrency(transaction.amount)}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-left">
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => handleEdit(transaction)}
-                          className="mr-1"
+                          className="ml-1"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -287,14 +287,14 @@ const TransactionList = () => {
         ) : (
           <div className="py-16 text-center">
             <p className="text-gray-500">
-              No transactions found{" "}
+              לא נמצאו עסקאות{" "}
               {searchTerm || categoryFilter !== "all" || typeFilter !== "all" || dateFilter !== "all"
-                ? "with the current filters"
+                ? "עם הסינון הנוכחי"
                 : ""}
             </p>
             {(searchTerm || categoryFilter !== "all" || typeFilter !== "all" || dateFilter !== "all") && (
               <Button variant="link" onClick={resetFilters}>
-                Reset filters
+                איפוס סינון
               </Button>
             )}
           </div>
@@ -306,9 +306,9 @@ const TransactionList = () => {
         <Dialog open={!!editTransaction} onOpenChange={() => setEditTransaction(null)}>
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle>Edit Transaction</DialogTitle>
+              <DialogTitle>עריכת עסקה</DialogTitle>
               <DialogDescription>
-                Update the transaction details below
+                עדכן את פרטי העסקה להלן
               </DialogDescription>
             </DialogHeader>
             <TransactionForm
@@ -323,17 +323,17 @@ const TransactionList = () => {
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Delete Transaction</DialogTitle>
+            <DialogTitle>מחיקת עסקה</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this transaction? This action cannot be undone.
+              האם אתה בטוח שברצונך למחוק עסקה זו? פעולה זו אינה ניתנת לביטול.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowConfirmDialog(false)}>
-              Cancel
+              ביטול
             </Button>
             <Button variant="destructive" onClick={confirmDelete}>
-              Delete
+              מחק
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -17,14 +17,14 @@ export const parseCSV = async (
     reader.onload = (event) => {
       try {
         if (!event.target?.result) {
-          throw new Error("Failed to read file");
+          throw new Error("נכשלה קריאת הקובץ");
         }
 
         const csv = event.target.result as string;
         const lines = csv.split("\n").filter((line) => line.trim() !== "");
         const headers = lines[0].split(format.delimiter || ",").map((header) => header.trim());
 
-        // Validate required columns exist
+        // אימות קיום עמודות נדרשות
         const requiredColumns = ["amount", "date", "description"];
         const mapping = format.mapping;
         const missingColumns = requiredColumns.filter((col) => {
@@ -34,18 +34,18 @@ export const parseCSV = async (
 
         if (missingColumns.length > 0) {
           throw new Error(
-            `Required columns missing: ${missingColumns.join(", ")}`
+            `עמודות חובה חסרות: ${missingColumns.join(", ")}`
           );
         }
 
-        // Get column indices
+        // קבלת אינדקסים של עמודות
         const dateIndex = headers.indexOf(mapping.date);
         const amountIndex = headers.indexOf(mapping.amount);
         const descriptionIndex = headers.indexOf(mapping.description);
         const typeIndex = mapping.type ? headers.indexOf(mapping.type) : -1;
         const categoryIndex = mapping.category ? headers.indexOf(mapping.category) : -1;
 
-        // Parse rows
+        // ניתוח שורות
         const data: Omit<Transaction, "id">[] = [];
         for (let i = 1; i < lines.length; i++) {
           const values = lines[i].split(format.delimiter || ",").map((value) => value.trim());
@@ -53,7 +53,7 @@ export const parseCSV = async (
 
           let amount = parseFloat(values[amountIndex].replace(/[^\d.-]/g, ""));
           
-          // Determine transaction type
+          // קביעת סוג העסקה
           let type: "income" | "expense";
           if (typeIndex >= 0 && format.typeIdentifier) {
             const typeValue = values[typeIndex].toLowerCase();
@@ -64,12 +64,12 @@ export const parseCSV = async (
               type = "expense";
               amount = Math.abs(amount);
             } else {
-              // Default behavior: positive = income, negative = expense
+              // התנהגות ברירת מחדל: חיובי = הכנסה, שלילי = הוצאה
               type = amount >= 0 ? "income" : "expense";
               amount = Math.abs(amount);
             }
           } else {
-            // Default behavior based on amount sign
+            // התנהגות ברירת מחדל על בסיס סימן הסכום
             type = amount >= 0 ? "income" : "expense";
             amount = Math.abs(amount);
           }
@@ -80,7 +80,7 @@ export const parseCSV = async (
             description: values[descriptionIndex],
             type,
             categoryId: categoryIndex >= 0 ? values[categoryIndex] : "",
-            notes: "Imported from file"
+            notes: "יובא מקובץ"
           };
 
           data.push(transaction);
@@ -90,13 +90,13 @@ export const parseCSV = async (
       } catch (error) {
         resolve({
           success: false,
-          error: error instanceof Error ? error.message : "Unknown error parsing file",
+          error: error instanceof Error ? error.message : "שגיאה לא ידועה בניתוח הקובץ",
         });
       }
     };
 
     reader.onerror = () => {
-      resolve({ success: false, error: "Error reading file" });
+      resolve({ success: false, error: "שגיאה בקריאת הקובץ" });
     };
 
     reader.readAsText(file);
@@ -107,12 +107,12 @@ export const parseExcel = async (
   file: File,
   format: FileImportFormat
 ): Promise<ParserResult> => {
-  // This is a placeholder for Excel parsing logic
-  // In a real application, we would use a library like SheetJS/xlsx
-  // For this demo, we'll just return an error that asks the user to use CSV instead
+  // זהו מציין מקום עבור לוגיקת ניתוח אקסל
+  // באפליקציה אמיתית, היינו משתמשים בספריה כמו SheetJS/xlsx
+  // עבור הדגמה זו, נחזיר שגיאה המבקשת מהמשתמש להשתמש ב-CSV במקום
   return {
     success: false,
-    error: "Excel parsing is not implemented yet. Please convert to CSV and try again.",
+    error: "ניתוח קבצי אקסל אינו מיושם עדיין. אנא המר ל-CSV ונסה שוב.",
   };
 };
 
@@ -140,7 +140,7 @@ export const parseFile = async (
     default:
       return {
         success: false,
-        error: "Unsupported file type. Please use CSV or Excel files.",
+        error: "סוג קובץ לא נתמך. אנא השתמש בקבצי CSV או אקסל.",
       };
   }
 };

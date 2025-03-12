@@ -41,7 +41,23 @@ const FileImport = () => {
   const [previewData, setPreviewData] = useState<Omit<Transaction, "id">[]>([]);
   const [showPreview, setShowPreview] = useState<boolean>(false);
   const [showNewFormatDialog, setShowNewFormatDialog] = useState<boolean>(false);
-  const [newFormat, setNewFormat] = useState<Omit<FileImportFormat, "id">>({
+  const [newFormat, setNewFormat] = useState<{
+    name: string;
+    mapping: {
+      date: string;
+      amount: string;
+      description: string;
+      type?: string;
+      category?: string;
+    };
+    dateFormat: string;
+    delimiter?: string;
+    typeIdentifier: {
+      column: string;
+      incomeValues: string[];
+      expenseValues: string[];
+    };
+  }>({
     name: "",
     mapping: {
       date: "",
@@ -74,8 +90,8 @@ const FileImport = () => {
   const handleImport = async () => {
     if (!selectedFile) {
       toast({
-        title: "Error",
-        description: "Please select a file to import",
+        title: "שגיאה",
+        description: "אנא בחר קובץ לייבוא",
         variant: "destructive",
       });
       return;
@@ -83,8 +99,8 @@ const FileImport = () => {
 
     if (!selectedFormatId) {
       toast({
-        title: "Error",
-        description: "Please select an import format",
+        title: "שגיאה",
+        description: "אנא בחר פורמט ייבוא",
         variant: "destructive",
       });
       return;
@@ -93,8 +109,8 @@ const FileImport = () => {
     const format = state.importFormats.find((f) => f.id === selectedFormatId);
     if (!format) {
       toast({
-        title: "Error",
-        description: "Selected format not found",
+        title: "שגיאה",
+        description: "פורמט הייבוא לא נמצא",
         variant: "destructive",
       });
       return;
@@ -111,8 +127,8 @@ const FileImport = () => {
 
       if (!result.success || !result.data) {
         toast({
-          title: "Error",
-          description: result.error || "Failed to parse file",
+          title: "שגיאה",
+          description: result.error || "הניתוח נכשל",
           variant: "destructive",
         });
         setIsImporting(false);
@@ -126,8 +142,8 @@ const FileImport = () => {
       setImportProgress(100);
     } catch (error) {
       toast({
-        title: "Error",
-        description: "An unexpected error occurred",
+        title: "שגיאה",
+        description: "אירעה שגיאה בלתי צפויה",
         variant: "destructive",
       });
     } finally {
@@ -138,8 +154,8 @@ const FileImport = () => {
   const confirmImport = () => {
     if (previewData.length === 0) {
       toast({
-        title: "Error",
-        description: "No data to import",
+        title: "שגיאה",
+        description: "אין נתונים לייבוא",
         variant: "destructive",
       });
       return;
@@ -148,8 +164,8 @@ const FileImport = () => {
     try {
       addTransactions(previewData);
       toast({
-        title: "Success",
-        description: `Imported ${previewData.length} transactions successfully`,
+        title: "הצלחה",
+        description: `יובאו ${previewData.length} עסקאות בהצלחה`,
       });
       
       // Reset state
@@ -165,8 +181,8 @@ const FileImport = () => {
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to import transactions",
+        title: "שגיאה",
+        description: "ייבוא העסקאות נכשל",
         variant: "destructive",
       });
     }
@@ -193,13 +209,21 @@ const FileImport = () => {
     const { name, value } = e.target;
     
     if (section && subField) {
-      setNewFormat((prev) => ({
-        ...prev,
-        [section]: {
-          ...prev[section as keyof typeof prev],
-          [subField]: value,
-        },
-      }));
+      setNewFormat((prev) => {
+        const updated = { ...prev };
+        if (section === "mapping" && updated.mapping) {
+          updated.mapping = {
+            ...updated.mapping,
+            [subField]: value,
+          };
+        } else if (section === "typeIdentifier" && updated.typeIdentifier) {
+          updated.typeIdentifier = {
+            ...updated.typeIdentifier,
+            [subField]: value,
+          };
+        }
+        return updated;
+      });
     } else if (section) {
       setNewFormat((prev) => ({
         ...prev,
@@ -219,21 +243,27 @@ const FileImport = () => {
     field: string
   ) => {
     const values = value.split(",").map((v) => v.trim()).filter((v) => v);
-    setNewFormat((prev) => ({
-      ...prev,
-      [section]: {
-        ...prev[section as keyof typeof prev],
-        [field]: values,
-      },
-    }));
+    
+    setNewFormat((prev) => {
+      if (section === "typeIdentifier") {
+        return {
+          ...prev,
+          typeIdentifier: {
+            ...prev.typeIdentifier,
+            [field]: values,
+          },
+        };
+      }
+      return prev;
+    });
   };
 
   const addNewFormat = () => {
     // Validate form
     if (!newFormat.name.trim()) {
       toast({
-        title: "Error",
-        description: "Please enter a format name",
+        title: "שגיאה",
+        description: "אנא הזן שם לפורמט",
         variant: "destructive",
       });
       return;
@@ -241,8 +271,8 @@ const FileImport = () => {
     
     if (!newFormat.mapping.date || !newFormat.mapping.amount || !newFormat.mapping.description) {
       toast({
-        title: "Error",
-        description: "Please fill in all required mapping fields",
+        title: "שגיאה",
+        description: "אנא מלא את כל שדות המיפוי הנדרשים",
         variant: "destructive",
       });
       return;
@@ -251,8 +281,8 @@ const FileImport = () => {
     try {
       addImportFormat(newFormat);
       toast({
-        title: "Success",
-        description: "New import format added successfully",
+        title: "הצלחה",
+        description: "פורמט ייבוא חדש נוסף בהצלחה",
       });
       
       // Reset form and close dialog
@@ -276,8 +306,8 @@ const FileImport = () => {
       setShowNewFormatDialog(false);
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to add new format",
+        title: "שגיאה",
+        description: "הוספת הפורמט החדש נכשלה",
         variant: "destructive",
       });
     }
@@ -292,19 +322,19 @@ const FileImport = () => {
 
   return (
     <div className="animate-fade-in p-6 space-y-6">
-      <h1 className="text-3xl font-semibold mb-6">Import Transactions</h1>
+      <h1 className="text-3xl font-semibold mb-6">ייבוא עסקאות</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="finance-card finance-card-hover">
           <CardHeader>
-            <CardTitle>Upload File</CardTitle>
+            <CardTitle>העלאת קובץ</CardTitle>
             <CardDescription>
-              Import transactions from a CSV or Excel file
+              ייבוא עסקאות מקובץ CSV או Excel
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="file-upload">Select File</Label>
+              <Label htmlFor="file-upload">בחר קובץ</Label>
               <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg p-6 text-center">
                 <Input
                   id="file-upload"
@@ -319,10 +349,10 @@ const FileImport = () => {
                     htmlFor="file-upload"
                     className="text-sm text-primary cursor-pointer hover:underline"
                   >
-                    {selectedFile ? selectedFile.name : "Click to select a file"}
+                    {selectedFile ? selectedFile.name : "לחץ לבחירת קובץ"}
                   </Label>
                   <p className="text-xs text-gray-500">
-                    Supported formats: CSV, Excel
+                    פורמטים נתמכים: CSV, Excel
                   </p>
                 </div>
               </div>
@@ -330,19 +360,19 @@ const FileImport = () => {
 
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <Label htmlFor="format">Import Format</Label>
+                <Label htmlFor="format">פורמט ייבוא</Label>
                 <Button
                   type="button"
                   variant="link"
                   className="p-0 h-auto text-xs"
                   onClick={() => setShowNewFormatDialog(true)}
                 >
-                  + Add New Format
+                  + הוסף פורמט חדש
                 </Button>
               </div>
               <Select value={selectedFormatId} onValueChange={handleFormatChange}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a format" />
+                  <SelectValue placeholder="בחר פורמט" />
                 </SelectTrigger>
                 <SelectContent>
                   {state.importFormats.map((format) => (
@@ -362,12 +392,12 @@ const FileImport = () => {
               {isImporting ? (
                 <>
                   <Upload className="mr-2 h-4 w-4 animate-spin" />
-                  Importing...
+                  מייבא...
                 </>
               ) : (
                 <>
                   <Upload className="mr-2 h-4 w-4" />
-                  Import Transactions
+                  ייבא עסקאות
                 </>
               )}
             </Button>
@@ -380,43 +410,43 @@ const FileImport = () => {
 
         <Card className="finance-card finance-card-hover">
           <CardHeader>
-            <CardTitle>Import Instructions</CardTitle>
+            <CardTitle>הוראות ייבוא</CardTitle>
             <CardDescription>
-              Learn how to prepare your file for import
+              למד כיצד להכין את הקובץ לייבוא
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <h3 className="font-medium">File Format Requirements</h3>
-              <ul className="list-disc pl-5 text-sm space-y-1">
-                <li>Use CSV or Excel file formats</li>
-                <li>Include headers in the first row</li>
-                <li>Required columns: Date, Amount, Description</li>
-                <li>Optional columns: Type, Category</li>
+              <h3 className="font-medium">דרישות פורמט הקובץ</h3>
+              <ul className="list-disc pr-5 text-sm space-y-1 text-right">
+                <li>השתמש בפורמט CSV או Excel</li>
+                <li>כותרות העמודות צריכות להיות בשורה הראשונה</li>
+                <li>עמודות חובה: תאריך, סכום, תיאור</li>
+                <li>עמודות אופציונליות: סוג, קטגוריה</li>
               </ul>
             </div>
             
             <div className="space-y-2">
-              <h3 className="font-medium">Column Formats</h3>
-              <ul className="list-disc pl-5 text-sm space-y-1">
+              <h3 className="font-medium">פורמט העמודות</h3>
+              <ul className="list-disc pr-5 text-sm space-y-1 text-right">
                 <li>
-                  <strong>Date:</strong> Use consistent date format (e.g., YYYY-MM-DD)
+                  <strong>תאריך:</strong> השתמש בפורמט תאריך עקבי (לדוגמה, YYYY-MM-DD)
                 </li>
                 <li>
-                  <strong>Amount:</strong> Numeric values (positive for income, negative for expenses)
+                  <strong>סכום:</strong> ערכים מספריים (חיובי להכנסה, שלילי להוצאה)
                 </li>
                 <li>
-                  <strong>Type:</strong> Text indicating transaction type (e.g., "income", "expense")
+                  <strong>סוג:</strong> טקסט המציין את סוג העסקה (לדוגמה, "הכנסה", "הוצאה")
                 </li>
               </ul>
             </div>
             
             <div className="space-y-2">
-              <h3 className="font-medium">Tips</h3>
-              <ul className="list-disc pl-5 text-sm space-y-1">
-                <li>Create separate formats for different bank exports</li>
-                <li>Preview data before confirming the import</li>
-                <li>Check category mappings to ensure correct categorization</li>
+              <h3 className="font-medium">טיפים</h3>
+              <ul className="list-disc pr-5 text-sm space-y-1 text-right">
+                <li>צור פורמטים נפרדים לייצוא נתונים מבנקים שונים</li>
+                <li>צפה בנתונים לפני אישור הייבוא</li>
+                <li>בדוק את מיפוי הקטגוריות כדי להבטיח קטגוריזציה נכונה</li>
               </ul>
             </div>
           </CardContent>
@@ -427,9 +457,9 @@ const FileImport = () => {
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
         <DialogContent className="sm:max-w-[900px] h-[80vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>Preview Transactions</DialogTitle>
+            <DialogTitle>תצוגה מקדימה של עסקאות</DialogTitle>
             <DialogDescription>
-              Review the transactions before importing
+              סקור את העסקאות לפני הייבוא
             </DialogDescription>
           </DialogHeader>
           
@@ -438,12 +468,12 @@ const FileImport = () => {
               <div className="space-y-4 p-1">
                 <div className="flex justify-between items-center">
                   <div>
-                    <span className="font-medium">Total Transactions: </span>
+                    <span className="font-medium">סה"כ עסקאות: </span>
                     <span>{previewData.length}</span>
                   </div>
                   <div className="flex items-center space-x-4">
                     <div>
-                      <span className="font-medium text-finance-income">Income: </span>
+                      <span className="font-medium text-finance-income">הכנסות: </span>
                       <span>
                         {formatCurrency(
                           previewData
@@ -453,7 +483,7 @@ const FileImport = () => {
                       </span>
                     </div>
                     <div>
-                      <span className="font-medium text-finance-expense">Expense: </span>
+                      <span className="font-medium text-finance-expense">הוצאות: </span>
                       <span>
                         {formatCurrency(
                           previewData
@@ -469,20 +499,20 @@ const FileImport = () => {
                   <table className="w-full">
                     <thead>
                       <tr className="bg-gray-50 dark:bg-gray-800">
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Date
-                        </th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Description
-                        </th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Type
-                        </th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Category
+                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          תאריך
                         </th>
                         <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Amount
+                          תיאור
+                        </th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          סוג
+                        </th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          קטגוריה
+                        </th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          סכום
                         </th>
                       </tr>
                     </thead>
@@ -493,26 +523,26 @@ const FileImport = () => {
                         );
                         return (
                           <tr key={index}>
-                            <td className="px-4 py-2 text-sm">
+                            <td className="px-4 py-2 text-sm text-right">
                               {tx.date}
                             </td>
-                            <td className="px-4 py-2 text-sm max-w-[200px] truncate">
+                            <td className="px-4 py-2 text-sm max-w-[200px] truncate text-right">
                               {tx.description}
                             </td>
-                            <td className="px-4 py-2 text-sm">
+                            <td className="px-4 py-2 text-sm text-right">
                               <span className="inline-flex items-center">
                                 {tx.type === "income" ? (
-                                  <ArrowUpCircle className="mr-1 h-3 w-3 text-finance-income" />
+                                  <ArrowUpCircle className="ml-1 h-3 w-3 text-finance-income" />
                                 ) : (
-                                  <ArrowDownCircle className="mr-1 h-3 w-3 text-finance-expense" />
+                                  <ArrowDownCircle className="ml-1 h-3 w-3 text-finance-expense" />
                                 )}
-                                {tx.type}
+                                {tx.type === "income" ? "הכנסה" : "הוצאה"}
                               </span>
                             </td>
-                            <td className="px-4 py-2 text-sm">
-                              {category?.name || "Uncategorized"}
+                            <td className="px-4 py-2 text-sm text-right">
+                              {category?.name || "ללא קטגוריה"}
                             </td>
-                            <td className={`px-4 py-2 text-sm text-right ${
+                            <td className={`px-4 py-2 text-sm text-left ${
                               tx.type === "income"
                                 ? "text-finance-income"
                                 : "text-finance-expense"
@@ -531,10 +561,10 @@ const FileImport = () => {
           
           <DialogFooter>
             <Button type="button" variant="outline" onClick={cancelImport}>
-              Cancel
+              ביטול
             </Button>
             <Button type="button" onClick={confirmImport}>
-              Import {previewData.length} Transactions
+              ייבא {previewData.length} עסקאות
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -544,80 +574,80 @@ const FileImport = () => {
       <Dialog open={showNewFormatDialog} onOpenChange={setShowNewFormatDialog}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>Create New Import Format</DialogTitle>
+            <DialogTitle>יצירת פורמט ייבוא חדש</DialogTitle>
             <DialogDescription>
-              Define how your file columns map to transaction data
+              הגדר כיצד עמודות הקובץ ממופות לנתוני העסקאות
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-6 py-4">
             <div className="space-y-2">
-              <Label htmlFor="format-name">Format Name</Label>
+              <Label htmlFor="format-name">שם הפורמט</Label>
               <Input
                 id="format-name"
                 name="name"
-                placeholder="e.g., My Bank Format"
+                placeholder="לדוגמה, פורמט הבנק שלי"
                 value={newFormat.name}
                 onChange={(e) => handleNewFormatChange(e)}
               />
             </div>
             
             <div className="space-y-4">
-              <h4 className="font-medium">Column Mapping</h4>
+              <h4 className="font-medium">מיפוי עמודות</h4>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="map-date">Date Column <span className="text-red-500">*</span></Label>
+                  <Label htmlFor="map-date">עמודת תאריך <span className="text-red-500">*</span></Label>
                   <Input
                     id="map-date"
-                    placeholder="e.g., Date"
+                    placeholder="לדוגמה, תאריך"
                     value={newFormat.mapping.date}
                     onChange={(e) => handleNewFormatChange(e, "mapping", "date")}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="map-amount">Amount Column <span className="text-red-500">*</span></Label>
+                  <Label htmlFor="map-amount">עמודת סכום <span className="text-red-500">*</span></Label>
                   <Input
                     id="map-amount"
-                    placeholder="e.g., Amount"
+                    placeholder="לדוגמה, סכום"
                     value={newFormat.mapping.amount}
                     onChange={(e) => handleNewFormatChange(e, "mapping", "amount")}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="map-description">Description Column <span className="text-red-500">*</span></Label>
+                  <Label htmlFor="map-description">עמודת תיאור <span className="text-red-500">*</span></Label>
                   <Input
                     id="map-description"
-                    placeholder="e.g., Description"
+                    placeholder="לדוגמה, תיאור"
                     value={newFormat.mapping.description}
                     onChange={(e) => handleNewFormatChange(e, "mapping", "description")}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="map-type">Type Column (Optional)</Label>
+                  <Label htmlFor="map-type">עמודת סוג (אופציונלי)</Label>
                   <Input
                     id="map-type"
-                    placeholder="e.g., Type"
+                    placeholder="לדוגמה, סוג"
                     value={newFormat.mapping.type || ""}
                     onChange={(e) => handleNewFormatChange(e, "mapping", "type")}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="map-category">Category Column (Optional)</Label>
+                  <Label htmlFor="map-category">עמודת קטגוריה (אופציונלי)</Label>
                   <Input
                     id="map-category"
-                    placeholder="e.g., Category"
+                    placeholder="לדוגמה, קטגוריה"
                     value={newFormat.mapping.category || ""}
                     onChange={(e) => handleNewFormatChange(e, "mapping", "category")}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="date-format">Date Format</Label>
+                  <Label htmlFor="date-format">פורמט תאריך</Label>
                   <Select 
                     value={newFormat.dateFormat}
                     onValueChange={(value) => setNewFormat(prev => ({ ...prev, dateFormat: value }))}
                   >
                     <SelectTrigger id="date-format">
-                      <SelectValue placeholder="Select date format" />
+                      <SelectValue placeholder="בחר פורמט תאריך" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
@@ -631,58 +661,58 @@ const FileImport = () => {
             </div>
             
             <div className="space-y-4">
-              <h4 className="font-medium">Transaction Type Configuration</h4>
+              <h4 className="font-medium">הגדרת סוג עסקה</h4>
               <div className="space-y-2">
-                <Label htmlFor="type-column">Type Identifier Column</Label>
+                <Label htmlFor="type-column">עמודת זיהוי סוג</Label>
                 <Input
                   id="type-column"
-                  placeholder="e.g., Type or Category"
+                  placeholder="לדוגמה, סוג או קטגוריה"
                   value={newFormat.typeIdentifier?.column || ""}
                   onChange={(e) => handleNewFormatChange(e, "typeIdentifier", "column")}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="income-values">
-                  Income Values (Comma-separated)
+                  ערכי הכנסה (מופרדים בפסיקים)
                 </Label>
                 <Input
                   id="income-values"
-                  placeholder="e.g., income,deposit,credit"
+                  placeholder="לדוגמה, הכנסה,זיכוי,משכורת"
                   value={newFormat.typeIdentifier?.incomeValues.join(", ") || ""}
                   onChange={(e) => handleArrayChange(e.target.value, "typeIdentifier", "incomeValues")}
                 />
-                <p className="text-xs text-gray-500">
-                  Words that indicate an income transaction
+                <p className="text-xs text-gray-500 text-right">
+                  מילים המציינות עסקת הכנסה
                 </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="expense-values">
-                  Expense Values (Comma-separated)
+                  ערכי הוצאה (מופרדים בפסיקים)
                 </Label>
                 <Input
                   id="expense-values"
-                  placeholder="e.g., expense,payment,debit"
+                  placeholder="לדוגמה, הוצאה,חיוב,תשלום"
                   value={newFormat.typeIdentifier?.expenseValues.join(", ") || ""}
                   onChange={(e) => handleArrayChange(e.target.value, "typeIdentifier", "expenseValues")}
                 />
-                <p className="text-xs text-gray-500">
-                  Words that indicate an expense transaction
+                <p className="text-xs text-gray-500 text-right">
+                  מילים המציינות עסקת הוצאה
                 </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="delimiter">CSV Delimiter</Label>
+                <Label htmlFor="delimiter">מפריד CSV</Label>
                 <Select
                   value={newFormat.delimiter || ","}
                   onValueChange={(value) => setNewFormat(prev => ({ ...prev, delimiter: value }))}
                 >
                   <SelectTrigger id="delimiter">
-                    <SelectValue placeholder="Select CSV delimiter" />
+                    <SelectValue placeholder="בחר מפריד CSV" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value=",">Comma (,)</SelectItem>
-                    <SelectItem value=";">Semicolon (;)</SelectItem>
-                    <SelectItem value="\t">Tab</SelectItem>
-                    <SelectItem value="|">Pipe (|)</SelectItem>
+                    <SelectItem value=",">פסיק (,)</SelectItem>
+                    <SelectItem value=";">נקודה-פסיק (;)</SelectItem>
+                    <SelectItem value="\t">טאב</SelectItem>
+                    <SelectItem value="|">צינור (|)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -691,10 +721,10 @@ const FileImport = () => {
           
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setShowNewFormatDialog(false)}>
-              Cancel
+              ביטול
             </Button>
             <Button type="button" onClick={addNewFormat}>
-              Save Format
+              שמור פורמט
             </Button>
           </DialogFooter>
         </DialogContent>

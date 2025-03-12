@@ -2,36 +2,36 @@
 import React, { createContext, useContext, useReducer, useEffect } from "react";
 import { Transaction, CategoryType, Budget, FileImportFormat } from "@/types";
 
-// Default categories
+// קטגוריות ברירת מחדל
 const DEFAULT_CATEGORIES: CategoryType[] = [
-  { id: "cat_1", name: "Salary", type: "income", color: "#34d399" },
-  { id: "cat_2", name: "Investments", type: "income", color: "#a78bfa" },
-  { id: "cat_3", name: "Food", type: "expense", color: "#f87171" },
-  { id: "cat_4", name: "Housing", type: "expense", color: "#60a5fa" },
-  { id: "cat_5", name: "Transportation", type: "expense", color: "#fbbf24" },
-  { id: "cat_6", name: "Entertainment", type: "expense", color: "#ec4899" },
-  { id: "cat_7", name: "Healthcare", type: "expense", color: "#14b8a6" },
-  { id: "cat_8", name: "Utilities", type: "expense", color: "#8b5cf6" },
-  { id: "cat_9", name: "Other", type: "expense", color: "#9ca3af" },
+  { id: "cat_1", name: "משכורת", type: "income", color: "#34d399" },
+  { id: "cat_2", name: "השקעות", type: "income", color: "#a78bfa" },
+  { id: "cat_3", name: "מזון", type: "expense", color: "#f87171" },
+  { id: "cat_4", name: "דיור", type: "expense", color: "#60a5fa" },
+  { id: "cat_5", name: "תחבורה", type: "expense", color: "#fbbf24" },
+  { id: "cat_6", name: "בידור", type: "expense", color: "#ec4899" },
+  { id: "cat_7", name: "בריאות", type: "expense", color: "#14b8a6" },
+  { id: "cat_8", name: "חשבונות", type: "expense", color: "#8b5cf6" },
+  { id: "cat_9", name: "אחר", type: "expense", color: "#9ca3af" },
 ];
 
-// Default import formats
+// פורמטי ייבוא ברירת מחדל
 const DEFAULT_IMPORT_FORMATS: FileImportFormat[] = [
   {
     id: "format_1",
-    name: "Generic CSV",
+    name: "CSV כללי",
     mapping: {
-      date: "Date",
-      amount: "Amount",
-      description: "Description",
-      type: "Type",
+      date: "תאריך",
+      amount: "סכום",
+      description: "תיאור",
+      type: "סוג",
     },
     dateFormat: "YYYY-MM-DD",
     delimiter: ",",
     typeIdentifier: {
-      column: "Type",
-      incomeValues: ["income", "deposit", "credit"],
-      expenseValues: ["expense", "withdrawal", "debit"],
+      column: "סוג",
+      incomeValues: ["הכנסה", "זיכוי", "הפקדה"],
+      expenseValues: ["הוצאה", "חיוב", "משיכה"],
     },
   },
 ];
@@ -194,7 +194,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [state, dispatch] = useReducer(financeReducer, initialState);
 
-  // Load data from localStorage on initial render
+  // טעינת נתונים מהאחסון המקומי בעת הרינדור הראשוני
   useEffect(() => {
     const savedState = localStorage.getItem("financeState");
     if (savedState) {
@@ -209,12 +209,12 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
           });
         }
       } catch (error) {
-        console.error("Error loading data from localStorage:", error);
+        console.error("שגיאה בטעינת נתונים מהאחסון המקומי:", error);
       }
     }
   }, []);
 
-  // Save data to localStorage whenever it changes
+  // שמירת נתונים באחסון המקומי בכל פעם שהם משתנים
   useEffect(() => {
     localStorage.setItem(
       "financeState",
@@ -225,7 +225,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
     );
   }, [state.transactions, state.budgets]);
 
-  // Generate a unique ID
+  // יצירת מזהה ייחודי
   const generateId = (prefix: string): string => {
     return `${prefix}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
   };
@@ -324,7 +324,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
 export const useFinance = (): FinanceContextType => {
   const context = useContext(FinanceContext);
   if (!context) {
-    throw new Error("useFinance must be used within a FinanceProvider");
+    throw new Error("useFinance חייב להיות בתוך FinanceProvider");
   }
   return context;
 };
