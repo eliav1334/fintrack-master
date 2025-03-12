@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useFinance } from "@/contexts/FinanceContext";
 import { Button } from "@/components/ui/button";
@@ -52,7 +51,8 @@ const Budgets = () => {
     const budget: Omit<Budget, "id"> = {
       categoryId: newBudget.categoryId,
       amount: parseFloat(newBudget.amount),
-      period: newBudget.period as "daily" | "weekly" | "monthly" | "yearly"
+      period: newBudget.period as "daily" | "weekly" | "monthly" | "yearly",
+      startDate: new Date().toISOString(),
     };
     
     setBudget(budget);
@@ -149,8 +149,7 @@ const Budgets = () => {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {state.budgets.length > 0 ? (
           state.budgets.map(budget => {
-            const category = state.categories.find(c => c.categoryId === budget.categoryId) || 
-                            state.categories.find(c => c.id === budget.categoryId);
+            const category = state.categories.find(c => c.id === budget.categoryId);
             const expenses = calculateExpenses(budget.categoryId);
             const percentage = Math.min(Math.round((expenses / budget.amount) * 100), 100);
             const isOverBudget = expenses > budget.amount;
@@ -194,8 +193,7 @@ const Budgets = () => {
                   
                   <Progress 
                     value={percentage} 
-                    className={isOverBudget ? "bg-red-200" : undefined}
-                    indicatorClassName={isOverBudget ? "bg-destructive" : undefined}
+                    className={isOverBudget ? "bg-red-200" : ""}
                   />
                 </div>
               </Card>

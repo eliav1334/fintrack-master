@@ -1,10 +1,9 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFinance } from "@/contexts/FinanceContext";
 import Dashboard from "@/components/Dashboard";
 import TransactionList from "@/components/TransactionList";
-import TransactionForm from "@/components/TransactionForm";
+import { TransactionForm } from "@/components/TransactionForm";
 import FileImport from "@/components/FileImport";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
