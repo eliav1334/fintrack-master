@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useReducer, useEffect } from "react";
 import { Transaction, CategoryType, Budget, FileImportFormat } from "@/types";
-import { FinanceContextType, FinanceState } from "./types";
+import { FinanceContextType, FinanceState, CategoryMapping } from "./types";
 import { financeReducer } from "./financeReducer";
 import { initialState } from "./defaultValues";
 import { generateId } from "@/utils/generateId";
@@ -27,6 +27,13 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
             dispatch({ type: "SET_BUDGET", payload: budget });
           });
         }
+        if (parsedState.categoryMappings) {
+          // טעינת מיפויי קטגוריות שמורים
+          dispatch({ 
+            type: "ADD_TRANSACTIONS", 
+            payload: [] 
+          }); // מיפויים מיושמים באופן אוטומטי בנכסים
+        }
       } catch (error) {
         console.error("שגיאה בטעינת נתונים מהאחסון המקומי:", error);
       }
@@ -40,9 +47,10 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
       JSON.stringify({
         transactions: state.transactions,
         budgets: state.budgets,
+        categoryMappings: state.categoryMappings
       })
     );
-  }, [state.transactions, state.budgets]);
+  }, [state.transactions, state.budgets, state.categoryMappings]);
 
   const addTransaction = (transaction: Omit<Transaction, "id">) => {
     const newTransaction: Transaction = {
@@ -112,6 +120,19 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
   const deleteImportFormat = (id: string) => {
     dispatch({ type: "DELETE_IMPORT_FORMAT", payload: id });
   };
+  
+  // פונקציות חדשות לניהול מיפויי קטגוריות
+  const addCategoryMapping = (mapping: Omit<CategoryMapping, "id">) => {
+    dispatch({ type: "ADD_CATEGORY_MAPPING", payload: mapping });
+  };
+  
+  const updateCategoryMapping = (mapping: CategoryMapping) => {
+    dispatch({ type: "UPDATE_CATEGORY_MAPPING", payload: mapping });
+  };
+  
+  const deleteCategoryMapping = (description: string) => {
+    dispatch({ type: "DELETE_CATEGORY_MAPPING", payload: description });
+  };
 
   return (
     <FinanceContext.Provider
@@ -129,6 +150,9 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
         addImportFormat,
         updateImportFormat,
         deleteImportFormat,
+        addCategoryMapping,
+        updateCategoryMapping,
+        deleteCategoryMapping
       }}
     >
       {children}

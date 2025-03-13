@@ -1,11 +1,17 @@
 
 import { CategoryType, Transaction, Budget, FileImportFormat } from "@/types";
 
+export type CategoryMapping = {
+  description: string;
+  categoryId: string;
+};
+
 export type FinanceState = {
   transactions: Transaction[];
   categories: CategoryType[];
   budgets: Budget[];
   importFormats: FileImportFormat[];
+  categoryMappings: CategoryMapping[];
   isLoading: boolean;
   error: string | null;
 };
@@ -23,6 +29,9 @@ export type FinanceAction =
   | { type: "ADD_IMPORT_FORMAT"; payload: FileImportFormat }
   | { type: "UPDATE_IMPORT_FORMAT"; payload: FileImportFormat }
   | { type: "DELETE_IMPORT_FORMAT"; payload: string }
+  | { type: "ADD_CATEGORY_MAPPING"; payload: CategoryMapping }
+  | { type: "UPDATE_CATEGORY_MAPPING"; payload: CategoryMapping }
+  | { type: "DELETE_CATEGORY_MAPPING"; payload: string }
   | { type: "SET_LOADING"; payload: boolean }
   | { type: "SET_ERROR"; payload: string | null };
 
@@ -40,4 +49,7 @@ export type FinanceContextType = {
   addImportFormat: (format: Omit<FileImportFormat, "id">) => void;
   updateImportFormat: (format: FileImportFormat) => void;
   deleteImportFormat: (id: string) => void;
+  addCategoryMapping: (mapping: Omit<CategoryMapping, "id">) => void;
+  updateCategoryMapping: (mapping: CategoryMapping) => void;
+  deleteCategoryMapping: (description: string) => void;
 };
