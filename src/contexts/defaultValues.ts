@@ -1,4 +1,3 @@
-
 import { CategoryType, FileImportFormat } from "@/types";
 import { FinanceState } from "./types";
 
@@ -96,7 +95,23 @@ export const DEFAULT_IMPORT_FORMATS: FileImportFormat[] = [
       incomeValues: ["זכות", "הפקדה"],
       expenseValues: ["חובה", "משיכה"],
     },
-  }
+  },
+  {
+    id: "format_6",
+    name: "כרטיס אשראי ישראלי",
+    mapping: {
+      date: "תאריך עסקה",
+      amount: "סכום חיוב",
+      description: "שם בית העסק",
+    },
+    dateFormat: "DD-MM-YYYY",
+    delimiter: ",",
+    typeIdentifier: {
+      column: "amount",
+      incomeValues: [],
+      expenseValues: [],
+    },
+  },
 ];
 
 export const initialState: FinanceState = {

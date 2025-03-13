@@ -131,70 +131,85 @@ export const parseExcel = async (
         
         console.log("Excel Workbook sheets:", workbook.SheetNames);
         
-        // המרה לנתונים בפורמט JSON
-        const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, { header: 1 });
+        // המרה לנתונים בפורמט JSON עם header: 1 כדי לקבל מערך שורות
+        const rawJsonData = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1 });
         
-        if (jsonData.length <= 1) {
+        if (rawJsonData.length <= 1) {
           throw new Error("הקובץ ריק או מכיל רק כותרות");
         }
         
-        // קריאת כותרות
-        const headers = jsonData[0] as string[];
-        console.log("Excel Headers:", headers);
-        console.log("Format mapping:", format.mapping);
+        console.log("Raw Excel rows:", rawJsonData.length);
         
-        // התאמה ספציפית לפורמט הקובץ של משתמש זה (אם תזהה שזהו פורמט הבנק הספציפי)
-        const isHebrewBankFormat = headers.some(h => 
-          h && typeof h === 'string' && (
-            h.includes('תאריך') || 
-            h.includes('סכום') || 
-            h.includes('תיאור')
-          )
-        );
+        // זיהוי שורת כותרות ראשית - תלוי בפורמט
+        let headerRowIndex = 0;
         
-        console.log("Is Hebrew Bank Format:", isHebrewBankFormat);
-        
-        // אם זיהינו פורמט בנק עברי ספציפי, נתאים את המיפוי
-        let adaptedMapping = { ...format.mapping };
-        if (isHebrewBankFormat) {
-          // חפש כותרות ספציפיות לפורמט העברי
-          for (let i = 0; i < headers.length; i++) {
-            const header = headers[i];
-            if (typeof header === 'string') {
-              if (header.includes('תאריך') || header.includes('תאריך ערך')) {
-                adaptedMapping.date = header;
-                console.log("Found date column:", header);
-              } else if (header.includes('תיאור') || header.includes('פרטים')) {
-                adaptedMapping.description = header;
-                console.log("Found description column:", header);
-              } else if (header.includes('סכום') || header.includes('חובה') || header.includes('זכות')) {
-                adaptedMapping.amount = header;
-                console.log("Found amount column:", header);
+        // זיהוי פורמט כרטיס אשראי ישראלי - מחפש אחרי שורות ריקות
+        if (format.name === "כרטיס אשראי ישראלי") {
+          // לדלג על שורות ריקות ומידע כללי בראש הקובץ
+          for (let i = 0; i < rawJsonData.length; i++) {
+            const row = rawJsonData[i];
+            // שורה שמכילה תאריך או שם בית עסק היא כנראה שורת הכותרות
+            if (row && Array.isArray(row) && row.length > 5) {
+              const rowStr = row.join(" ").toLowerCase();
+              if (rowStr.includes("תאריך") && rowStr.includes("סכום") && rowStr.includes("עסק")) {
+                headerRowIndex = i;
+                console.log("Found credit card header row at index:", headerRowIndex);
+                break;
               }
             }
           }
         }
         
-        // בדיקת עמודות חובה
-        const requiredColumns = ["amount", "date", "description"];
-        const missingColumns = requiredColumns.filter((col) => {
-          const mappedHeader = adaptedMapping[col as keyof typeof adaptedMapping];
-          return !mappedHeader || !headers.includes(mappedHeader);
-        });
+        // חילוץ שורת הכותרות והשורות שלאחריה
+        const headers = rawJsonData[headerRowIndex] || [];
+        const jsonData = rawJsonData.slice(headerRowIndex + 1);
+        
+        console.log("Excel Headers:", headers);
+        console.log("Using format:", format.name);
+        console.log("Format mapping:", format.mapping);
+        
+        // חיפוש אינדקסים של העמודות הרלוונטיות
+        let dateIndex = -1;
+        let amountIndex = -1;
+        let descriptionIndex = -1;
+        let typeIndex = -1;
+        let categoryIndex = -1;
 
-        if (missingColumns.length > 0) {
-          console.error("Missing columns:", missingColumns, "Available headers:", headers);
-          throw new Error(
-            `עמודות חובה חסרות או לא זוהו: ${missingColumns.join(", ")}`
-          );
+        // התאמה לפורמט כרטיס אשראי ישראלי
+        if (format.name === "כרטיס אשראי ישראלי") {
+          for (let i = 0; i < headers.length; i++) {
+            const header = headers[i];
+            if (typeof header === 'string') {
+              // בדיקת כל עמודה אפשרית
+              if (header.includes("תאריך") && header.includes("עסקה")) {
+                dateIndex = i;
+              } else if (header.includes("שם בית העסק")) {
+                descriptionIndex = i;
+              } else if (header.includes("סכום") && header.includes("חיוב")) {
+                amountIndex = i;
+              }
+            }
+          }
+        } else {
+          // התאמה רגילה לפי מיפוי הפורמט
+          for (let i = 0; i < headers.length; i++) {
+            const header = headers[i];
+            if (typeof header === 'string') {
+              const headerStr = header.toString().trim();
+              if (headerStr === format.mapping.date) {
+                dateIndex = i;
+              } else if (headerStr === format.mapping.amount) {
+                amountIndex = i;
+              } else if (headerStr === format.mapping.description) {
+                descriptionIndex = i;
+              } else if (format.mapping.type && headerStr === format.mapping.type) {
+                typeIndex = i;
+              } else if (format.mapping.category && headerStr === format.mapping.category) {
+                categoryIndex = i;
+              }
+            }
+          }
         }
-
-        // קבלת אינדקסים של עמודות
-        const dateIndex = headers.indexOf(adaptedMapping.date);
-        const amountIndex = headers.indexOf(adaptedMapping.amount);
-        const descriptionIndex = headers.indexOf(adaptedMapping.description);
-        const typeIndex = adaptedMapping.type ? headers.indexOf(adaptedMapping.type) : -1;
-        const categoryIndex = adaptedMapping.category ? headers.indexOf(adaptedMapping.category) : -1;
 
         console.log("Column indices:", {
           date: dateIndex,
@@ -204,17 +219,43 @@ export const parseExcel = async (
           category: categoryIndex
         });
 
+        // בדיקת עמודות חובה
+        if (dateIndex === -1 || amountIndex === -1 || descriptionIndex === -1) {
+          console.error("Missing required columns. Headers:", headers);
+          const foundCols = [];
+          if (dateIndex !== -1) foundCols.push("תאריך");
+          if (amountIndex !== -1) foundCols.push("סכום");
+          if (descriptionIndex !== -1) foundCols.push("תיאור");
+          
+          throw new Error(
+            `לא זוהו כל העמודות הנדרשות. נמצאו: ${foundCols.join(", ")}`
+          );
+        }
+
         // ניתוח שורות
         const transactions: Omit<Transaction, "id">[] = [];
         
-        for (let i = 1; i < jsonData.length; i++) {
-          const row = jsonData[i] as any[];
-          if (!row || row.length < Math.max(dateIndex, amountIndex, descriptionIndex) + 1) {
-            continue;  // דילוג על שורות שאינן מכילות מספיק עמודות
+        for (let i = 0; i < jsonData.length; i++) {
+          const row = jsonData[i];
+          if (!row || !Array.isArray(row) || row.length < Math.max(dateIndex, amountIndex, descriptionIndex) + 1) {
+            continue;  // דילוג על שורות חסרות או קצרות מדי
           }
           
-          // טיפול בתאריך - ניסיון לפרסר פורמטים שונים
+          // בדיקה אם השורה ריקה - דילוג על שורות סיכום בסוף דוח כרטיס אשראי
+          if (row.every(cell => cell === null || cell === undefined || cell === "")) {
+            continue;
+          }
+          
           let dateValue = row[dateIndex];
+          let amountValue = row[amountIndex];
+          let descriptionValue = row[descriptionIndex];
+          
+          // דילוג על שורות שאינן מכילות נתוני עסקאות חיוניים
+          if (!dateValue && !amountValue && !descriptionValue) {
+            continue;
+          }
+          
+          // טיפול בתאריך
           let dateStr: string;
           
           if (dateValue instanceof Date) {
@@ -227,18 +268,30 @@ export const parseExcel = async (
             // טיפול במחרוזת תאריך
             dateStr = String(dateValue || '');
             
-            // ניקוי התאריך (הסרת תווים מיוחדים)
-            dateStr = dateStr.replace(/[^\d/.-]/g, '');
-            
-            // אם התאריך בפורמט עברי (DD/MM/YYYY)
-            if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(dateStr)) {
-              const parts = dateStr.split('/');
-              dateStr = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            // תיקון לפורמט תאריך בכרטיס אשראי - לדוגמה: DD-MM-YYYY
+            if (format.name === "כרטיס אשראי ישראלי" && typeof dateValue === 'string') {
+              // נסיון לחלץ תאריך בפורמט DD-MM-YYYY
+              const dateMatch = dateValue.match(/(\d{1,2})[-.\/](\d{1,2})[-.\/](\d{2,4})/);
+              if (dateMatch) {
+                const day = dateMatch[1].padStart(2, '0');
+                const month = dateMatch[2].padStart(2, '0');
+                let year = dateMatch[3];
+                if (year.length === 2) year = '20' + year;
+                dateStr = `${year}-${month}-${day}`;
+              }
+            } else {
+              // ניקוי התאריך (הסרת תווים מיוחדים)
+              dateStr = dateStr.replace(/[^\d/.-]/g, '');
+              
+              // אם התאריך בפורמט עברי (DD/MM/YYYY)
+              if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(dateStr)) {
+                const parts = dateStr.split('/');
+                dateStr = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+              }
             }
           }
 
           // טיפול בסכום
-          let amountValue = row[amountIndex];
           let amount: number;
           
           if (typeof amountValue === 'number') {
@@ -249,9 +302,17 @@ export const parseExcel = async (
             amount = parseFloat(amountStr) || 0;
           }
           
-          // קביעת סוג העסקה
-          let type: "income" | "expense";
-          if (typeIndex >= 0 && format.typeIdentifier) {
+          // בכרטיסי אשראי, הסכומים הם בדרך כלל חיוב (הוצאה)
+          let type: "income" | "expense" = "expense";
+          
+          if (format.name === "כרטיס אשראי ישראלי") {
+            // אם סכום שלילי בכרטיס אשראי, זה עשוי להיות החזר/זיכוי
+            if (amount < 0) {
+              type = "income";
+              amount = Math.abs(amount);
+            }
+          } else if (typeIndex >= 0 && format.typeIdentifier) {
+            // שימוש במזהה הסוג אם הוגדר בפורמט
             const typeValue = String(row[typeIndex] || '').toLowerCase();
             if (format.typeIdentifier.incomeValues.some(v => typeValue.includes(v.toLowerCase()))) {
               type = "income";
@@ -270,7 +331,7 @@ export const parseExcel = async (
             amount = Math.abs(amount);
           }
 
-          const description = String(row[descriptionIndex] || '');
+          const description = String(descriptionValue || '');
           
           // קיצור תיאורים ארוכים מדי
           const truncatedDescription = description.length > 100 
@@ -283,7 +344,7 @@ export const parseExcel = async (
             description: truncatedDescription,
             type,
             categoryId: categoryIndex >= 0 ? String(row[categoryIndex] || '') : "",
-            notes: "יובא מקובץ אקסל"
+            notes: format.name === "כרטיס אשראי ישראלי" ? "יובא מכרטיס אשראי" : "יובא מקובץ אקסל"
           };
 
           transactions.push(transaction);
