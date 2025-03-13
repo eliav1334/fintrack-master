@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Transaction, TransactionType } from "@/types";
 import { format } from "date-fns";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useFinance } from "@/contexts/FinanceContext";
 
 export interface TransactionFormData {
@@ -82,10 +82,12 @@ export const useTransactionForm = (
         [type]: value ? parseFloat(value) : 0
       }));
     } else {
+      // Fix for the spread type error - type assertion to ensure we're spreading an object
+      const prevValue = prev[type as keyof typeof prev] as Record<string, any> || {};
       setFormData((prev) => ({
         ...prev,
         [type]: {
-          ...prev[type as keyof typeof prev],
+          ...prevValue,
           [field]: field === "date" ? value : (value ? parseFloat(value) : 0)
         }
       }));
@@ -170,14 +172,14 @@ export const useTransactionForm = (
         date: formData.date,
         categoryId: formData.categoryId,
         notes: formData.notes.trim(),
-        // הוספת שדות חשמל אם רלוונטי
-        ...(formData.isElectricityBill && {
+        // Adding electricity fields only if relevant
+        ...(formData.isElectricityBill ? {
           isElectricityBill: true,
           mainMeterReading: formData.mainMeterReading,
           secondaryMeterReading: formData.secondaryMeterReading,
           electricityRate: formData.electricityRate,
           vatRate: formData.vatRate
-        })
+        } : {})
       };
 
       if (isEditing && initialTransaction) {
@@ -234,7 +236,9 @@ export const useTransactionForm = (
   return {
     formData,
     isEditing,
-    filteredCategories,
+    filteredCategories: state.categories.filter(
+      (category) => category.type === formData.type
+    ),
     handleInputChange,
     handleSelectChange,
     handleSwitchChange,
