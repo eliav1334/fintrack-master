@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFinance } from "@/contexts/FinanceContext";
@@ -11,6 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Budget, CategoryType } from "@/types";
 import { PlusCircle, ArrowLeft, FolderPlus } from "lucide-react";
 import BudgetForm from "@/components/budgets/BudgetForm";
@@ -168,15 +168,19 @@ const Budgets = () => {
           </div>
         </div>
         
-        {/* טאבים לסינון לפי קבוצות קטגוריות */}
+        {/* טאבים לסינון לפי קבוצות קטגוריות עם גלילה חלקה */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
-          <TabsList className="mb-4 overflow-x-auto flex w-full justify-start">
-            {groupNames.map(groupName => (
-              <TabsTrigger key={groupName} value={groupName} className="min-w-fit">
-                {groupName}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          <div className="relative">
+            <ScrollArea className="w-full whitespace-nowrap rounded-md border">
+              <TabsList className="inline-flex w-max py-2 px-4">
+                {groupNames.map(groupName => (
+                  <TabsTrigger key={groupName} value={groupName} className="min-w-fit mx-1">
+                    {groupName}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </ScrollArea>
+          </div>
           
           {groupNames.map(groupName => (
             <TabsContent key={groupName} value={groupName}>
