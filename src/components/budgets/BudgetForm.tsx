@@ -78,7 +78,7 @@ const BudgetForm = ({ expenseCategories, onSubmit }: BudgetFormProps) => {
         <Label htmlFor="period">תקופה</Label>
         <Select 
           value={newBudget.period} 
-          onValueChange={value => setNewBudget({...newBudget, period: value})}
+          onValueChange={(value: "daily" | "weekly" | "monthly" | "yearly") => setNewBudget({...newBudget, period: value})}
         >
           <SelectTrigger>
             <SelectValue />
