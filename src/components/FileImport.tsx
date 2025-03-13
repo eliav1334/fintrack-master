@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useFinance } from "@/contexts/FinanceContext";
 import { FileImportFormat, Transaction } from "@/types";
@@ -897,3 +898,92 @@ const FileImport = () => {
                     value={newFormat.mapping.cardNumber || ""}
                     onChange={(e) => handleNewFormatChange(e, "mapping", "cardNumber")}
                   />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="date-format">פורמט תאריך</Label>
+              <Input
+                id="date-format"
+                name="dateFormat"
+                placeholder="YYYY-MM-DD"
+                value={newFormat.dateFormat}
+                onChange={(e) => handleNewFormatChange(e)}
+              />
+              <p className="text-xs text-gray-500">
+                לדוגמה: YYYY-MM-DD, DD/MM/YYYY, MM/DD/YYYY
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="delimiter">תו מפריד (לקבצי CSV)</Label>
+              <Input
+                id="delimiter"
+                name="delimiter"
+                placeholder=","
+                value={newFormat.delimiter || ""}
+                onChange={(e) => handleNewFormatChange(e)}
+              />
+              <p className="text-xs text-gray-500">
+                לרוב משתמשים בפסיק (,) או טאב (\\t)
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="font-medium">זיהוי סוג העסקה</h4>
+              
+              <div className="space-y-2">
+                <Label htmlFor="type-column">עמודת זיהוי הסוג</Label>
+                <Input
+                  id="type-column"
+                  placeholder="שם העמודה לזיהוי הכנסה/הוצאה"
+                  value={newFormat.typeIdentifier.column}
+                  onChange={(e) => handleNewFormatChange(e, "typeIdentifier", "column")}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="income-values">ערכים להכנסה</Label>
+                  <Textarea
+                    id="income-values"
+                    placeholder="לדוגמה: הכנסה,זכות,income"
+                    value={newFormat.typeIdentifier.incomeValues.join(", ")}
+                    onChange={(e) => handleArrayChange(e.target.value, "typeIdentifier", "incomeValues")}
+                  />
+                  <p className="text-xs text-gray-500">
+                    הפרד ערכים בפסיקים
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="expense-values">ערכים להוצאה</Label>
+                  <Textarea
+                    id="expense-values"
+                    placeholder="לדוגמה: הוצאה,חובה,expense"
+                    value={newFormat.typeIdentifier.expenseValues.join(", ")}
+                    onChange={(e) => handleArrayChange(e.target.value, "typeIdentifier", "expenseValues")}
+                  />
+                  <p className="text-xs text-gray-500">
+                    הפרד ערכים בפסיקים
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewFormatDialog(false)}>
+              ביטול
+            </Button>
+            <Button onClick={addNewFormat}>
+              הוסף פורמט
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default FileImport;
