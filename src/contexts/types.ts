@@ -32,6 +32,7 @@ export type FinanceAction =
   | { type: "ADD_CATEGORY_MAPPING"; payload: CategoryMapping }
   | { type: "UPDATE_CATEGORY_MAPPING"; payload: CategoryMapping }
   | { type: "DELETE_CATEGORY_MAPPING"; payload: string }
+  | { type: "SET_CATEGORY_MAPPINGS"; payload: CategoryMapping[] }
   | { type: "SET_LOADING"; payload: boolean }
   | { type: "SET_ERROR"; payload: string | null };
 

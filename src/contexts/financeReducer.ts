@@ -177,6 +177,11 @@ export const financeReducer = (state: FinanceState, action: FinanceAction): Fina
           mapping => mapping.description !== action.payload
         )
       };
+    case "SET_CATEGORY_MAPPINGS":
+      return {
+        ...state,
+        categoryMappings: action.payload
+      };
     case "SET_LOADING":
       return {
         ...state,
