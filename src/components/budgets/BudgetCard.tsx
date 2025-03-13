@@ -4,7 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Budget, CategoryType } from "@/types";
 import { Trash2, AlertCircle } from "lucide-react";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 
 interface BudgetCardProps {
@@ -19,31 +19,43 @@ const BudgetCard = ({ budget, category, expenses, onDelete }: BudgetCardProps) =
   const isOverBudget = expenses > budget.amount;
   const warningThreshold = 85; // התראה כשמגיעים ל-85% מהתקציב
   const isNearBudgetLimit = percentage >= warningThreshold && !isOverBudget;
+  const [hasNotified, setHasNotified] = useState(false);
   
-  // שליחת התראה כאשר מגיעים לסף האזהרה או חורגים מהתקציב
+  // שליחת התראה כאשר מגיעים לסף האזהרה או חורגים מהתקציב - רק פעם אחת
   useEffect(() => {
-    if (isOverBudget) {
-      toast({
-        title: "חריגה מהתקציב!",
-        description: `חרגת מהתקציב בקטגוריית ${category?.name || 'לא ידוע'}`,
-        variant: "destructive",
-      });
-    } else if (isNearBudgetLimit) {
-      toast({
-        title: "אזהרה!",
-        description: `הגעת ל-${percentage}% מהתקציב בקטגוריית ${category?.name || 'לא ידוע'}`,
-        variant: "default",
-      });
+    if (!hasNotified) {
+      if (isOverBudget) {
+        toast({
+          title: "חריגה מהתקציב",
+          description: `חרגת מהתקציב בקטגוריית ${category?.name || 'לא ידוע'}`,
+          variant: "destructive",
+        });
+        setHasNotified(true);
+      } else if (isNearBudgetLimit) {
+        toast({
+          title: "אזהרה",
+          description: `הגעת ל-${percentage}% מהתקציב בקטגוריית ${category?.name || 'לא ידוע'}`,
+          variant: "default",
+        });
+        setHasNotified(true);
+      }
     }
-  }, [isOverBudget, isNearBudgetLimit, percentage, category?.name]);
+  }, [isOverBudget, isNearBudgetLimit, percentage, category?.name, hasNotified]);
+
+  // איפוס דגל ההתראה כאשר משתנה אחוז הניצול (למשל בכל חודש חדש)
+  useEffect(() => {
+    if (percentage < warningThreshold) {
+      setHasNotified(false);
+    }
+  }, [percentage, warningThreshold]);
   
   return (
-    <Card className="p-6">
+    <Card className={`p-6 ${isOverBudget ? 'border-[#ea384c]/30' : isNearBudgetLimit ? 'border-amber-300' : ''}`}>
       <div className="flex justify-between items-start mb-4">
         <div>
           <h3 className="text-xl font-semibold flex items-center gap-2">
             {category ? category.name : 'קטגוריה לא ידועה'}
-            {isOverBudget && <AlertCircle className="h-5 w-5 text-destructive" />}
+            {isOverBudget && <AlertCircle className="h-5 w-5 text-[#ea384c]" />}
           </h3>
           <p className="text-sm text-muted-foreground">
             {budget.period === "monthly" && "תקציב חודשי"}
@@ -65,7 +77,7 @@ const BudgetCard = ({ budget, category, expenses, onDelete }: BudgetCardProps) =
         <div className="flex justify-between">
           <span>
             {isOverBudget ? 
-              <span className="text-destructive font-medium">חריגה מהתקציב!</span> : 
+              <span className="text-[#ea384c] font-medium">חריגה מהתקציב!</span> : 
               isNearBudgetLimit ?
               <span className="text-amber-500 font-medium">{percentage}% מנוצל</span> :
               `${percentage}% מנוצל`
@@ -79,7 +91,14 @@ const BudgetCard = ({ budget, category, expenses, onDelete }: BudgetCardProps) =
         
         <Progress 
           value={percentage} 
-          className={isOverBudget ? "bg-red-200" : isNearBudgetLimit ? "bg-amber-200" : ""}
+          className={isOverBudget ? "bg-red-100" : isNearBudgetLimit ? "bg-amber-100" : ""}
+          indicatorClassName={
+            isOverBudget 
+              ? "bg-[#ea384c]" 
+              : isNearBudgetLimit 
+                ? "bg-amber-500" 
+                : undefined
+          }
         />
       </div>
     </Card>

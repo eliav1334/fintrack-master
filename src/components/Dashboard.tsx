@@ -33,6 +33,7 @@ const Dashboard = () => {
   const [timeData, setTimeData] = useState<{ date: string; income: number; expense: number }[]>([]);
   const [categoryData, setCategoryData] = useState<{ name: string; value: number; color: string }[]>([]);
   const [budgetAlerts, setBudgetAlerts] = useState<{ categoryName: string; current: number; limit: number; percentage: number }[]>([]);
+  const [notifiedBudgets, setNotifiedBudgets] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const today = new Date();
@@ -179,17 +180,24 @@ const Dashboard = () => {
     
     setBudgetAlerts(alerts);
 
-    // הצגת הודעת התראה עבור חריגות תקציב קריטיות
+    // הצגת הודעת התראה עבור חריגות תקציב קריטיות - רק פעם אחת עבור כל תקציב
     alerts.forEach((alert) => {
-      if (alert.percentage > 90) {
+      if (alert.percentage > 100 && !notifiedBudgets.has(alert.categoryName)) {
         toast({
           title: "התראת תקציב",
           description: `השתמשת ב-${alert.percentage.toFixed(0)}% מהתקציב שלך בקטגוריית ${alert.categoryName}`,
           variant: "destructive",
         });
+        
+        // שמירת התקציבים שכבר הוצגה עליהם התראה
+        setNotifiedBudgets(prev => {
+          const newSet = new Set(prev);
+          newSet.add(alert.categoryName);
+          return newSet;
+        });
       }
     });
-  }, [state.transactions, state.categories, state.budgets, toast]);
+  }, [state.transactions, state.categories, state.budgets, toast, notifiedBudgets]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("he-IL", {
