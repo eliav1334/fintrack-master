@@ -11,8 +11,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
   BarChart3, PlusCircle, FileText, 
-  PieChart, Settings, ArrowDownUp 
+  PieChart, Settings, ArrowDownUp, FileBarChart 
 } from "lucide-react";
+import { AdvancedReportView } from "@/components/reports";
+import { RecommendationsCard } from "@/components/dashboard";
+import { useFinanceDashboard } from "@/hooks/useFinanceDashboard";
 
 const Index = () => {
   const { state } = useFinance();
@@ -24,6 +27,10 @@ const Index = () => {
   const tabParam = queryParams.get('tab');
   
   const [activeTab, setActiveTab] = useState(tabParam || "dashboard");
+  const [selectedDate] = useState(new Date());
+  
+  // הוק לקבלת נתוני דשבורד
+  const { stats } = useFinanceDashboard(selectedDate);
 
   // עדכון ה-URL כאשר הטאב משתנה, אבל ללא ריענון הדף
   useEffect(() => {
@@ -47,6 +54,25 @@ const Index = () => {
 
   const handleNavigateToBudgets = () => {
     navigate('/budgets');
+  };
+
+  const recommendations = {
+    recommendations: [
+      {
+        title: "הפחתת הוצאות לא חיוניות",
+        description: "זיהינו שההוצאות בקטגוריות כמו בילויים ותחביבים גבוהות. שקול להפחית הוצאות אלו.",
+        savingPotential: 1500,
+        priority: "medium" as const
+      },
+      {
+        title: "תשלומים קבועים",
+        description: "זיהינו מספר תשלומים קבועים שכדאי לבדוק אם הם הכרחיים, כמו מנויים שאינם בשימוש.",
+        savingPotential: 800,
+        priority: "high" as const
+      }
+    ],
+    hasRecommendations: true,
+    savingsPotential: 2300
   };
 
   return (
@@ -73,7 +99,7 @@ const Index = () => {
           className="w-full"
         >
           {/* תפריט ניווט */}
-          <TabsList className="grid grid-cols-5 mb-8 w-full max-w-4xl mx-auto">
+          <TabsList className="grid grid-cols-6 mb-8 w-full max-w-5xl mx-auto">
             <TabsTrigger value="dashboard" className="flex flex-col items-center gap-1 py-3">
               <BarChart3 className="h-5 w-5" />
               <span>דשבורד</span>
@@ -94,6 +120,10 @@ const Index = () => {
               <PieChart className="h-5 w-5" />
               <span>דוחות</span>
             </TabsTrigger>
+            <TabsTrigger value="advanced-reports" className="flex flex-col items-center gap-1 py-3">
+              <FileBarChart className="h-5 w-5" />
+              <span>דוחות מתקדמים</span>
+            </TabsTrigger>
           </TabsList>
 
           {/* תוכן הלשוניות */}
@@ -101,6 +131,13 @@ const Index = () => {
             {/* דשבורד */}
             <TabsContent value="dashboard" className="animate-enter">
               <Dashboard />
+              
+              {/* קומפוננטת המלצות חדשה */}
+              {stats.balance < 0 && (
+                <div className="mt-6">
+                  <RecommendationsCard recommendations={recommendations} />
+                </div>
+              )}
             </TabsContent>
 
             {/* רשימת תנועות */}
@@ -173,6 +210,11 @@ const Index = () => {
                   </Card>
                 </div>
               </Card>
+            </TabsContent>
+            
+            {/* דוחות מתקדמים */}
+            <TabsContent value="advanced-reports" className="animate-enter">
+              <AdvancedReportView />
             </TabsContent>
           </div>
         </Tabs>

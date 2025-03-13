@@ -12,3 +12,5 @@ export * from "./useTransactionFormValidator";
 export * from "./useTransactionSubmit";
 export * from "./transactionFormModels";
 export * from "./ElectricityBillForm";
+export * from "./useAdvancedTransactionSearch";
+export * from "./useFinancialRecommendations";
