@@ -16,7 +16,13 @@ export const useFinanceDashboard = (selectedDate: Date) => {
   const { getMonthTransactions } = useTransactionFilters();
   const { calculateStats } = useFinanceStats(state.transactions, selectedDate);
   const { getCashFlowData, getCategoryData } = useChartData(state.transactions, state.categories, selectedDate);
-  const { checkBudgetAlerts, checkBalanceAlert } = useBudgetAlerts(state.budgets, state.categories, state.transactions, selectedDate);
+  const { checkBudgetAlerts, checkBalanceAlert } = useBudgetAlerts(
+    // Fixing parameter order to match the useBudgetAlerts hook definition:
+    state.transactions,
+    state.categories,
+    state.budgets,
+    selectedDate
+  );
 
   // מחשב נתונים סטטיסטיים
   const stats = useMemo(() => calculateStats(), [calculateStats]);
