@@ -11,12 +11,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Budget } from "@/types";
-import { PlusCircle, ArrowLeft } from "lucide-react";
+import { PlusCircle, ArrowLeft, FolderPlus } from "lucide-react";
 import BudgetForm from "@/components/budgets/BudgetForm";
 import BudgetList from "@/components/budgets/BudgetList";
+import CategoryForm from "@/components/budgets/CategoryForm";
 
 const Budgets = () => {
-  const { state, setBudget, deleteBudget } = useFinance();
+  const { state, setBudget, deleteBudget, addCategory } = useFinance();
   const navigate = useNavigate();
   
   // חישוב סכום ההוצאות לפי קטגוריה וחודש
@@ -58,23 +59,42 @@ const Budgets = () => {
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-xl font-semibold">הגדרת ומעקב אחר תקציבים</h2>
           
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="flex items-center gap-2">
-                <PlusCircle className="h-5 w-5" />
-                <span>תקציב חדש</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>הגדרת תקציב חדש</DialogTitle>
-              </DialogHeader>
-              <BudgetForm 
-                expenseCategories={expenseCategories} 
-                onSubmit={setBudget} 
-              />
-            </DialogContent>
-          </Dialog>
+          <div className="flex gap-4">
+            {/* דיאלוג להוספת קטגוריה חדשה */}
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <FolderPlus className="h-5 w-5" />
+                  <span>קטגוריה חדשה</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>הוספת קטגוריה חדשה</DialogTitle>
+                </DialogHeader>
+                <CategoryForm onSubmit={addCategory} />
+              </DialogContent>
+            </Dialog>
+            
+            {/* דיאלוג להוספת תקציב חדש */}
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="flex items-center gap-2">
+                  <PlusCircle className="h-5 w-5" />
+                  <span>תקציב חדש</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>הגדרת תקציב חדש</DialogTitle>
+                </DialogHeader>
+                <BudgetForm 
+                  expenseCategories={expenseCategories} 
+                  onSubmit={setBudget} 
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
         
         <BudgetList 
