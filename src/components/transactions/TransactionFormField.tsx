@@ -12,7 +12,10 @@ interface TransactionFormFieldProps {
   placeholder?: string;
   step?: string;
   min?: string;
+  max?: string;
   className?: string;
+  disabled?: boolean;
+  required?: boolean;
 }
 
 export const TransactionFormField: React.FC<TransactionFormFieldProps> = ({
@@ -24,11 +27,14 @@ export const TransactionFormField: React.FC<TransactionFormFieldProps> = ({
   placeholder,
   step,
   min,
+  max,
   className,
+  disabled,
+  required,
 }) => {
   return (
     <div className="space-y-2">
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id}>{label}{required && <span className="text-destructive ml-1">*</span>}</Label>
       <Input
         id={id}
         name={id}
@@ -38,6 +44,9 @@ export const TransactionFormField: React.FC<TransactionFormFieldProps> = ({
         onChange={onChange}
         step={step}
         min={min}
+        max={max}
+        disabled={disabled}
+        required={required}
         className={`transition-all ${className || ""}`}
       />
     </div>

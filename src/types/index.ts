@@ -16,6 +16,20 @@ export type Transaction = {
   categoryId: string;
   notes?: string;
   cardNumber?: string;
+  // שדות עבור תחשיב חשמל
+  isElectricityBill?: boolean;
+  mainMeterReading?: {
+    current: number;
+    previous: number;
+    date: string;
+  };
+  secondaryMeterReading?: {
+    current: number;
+    previous: number;
+    date: string;
+  };
+  electricityRate?: number;
+  vatRate?: number;
 };
 
 // הוספת טיפוס עבור סוגי עסקאות - חסר היה ייבוא ב-Dashboard וב-TransactionForm
