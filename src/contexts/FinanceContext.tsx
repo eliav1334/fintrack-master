@@ -39,10 +39,12 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     }
     
-    // הפעלת בדיקת ההכנסות החודשיות לאחר טעינת הנתונים
-    setTimeout(() => {
+    // הפעלת בדיקת ההכנסות החודשיות לאחר טעינת הנתונים (רק פעם אחת)
+    const checkTimeout = setTimeout(() => {
       checkForMonthlyIncome();
     }, 500);
+    
+    return () => clearTimeout(checkTimeout);
   }, []);
 
   // שמירת נתונים באחסון המקומי בכל פעם שהם משתנים
@@ -59,9 +61,25 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
   
   /**
    * בדיקה ותוספת הכנסה חודשית אוטומטית של 16,000 ₪
+   * עם בדיקה קפדנית כדי למנוע כפילויות
    */
   const checkForMonthlyIncome = () => {
     const currentDate = new Date();
+    
+    // מיפוי עסקאות קיימות לפי חודש
+    const existingMonthlyIncomes = new Map();
+    
+    // איסוף כל העסקאות הקיימות של הכנסה חודשית קבועה
+    state.transactions.forEach(transaction => {
+      if (
+        transaction.type === "income" && 
+        transaction.amount === 16000 &&
+        transaction.description.includes("משכורת חודשית קבועה")
+      ) {
+        const transactionMonth = transaction.date ? format(new Date(transaction.date), "yyyy-MM") : "";
+        existingMonthlyIncomes.set(transactionMonth, true);
+      }
+    });
     
     // בדיקה עבור 7 חודשים אחורה (כולל החודש הנוכחי)
     const last7Months = Array.from({ length: 7 }, (_, i) => {
@@ -70,29 +88,20 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
       return format(date, "yyyy-MM");
     });
     
-    // מעבר על כל חודש ובדיקה אם יש הכנסה קבועה
+    // הכנת עסקאות חדשות להוספה
+    const newTransactions: Transaction[] = [];
+    
+    // מעבר על כל חודש ובד��קה אם יש הכנסה קבועה
     last7Months.forEach(month => {
-      const [year, monthNum] = month.split("-");
-      
       // בדיקה אם כבר קיימת הכנסה קבועה לחודש זה
-      const hasMonthlyIncome = state.transactions.some(transaction => {
-        const isMonthlyIncome = 
-          transaction.type === "income" && 
-          transaction.amount === 16000 &&
-          transaction.description.includes("משכורת חודשית קבועה");
+      if (!existingMonthlyIncomes.has(month)) {
+        const [year, monthNum] = month.split("-");
         
-        // בדיקה אם העסקה שייכת לחודש הנוכחי
-        const transactionMonth = transaction.date ? format(new Date(transaction.date), "yyyy-MM") : "";
-        
-        return isMonthlyIncome && transactionMonth === month;
-      });
-      
-      // אם אין הכנסה קבועה לחודש זה, מוסיף אותה
-      if (!hasMonthlyIncome) {
         // יצירת תאריך לתחילת החודש
         const date = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
         
-        const monthlyIncome: Omit<Transaction, "id"> = {
+        const monthlyIncome: Transaction = {
+          id: generateId(`tx-monthly-${month}`), // מזהה ייחודי הכולל את החודש
           description: "משכורת חודשית קבועה",
           amount: 16000,
           type: "income",
@@ -101,16 +110,16 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
           notes: `הכנסה חודשית קבועה לחודש ${month}`
         };
         
-        // הוספת העסקה
-        const newTransaction: Transaction = {
-          ...monthlyIncome,
-          id: generateId("tx-" + month),
-        };
-        
-        dispatch({ type: "ADD_TRANSACTION", payload: newTransaction });
+        // הוספה למערך העסקאות החדשות
+        newTransactions.push(monthlyIncome);
         console.log(`הוספה הכנסה חודשית של 16,000 ₪ לחודש ${month}`);
       }
     });
+    
+    // הוספת כל העסקאות החדשות בפעולה אחת אם יש כאלה
+    if (newTransactions.length > 0) {
+      dispatch({ type: "ADD_TRANSACTIONS", payload: newTransactions });
+    }
   };
 
   const addTransaction = (transaction: Omit<Transaction, "id">) => {
