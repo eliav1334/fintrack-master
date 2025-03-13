@@ -10,7 +10,8 @@ type ParserResult = {
 
 export const parseCSV = async (
   file: File,
-  format: FileImportFormat
+  format: FileImportFormat,
+  cardFilter?: string[]
 ): Promise<ParserResult> => {
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -48,12 +49,23 @@ export const parseCSV = async (
         const descriptionIndex = headers.indexOf(mapping.description);
         const typeIndex = mapping.type ? headers.indexOf(mapping.type) : -1;
         const categoryIndex = mapping.category ? headers.indexOf(mapping.category) : -1;
+        const cardNumberIndex = mapping.cardNumber ? headers.indexOf(mapping.cardNumber) : -1;
 
         // ניתוח שורות
         const data: Omit<Transaction, "id">[] = [];
         for (let i = 1; i < lines.length; i++) {
           const values = lines[i].split(format.delimiter || ",").map((value) => value.trim());
           if (values.length !== headers.length) continue;
+
+          // אם יש סינון לפי מספר כרטיס אשראי ויש עמודת מספר כרטיס
+          if (cardFilter?.length && cardNumberIndex !== -1) {
+            const cardNumber = values[cardNumberIndex];
+            // בדיקה אם מספר הכרטיס מוכל בפילטר שהוגדר
+            if (!cardFilter.some(filter => cardNumber.includes(filter))) {
+              // אם מספר הכרטיס לא נמצא ברשימת הפילטר, נדלג על השורה הזו
+              continue;
+            }
+          }
 
           let amount = parseFloat(values[amountIndex].replace(/[^\d.-]/g, ""));
           
@@ -87,6 +99,11 @@ export const parseCSV = async (
             notes: "יובא מקובץ"
           };
 
+          // הוספת מספר כרטיס לעסקה אם קיים
+          if (cardNumberIndex !== -1) {
+            transaction.cardNumber = values[cardNumberIndex];
+          }
+
           data.push(transaction);
         }
 
@@ -110,7 +127,8 @@ export const parseCSV = async (
 
 export const parseExcel = async (
   file: File,
-  format: FileImportFormat
+  format: FileImportFormat,
+  cardFilter?: string[]
 ): Promise<ParserResult> => {
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -174,6 +192,7 @@ export const parseExcel = async (
         let descriptionIndex = -1;
         let typeIndex = -1;
         let categoryIndex = -1;
+        let cardNumberIndex = -1;
 
         // התאמה לפורמט כרטיס אשראי ישראלי
         if (format.name === "כרטיס אשראי ישראלי") {
@@ -187,6 +206,9 @@ export const parseExcel = async (
                 descriptionIndex = i;
               } else if (header.includes("סכום") && header.includes("חיוב")) {
                 amountIndex = i;
+              } else if (header.includes("מספר כרטיס") || header.includes("תשלומים")) {
+                // בדרך כלל מספר כרטיס נמצא בעמודת התשלומים בפורמט ישראלי
+                cardNumberIndex = i;
               }
             }
           }
@@ -206,6 +228,8 @@ export const parseExcel = async (
                 typeIndex = i;
               } else if (format.mapping.category && headerStr === format.mapping.category) {
                 categoryIndex = i;
+              } else if (format.mapping.cardNumber && headerStr === format.mapping.cardNumber) {
+                cardNumberIndex = i;
               }
             }
           }
@@ -216,7 +240,8 @@ export const parseExcel = async (
           amount: amountIndex,
           description: descriptionIndex,
           type: typeIndex,
-          category: categoryIndex
+          category: categoryIndex,
+          cardNumber: cardNumberIndex
         });
 
         // בדיקת עמודות חובה
@@ -249,10 +274,23 @@ export const parseExcel = async (
           let dateValue = row[dateIndex];
           let amountValue = row[amountIndex];
           let descriptionValue = row[descriptionIndex];
+          let cardNumberValue = cardNumberIndex !== -1 ? row[cardNumberIndex] : null;
           
           // דילוג על שורות שאינן מכילות נתוני עסקאות חיוניים
           if (!dateValue && !amountValue && !descriptionValue) {
             continue;
+          }
+
+          // אם יש סינון לפי מספר כרטיס אשראי ויש עמודת מספר כרטיס
+          if (cardFilter?.length && cardNumberIndex !== -1 && cardNumberValue) {
+            // המרה למחרוזת במקרה שמדובר במספר או ערך אחר
+            const cardNumberStr = String(cardNumberValue);
+            
+            // בדיקה אם מספר הכרטיס מוכל בפילטר שהוגדר
+            if (!cardFilter.some(filter => cardNumberStr.includes(filter))) {
+              // אם מספר הכרטיס לא נמצא ברשימת הפילטר, נדלג על השורה הזו
+              continue;
+            }
           }
           
           // טיפול בתאריך
@@ -347,6 +385,11 @@ export const parseExcel = async (
             notes: format.name === "כרטיס אשראי ישראלי" ? "יובא מכרטיס אשראי" : "יובא מקובץ אקסל"
           };
 
+          // הוספת מספר כרטיס לעסקה אם קיים
+          if (cardNumberIndex !== -1 && cardNumberValue) {
+            transaction.cardNumber = String(cardNumberValue);
+          }
+
           transactions.push(transaction);
         }
 
@@ -382,17 +425,18 @@ export const detectFileType = (file: File): "csv" | "excel" | "unknown" => {
 
 export const parseFile = async (
   file: File,
-  format: FileImportFormat
+  format: FileImportFormat,
+  cardFilter?: string[]
 ): Promise<ParserResult> => {
-  console.log("Parsing file:", file.name, "type:", file.type);
+  console.log("Parsing file:", file.name, "type:", file.type, "card filter:", cardFilter);
   const fileType = detectFileType(file);
   console.log("Detected file type:", fileType);
   
   switch (fileType) {
     case "csv":
-      return parseCSV(file, format);
+      return parseCSV(file, format, cardFilter);
     case "excel":
-      return parseExcel(file, format);
+      return parseExcel(file, format, cardFilter);
     default:
       return {
         success: false,

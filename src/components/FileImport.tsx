@@ -28,6 +28,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 
 const FileImport = () => {
@@ -42,6 +43,12 @@ const FileImport = () => {
   const [showPreview, setShowPreview] = useState<boolean>(false);
   const [showNewFormatDialog, setShowNewFormatDialog] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [cardFilter, setCardFilter] = useState<string[]>([]);
+  const [cardNumbersInput, setCardNumbersInput] = useState<string>("");
+  const [extractedCardNumbers, setExtractedCardNumbers] = useState<string[]>([]);
+  const [selectedCardNumbers, setSelectedCardNumbers] = useState<string[]>([]);
+  const [showCardFilterDialog, setShowCardFilterDialog] = useState<boolean>(false);
+  
   const [newFormat, setNewFormat] = useState<{
     name: string;
     mapping: {
@@ -50,6 +57,7 @@ const FileImport = () => {
       description: string;
       type?: string;
       category?: string;
+      cardNumber?: string;
     };
     dateFormat: string;
     delimiter?: string;
@@ -66,6 +74,7 @@ const FileImport = () => {
       description: "",
       type: "",
       category: "",
+      cardNumber: "",
     },
     dateFormat: "YYYY-MM-DD",
     delimiter: ",",
@@ -76,7 +85,7 @@ const FileImport = () => {
     },
   });
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
       const fileExt = file.name.split('.').pop()?.toLowerCase();
@@ -91,11 +100,92 @@ const FileImport = () => {
       setErrorMessage(null);
       setPreviewData([]);
       setShowPreview(false);
+      
+      // נקה את רשימת מספרי הכרטיסים הנבחרים והמזוהים
+      setCardNumbersInput("");
+      setExtractedCardNumbers([]);
+      setSelectedCardNumbers([]);
+      
+      // אם יש פורמט נבחר, בדוק אם אפשר לחלץ מספרי כרטיסים מהקובץ
+      if (selectedFormatId) {
+        const format = state.importFormats.find(f => f.id === selectedFormatId);
+        if (format) {
+          await extractCardNumbersFromFile(file, format);
+        }
+      }
     }
   };
 
-  const handleFormatChange = (value: string) => {
+  const handleFormatChange = async (value: string) => {
     setSelectedFormatId(value);
+    
+    // אם כבר יש קובץ נבחר, נסה לחלץ מספרי כרטיסים מהקובץ
+    if (selectedFile) {
+      const format = state.importFormats.find(f => f.id === value);
+      if (format) {
+        await extractCardNumbersFromFile(selectedFile, format);
+      }
+    }
+  };
+
+  // פונקציה לחילוץ מספרי כרטיסי אשראי מהקובץ
+  const extractCardNumbersFromFile = async (file: File, format: FileImportFormat) => {
+    try {
+      setImportProgress(10);
+      
+      // ייבוא זמני ללא סינון כדי לזהות את כל מספרי הכרטיסים
+      const result = await parseFile(file, format);
+      
+      if (result.success && result.data && result.data.length > 0) {
+        // חילוץ מספרי כרטיסים ייחודיים
+        const uniqueCardNumbers = new Set<string>();
+        
+        result.data.forEach(tx => {
+          if (tx.cardNumber) {
+            uniqueCardNumbers.add(tx.cardNumber);
+          }
+        });
+        
+        const cardNumbers = Array.from(uniqueCardNumbers);
+        console.log("Extracted card numbers:", cardNumbers);
+        
+        if (cardNumbers.length > 0) {
+          setExtractedCardNumbers(cardNumbers);
+          setShowCardFilterDialog(true);
+        }
+      }
+      
+      setImportProgress(0);
+    } catch (error) {
+      console.error("Error extracting card numbers:", error);
+      setImportProgress(0);
+    }
+  };
+
+  const handleCardFilterChange = (cardNumber: string, checked: boolean) => {
+    if (checked) {
+      setSelectedCardNumbers(prev => [...prev, cardNumber]);
+    } else {
+      setSelectedCardNumbers(prev => prev.filter(num => num !== cardNumber));
+    }
+  };
+
+  const applyCardFilter = () => {
+    setCardFilter(selectedCardNumbers);
+    setShowCardFilterDialog(false);
+    
+    // עדכון הודעה למשתמש
+    if (selectedCardNumbers.length > 0) {
+      toast({
+        title: "סינון הוגדר",
+        description: `יבוצע סינון לפי ${selectedCardNumbers.length} מספרי כרטיסים`,
+      });
+    } else {
+      toast({
+        title: "סינון בוטל",
+        description: "יבואו כל העסקאות ללא סינון",
+      });
+    }
   };
 
   const handleImport = async () => {
@@ -132,10 +222,10 @@ const FileImport = () => {
     setErrorMessage(null);
 
     try {
-      // Parse the file
+      // Parse the file with card filtering
       setImportProgress(30);
-      console.log("Parsing file:", selectedFile.name, "with format:", format.name);
-      const result = await parseFile(selectedFile, format);
+      console.log("Parsing file:", selectedFile.name, "with format:", format.name, "card filter:", cardFilter);
+      const result = await parseFile(selectedFile, format, cardFilter.length > 0 ? cardFilter : undefined);
       setImportProgress(70);
 
       if (!result.success || !result.data) {
@@ -191,6 +281,8 @@ const FileImport = () => {
       setPreviewData([]);
       setShowPreview(false);
       setImportProgress(0);
+      setCardFilter([]);
+      setSelectedCardNumbers([]);
       
       // Clear file input
       const fileInput = document.getElementById("file-upload") as HTMLInputElement;
@@ -211,6 +303,8 @@ const FileImport = () => {
     setPreviewData([]);
     setShowPreview(false);
     setImportProgress(0);
+    setCardFilter([]);
+    setSelectedCardNumbers([]);
     
     // Clear file input
     const fileInput = document.getElementById("file-upload") as HTMLInputElement;
@@ -312,6 +406,7 @@ const FileImport = () => {
           description: "",
           type: "",
           category: "",
+          cardNumber: "",
         },
         dateFormat: "YYYY-MM-DD",
         delimiter: ",",
@@ -409,6 +504,30 @@ const FileImport = () => {
               </Select>
             </div>
 
+            {/* הצגת כרטיסי אשראי נבחרים לסינון */}
+            {cardFilter.length > 0 && (
+              <div className="p-3 bg-primary/10 rounded-md">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-medium text-sm">סינון לפי כרטיסי אשראי:</span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-7 px-2 text-xs"
+                    onClick={() => setShowCardFilterDialog(true)}
+                  >
+                    שנה
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {cardFilter.map((card) => (
+                    <span key={card} className="px-2 py-1 bg-primary/20 text-xs rounded-full">
+                      {card}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <Button
               onClick={handleImport}
               disabled={!selectedFile || !selectedFormatId || isImporting}
@@ -447,7 +566,7 @@ const FileImport = () => {
                 <li>השתמש בפורמט CSV או Excel (xlsx, xls)</li>
                 <li>כותרות העמודות צריכות להיות בשורה הראשונה</li>
                 <li>עמודות חובה: תאריך, סכום, תיאור</li>
-                <li>עמודות אופציונליות: סוג, קטגוריה</li>
+                <li>עמודות אופציונליות: סוג, קטגוריה, מספר כרטיס</li>
               </ul>
             </div>
             
@@ -463,6 +582,18 @@ const FileImport = () => {
                 <li>
                   <strong>סוג:</strong> טקסט המציין את סוג העסקה (לדוגמה, "הכנסה", "הוצאה")
                 </li>
+                <li>
+                  <strong>מספר כרטיס:</strong> עמודה המכילה את מספר כרטיס האשראי או מזהה אחר
+                </li>
+              </ul>
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="font-medium">סינון לפי כרטיס אשראי</h3>
+              <ul className="list-disc pr-5 text-sm space-y-1 text-right">
+                <li>ניתן לסנן עסקאות לפי מספרי כרטיסי אשראי ספציפיים</li>
+                <li>בחר כרטיסים מהרשימה לאחר בחירת קובץ</li>
+                <li>מערכת הסינון תציג רק עסקאות מהכרטיסים שנבחרו</li>
               </ul>
             </div>
             
@@ -477,6 +608,81 @@ const FileImport = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Dialog לבחירת כרטיסי אשראי לסינון */}
+      <Dialog open={showCardFilterDialog} onOpenChange={setShowCardFilterDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>סינון לפי כרטיסי אשראי</DialogTitle>
+            <DialogDescription>
+              בחר את מספרי כרטיסי האשראי שברצונך לייבא מהם עסקאות
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* רשימת כרטיסי אשראי שזוהו בקובץ */}
+            {extractedCardNumbers.length > 0 ? (
+              <div className="space-y-4">
+                <p className="text-sm">מספרי כרטיסי אשראי שזוהו בקובץ:</p>
+                <div className="space-y-2 border rounded-md p-3">
+                  {extractedCardNumbers.map((cardNumber) => (
+                    <div key={cardNumber} className="flex items-center space-x-2 pl-2 ml-2">
+                      <Checkbox 
+                        id={`card-${cardNumber}`}
+                        checked={selectedCardNumbers.includes(cardNumber)}
+                        onCheckedChange={(checked) => handleCardFilterChange(cardNumber, checked === true)}
+                      />
+                      <Label htmlFor={`card-${cardNumber}`} className="text-sm cursor-pointer">
+                        {cardNumber}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="flex justify-end pt-2">
+                  <p className="text-xs text-gray-500">
+                    נבחרו {selectedCardNumbers.length} מתוך {extractedCardNumbers.length} כרטיסים
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="py-6 text-center">
+                <p className="text-gray-500">לא זוהו מספרי כרטיסי אשראי בקובץ שנבחר</p>
+              </div>
+            )}
+            
+            {/* הוספה ידנית של מספרי כרטיסים */}
+            <div className="space-y-2">
+              <Label htmlFor="manual-card-numbers">הוסף מספרי כרטיסים ידנית (מופרדים בפסיקים)</Label>
+              <Input
+                id="manual-card-numbers"
+                placeholder="לדוגמה: 1234, 5678"
+                value={cardNumbersInput}
+                onChange={(e) => setCardNumbersInput(e.target.value)}
+              />
+              <p className="text-xs text-gray-500">
+                הוסף מספרי כרטיסים ידנית אם הם לא זוהו אוטומטית
+              </p>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSelectedCardNumbers([]);
+                setCardFilter([]);
+                setShowCardFilterDialog(false);
+              }}
+            >
+              בטל סינון
+            </Button>
+            <Button onClick={applyCardFilter}>
+              החל סינון
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Preview Dialog */}
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
@@ -534,6 +740,9 @@ const FileImport = () => {
                           סוג
                         </th>
                         <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          כרטיס
+                        </th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                           קטגוריה
                         </th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -563,6 +772,9 @@ const FileImport = () => {
                                 )}
                                 {tx.type === "income" ? "הכנסה" : "הוצאה"}
                               </span>
+                            </td>
+                            <td className="px-4 py-2 text-sm text-right">
+                              {tx.cardNumber || "-"}
                             </td>
                             <td className="px-4 py-2 text-sm text-right">
                               {category?.name || "ללא קטגוריה"}
@@ -663,6 +875,15 @@ const FileImport = () => {
                     placeholder="לדוגמה, קטגוריה"
                     value={newFormat.mapping.category || ""}
                     onChange={(e) => handleNewFormatChange(e, "mapping", "category")}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="map-card-number">עמודת מספר כרטיס (אופציונלי)</Label>
+                  <Input
+                    id="map-card-number"
+                    placeholder="לדוגמה, מספר כרטיס"
+                    value={newFormat.mapping.cardNumber || ""}
+                    onChange={(e) => handleNewFormatChange(e, "mapping", "cardNumber")}
                   />
                 </div>
                 <div className="space-y-2">

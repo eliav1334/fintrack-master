@@ -1,64 +1,44 @@
-
-export type TransactionType = 'income' | 'expense';
-
 export type CategoryType = {
   id: string;
   name: string;
-  type: TransactionType;
-  color?: string;
-  icon?: string;
-  budget?: number;
+  type: "income" | "expense";
+  color: string;
 };
 
 export type Transaction = {
   id: string;
-  amount: number;
-  type: TransactionType;
-  description: string;
   date: string;
+  amount: number;
+  description: string;
+  type: "income" | "expense";
   categoryId: string;
-  paymentMethod?: string;
   notes?: string;
+  cardNumber?: string; // הוספת שדה מספר כרטיס אשראי
 };
 
 export type Budget = {
   id: string;
   categoryId: string;
   amount: number;
-  period: 'daily' | 'weekly' | 'monthly' | 'yearly';
   startDate: string;
-  endDate?: string;
 };
 
 export type FileImportFormat = {
   id: string;
   name: string;
   mapping: {
-    amount: string;
     date: string;
+    amount: string;
     description: string;
     type?: string;
     category?: string;
+    cardNumber?: string;
   };
   dateFormat: string;
   delimiter?: string;
-  typeIdentifier?: {
+  typeIdentifier: {
     column: string;
     incomeValues: string[];
     expenseValues: string[];
   };
-  skipEmptyRows?: boolean;
-  headerRowIndex?: number;
-};
-
-export type ReportType = 'income' | 'expense' | 'balance' | 'category' | 'trend';
-export type ChartType = 'pie' | 'bar' | 'line' | 'area';
-
-export type ReportConfig = {
-  type: ReportType;
-  chartType: ChartType;
-  period: 'daily' | 'weekly' | 'monthly' | 'yearly';
-  startDate?: string;
-  endDate?: string;
-  categoryIds?: string[];
 };
