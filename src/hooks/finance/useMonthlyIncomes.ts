@@ -1,7 +1,7 @@
 
 import { generateId } from "@/utils/generateId";
 import { Transaction } from "@/types";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 
 /**
  * Hook to handle monthly income transactions
@@ -28,8 +28,8 @@ export const useMonthlyIncomes = () => {
     last7Months.forEach(month => {
       const [year, monthNum] = month.split("-");
       
-      // Create date for the beginning of the month
-      const date = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
+      // Create date for the 10th day of the month (payday)
+      const date = new Date(parseInt(year), parseInt(monthNum) - 1, 10);
       
       const monthlyIncome: Transaction = {
         id: generateId(`income-${month}`), // Unique ID for each month

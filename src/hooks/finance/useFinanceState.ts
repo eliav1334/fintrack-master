@@ -4,6 +4,7 @@ import { financeReducer } from "@/contexts/financeReducer";
 import { initialState } from "@/contexts/defaultValues";
 import { useMonthlyIncomes } from "./useMonthlyIncomes";
 import { Budget, Transaction } from "@/types";
+import { toast } from "sonner";
 
 /**
  * Hook to manage finance state with localStorage persistence
@@ -50,7 +51,8 @@ export const useFinanceState = () => {
       const monthlyIncomes = addMonthlyIncomes();
       dispatch({ type: "ADD_TRANSACTIONS", payload: monthlyIncomes });
       console.log(`נוספו ${monthlyIncomes.length} עסקאות הכנסה חודשית קבועה`);
-    }, 500);
+      toast.success(`נוספו ${monthlyIncomes.length} עסקאות הכנסה חודשית קבועה`);
+    }, 800);
     
     return () => clearTimeout(checkTimeout);
   }, []);
