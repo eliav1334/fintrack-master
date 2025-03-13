@@ -11,13 +11,19 @@ const Dashboard = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const { stats, timeData, categoryData, budgetAlerts, balanceAlert, formatCurrency } = useFinanceDashboard(selectedDate);
 
+  // פונקציה לעדכון תאריך נבחר
+  const handleDateChange = (date: Date) => {
+    // וידוא שמעדכנים את התאריך בצורה נכונה
+    setSelectedDate(new Date(date));
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold">דשבורד פיננסי</h2>
         <MonthPicker 
           selectedDate={selectedDate} 
-          onChange={setSelectedDate} 
+          onChange={handleDateChange} 
         />
       </div>
 

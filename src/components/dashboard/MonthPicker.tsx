@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { format, subMonths, addMonths, getYear, setMonth } from "date-fns";
 import { he } from "date-fns/locale";
@@ -35,13 +36,16 @@ const MonthPicker: React.FC<MonthPickerProps> = ({ selectedDate, onChange }) => 
   
   // פונקציה לשינוי החודש באמצעות הבוחר
   const handleMonthChange = (monthIndex: string) => {
-    const newDate = setMonth(selectedDate, parseInt(monthIndex));
+    // יצירת עותק של התאריך ושינוי החודש בלבד
+    const newDate = new Date(selectedDate);
+    newDate.setMonth(parseInt(monthIndex));
     onChange(newDate);
     setIsOpen(false);
   };
 
   // פונקציה לשינוי השנה
   const handleYearChange = (year: string) => {
+    // יצירת עותק של התאריך ושינוי השנה בלבד
     const newDate = new Date(selectedDate);
     newDate.setFullYear(parseInt(year));
     onChange(newDate);
@@ -59,7 +63,11 @@ const MonthPicker: React.FC<MonthPickerProps> = ({ selectedDate, onChange }) => 
         <Button
           variant="outline"
           size="icon"
-          onClick={() => changeMonth("prev")}
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            changeMonth("prev");
+          }}
           className="h-8 w-8"
         >
           <ChevronRight className="h-4 w-4" />
@@ -70,7 +78,9 @@ const MonthPicker: React.FC<MonthPickerProps> = ({ selectedDate, onChange }) => 
           <PopoverTrigger asChild>
             <Button 
               variant="outline" 
+              type="button"
               className="flex items-center justify-between min-w-[200px]"
+              onClick={(e) => e.preventDefault()}
             >
               <span>
                 {HEBREW_MONTHS[currentMonth]} {currentYear}
@@ -138,7 +148,11 @@ const MonthPicker: React.FC<MonthPickerProps> = ({ selectedDate, onChange }) => 
         <Button
           variant="outline"
           size="icon"
-          onClick={() => changeMonth("next")}
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            changeMonth("next");
+          }}
           className="h-8 w-8"
         >
           <ChevronLeft className="h-4 w-4" />
