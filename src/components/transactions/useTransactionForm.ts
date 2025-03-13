@@ -60,7 +60,7 @@ export const useTransactionForm = (
     return {
       description: "",
       amount: "",
-      type: "expense",
+      type: "expense" as TransactionType, // הוספת האילוץ לסוג TransactionType
       date: format(new Date(), "yyyy-MM-dd"),
       categoryId: "",
       notes: "",
@@ -108,7 +108,12 @@ export const useTransactionForm = (
 
   // טיפול בשינוי בחירה
   const handleSelectChange = (name: string, value: string) => {
-    setFormData((prevData) => ({ ...prevData, [name]: value }));
+    if (name === "type") {
+      // וודא שערך ה-type הוא תמיד מסוג TransactionType
+      setFormData((prevData) => ({ ...prevData, [name]: value as TransactionType }));
+    } else {
+      setFormData((prevData) => ({ ...prevData, [name]: value }));
+    }
   };
 
   // טיפול בשינוי מתג
@@ -158,7 +163,7 @@ export const useTransactionForm = (
 
       // איפוס הטופס והאחסון אם לא בעריכה
       if (!isEditing) {
-        const defaultFormData = {
+        const defaultFormData: TransactionFormData = {
           description: "",
           amount: "",
           type: "expense",

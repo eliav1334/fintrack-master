@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFinance } from "@/contexts/FinanceContext";
@@ -8,7 +9,8 @@ import CategoryForm from "@/components/budgets/CategoryForm";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { PlusCircle, ListChecks, Palette } from "lucide-react";
+import { PlusCircle } from "lucide-react";
+import { Budget } from "@/types";
 
 const Budgets = () => {
   const navigate = useNavigate();
@@ -20,6 +22,22 @@ const Budgets = () => {
   const expenseCategories = useMemo(() => {
     return state.categories.filter((category) => category.type === "expense");
   }, [state.categories]);
+
+  // פונקציה לחישוב הוצאות לקטגוריה
+  const calculateExpenses = (categoryId: string): number => {
+    return state.transactions
+      .filter(transaction => 
+        transaction.type === "expense" && 
+        transaction.categoryId === categoryId
+      )
+      .reduce((sum, transaction) => sum + transaction.amount, 0);
+  };
+
+  // טיפול בהוספת תקציב חדש
+  const handleAddBudget = (budget: Omit<Budget, "id">) => {
+    setBudget(budget);
+    setIsAddBudgetOpen(false);
+  };
 
   const handleNavigateToHome = () => {
     // נשתמש ב-navigate במקום ב-window.location
@@ -61,15 +79,18 @@ const Budgets = () => {
                   </DialogHeader>
                   <BudgetForm 
                     expenseCategories={expenseCategories} 
-                    onSubmit={(budget) => {
-                      setBudget(budget);
-                      setIsAddBudgetOpen(false);
-                    }} 
+                    onSubmit={handleAddBudget} 
                   />
                 </DialogContent>
               </Dialog>
             </div>
-            <BudgetList budgets={state.budgets} onDelete={deleteBudget} />
+            <BudgetList 
+              budgets={state.budgets} 
+              categories={state.categories} 
+              calculateExpenses={calculateExpenses} 
+              onDelete={deleteBudget}
+              onSubmit={handleAddBudget}
+            />
           </Card>
 
           {/* רשימת קטגוריות */}
