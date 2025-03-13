@@ -11,7 +11,7 @@ interface BudgetAlertItem {
   type?: "income" | "expense";
 }
 
-// הוספתי ממשק חדש להתראות מאזן
+// התראת מאזן מעודכנת לפי הסוג החדש
 interface BalanceAlert {
   isNegative: boolean;
   income: number;
@@ -21,7 +21,7 @@ interface BalanceAlert {
 
 interface BudgetAlertCardProps {
   alerts: BudgetAlertItem[];
-  balanceAlert?: BalanceAlert; // אופציונלי - התראת מאזן שלילי
+  balanceAlert?: BalanceAlert;
   formatCurrency: (value: number) => string;
 }
 

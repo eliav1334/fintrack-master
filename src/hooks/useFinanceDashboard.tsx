@@ -7,7 +7,12 @@ import { useToast } from "@/components/ui/use-toast";
 export const useFinanceDashboard = (selectedDate: Date = new Date()) => {
   const { state } = useFinance();
   const { toast } = useToast();
-  const [balanceAlert, setBalanceAlert] = useState<{ income: number; expenses: number; balance: number } | null>(null);
+  const [balanceAlert, setBalanceAlert] = useState<{
+    isNegative: boolean;
+    income: number;
+    expense: number;
+    difference: number;
+  } | null>(null);
 
   // פונקציה לפורמט סכומים כמטבע
   const formatCurrency = (value: number) => {
@@ -30,33 +35,71 @@ export const useFinanceDashboard = (selectedDate: Date = new Date()) => {
     );
   };
 
+  // קבלת נתוני החודש הקודם
+  const getPreviousMonthTransactions = () => {
+    const previousMonth = subMonths(selectedDate, 1);
+    const firstDay = startOfMonth(previousMonth);
+    const lastDay = endOfMonth(previousMonth);
+
+    return state.transactions.filter(
+      (tx) => {
+        const txDate = new Date(tx.date);
+        return txDate >= firstDay && txDate <= lastDay;
+      }
+    );
+  };
+
   // חישוב נתוני סיכום
   const calculateStats = () => {
     const monthTransactions = getMonthTransactions();
+    const prevMonthTransactions = getPreviousMonthTransactions();
     
+    // חישוב נתוני החודש הנוכחי
     const income = monthTransactions
       .filter((tx) => tx.type === "income")
       .reduce((sum, tx) => sum + tx.amount, 0);
     
-    const expenses = monthTransactions
+    const expense = monthTransactions
       .filter((tx) => tx.type === "expense")
       .reduce((sum, tx) => sum + tx.amount, 0);
     
-    const balance = income - expenses;
-    const savingsRate = income > 0 ? ((income - expenses) / income) * 100 : 0;
+    const balance = income - expense;
+    
+    // חישוב נתוני החודש הקודם לשם השוואה
+    const prevIncome = prevMonthTransactions
+      .filter((tx) => tx.type === "income")
+      .reduce((sum, tx) => sum + tx.amount, 0);
+    
+    const prevExpense = prevMonthTransactions
+      .filter((tx) => tx.type === "expense")
+      .reduce((sum, tx) => sum + tx.amount, 0);
+    
+    const prevBalance = prevIncome - prevExpense;
+
+    // חישוב אחוזי שינוי
+    const incomeChange = prevIncome ? ((income - prevIncome) / prevIncome) * 100 : 0;
+    const expenseChange = prevExpense ? ((expense - prevExpense) / prevExpense) * 100 : 0;
+    const balanceChange = prevBalance ? ((balance - prevBalance) / prevBalance) * 100 : 0;
 
     // בדיקת התראת מאזן
     if (balance < 0) {
-      setBalanceAlert({ income, expenses, balance });
+      setBalanceAlert({
+        isNegative: true,
+        income: income,
+        expense: expense,
+        difference: balance
+      });
     } else {
       setBalanceAlert(null);
     }
 
     return {
       income,
-      expenses,
+      expense,
       balance,
-      savingsRate,
+      incomeChange,
+      expenseChange,
+      balanceChange
     };
   };
 
@@ -152,9 +195,11 @@ export const useFinanceDashboard = (selectedDate: Date = new Date()) => {
       if (percentage >= 85) {
         alerts.push({
           categoryId: budget.categoryId,
-          spent: expenses,
+          categoryName: category.name,
+          current: expenses,
           limit: budgetLimit,
           percentage,
+          type: "expense" as const,
         });
       }
     }
@@ -173,7 +218,7 @@ export const useFinanceDashboard = (selectedDate: Date = new Date()) => {
     if (balanceAlert && isSameMonth(selectedDate, new Date())) {
       toast({
         title: "התראת מאזן שלילי!",
-        description: `ההוצאות שלך (${formatCurrency(balanceAlert.expenses)}) גבוהות מההכנסות (${formatCurrency(balanceAlert.income)}) בחודש זה.`,
+        description: `ההוצאות שלך (${formatCurrency(balanceAlert.expense)}) גבוהות מההכנסות (${formatCurrency(balanceAlert.income)}) בחודש זה.`,
         variant: "destructive",
       });
     }
