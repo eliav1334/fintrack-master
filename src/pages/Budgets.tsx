@@ -6,9 +6,36 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Wallet } from "lucide-react";
 import { Link } from "react-router-dom";
 import { BudgetList, CategoryList, BudgetPlanner } from "@/components/budgets";
+import { useFinance } from "@/contexts/FinanceContext";
+import { Budget } from "@/types";
+import { nanoid } from 'nanoid';
 
 const Budgets = () => {
   const [activeTab, setActiveTab] = useState<string>("budgets");
+  const { state, dispatch } = useFinance();
+
+  const calculateExpenses = (categoryId: string) => {
+    return state.transactions
+      .filter(t => t.type === "expense" && t.categoryId === categoryId)
+      .reduce((sum, t) => sum + t.amount, 0);
+  };
+
+  const handleDeleteBudget = (id: string) => {
+    dispatch({
+      type: "DELETE_BUDGET",
+      payload: id
+    });
+  };
+
+  const handleSubmitBudget = (budget: Omit<Budget, "id">) => {
+    dispatch({
+      type: "ADD_BUDGET",
+      payload: {
+        ...budget,
+        id: nanoid()
+      }
+    });
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -42,13 +69,19 @@ const Budgets = () => {
 
           <TabsContent value="budgets" className="animate-enter">
             <Card className="p-6">
-              <BudgetList />
+              <BudgetList 
+                budgets={state.budgets}
+                categories={state.categories}
+                calculateExpenses={calculateExpenses}
+                onDelete={handleDeleteBudget}
+                onSubmit={handleSubmitBudget}
+              />
             </Card>
           </TabsContent>
 
           <TabsContent value="categories" className="animate-enter">
             <Card className="p-6">
-              <CategoryList />
+              <CategoryList categories={state.categories} />
             </Card>
           </TabsContent>
           

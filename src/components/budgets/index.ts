@@ -1,8 +1,9 @@
 
-export * from "./BudgetCard";
-export * from "./BudgetEmpty";
-export * from "./BudgetForm";
-export * from "./BudgetList";
-export * from "./CategoryForm";
-export * from "./CategoryList";
-export * from "./BudgetPlanner";
+// Export all components from the budgets folder
+export { default as BudgetCard } from "./BudgetCard";
+export { default as BudgetEmpty } from "./BudgetEmpty";
+export { default as BudgetForm } from "./BudgetForm";
+export { default as BudgetList } from "./BudgetList";
+export { default as CategoryForm } from "./CategoryForm";
+export { default as CategoryList } from "./CategoryList";
+export { default as BudgetPlanner } from "./BudgetPlanner";
