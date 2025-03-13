@@ -1,3 +1,4 @@
+
 import { CategoryType, FileImportFormat } from "@/types";
 import { FinanceState } from "./types";
 
@@ -204,7 +205,7 @@ export const initialState: FinanceState = {
   categories: DEFAULT_CATEGORIES,
   budgets: [],
   importFormats: DEFAULT_IMPORT_FORMATS,
-  categoryMappings: [], // Adding the missing property
+  categoryMappings: [],
   isLoading: false,
   error: null,
 };

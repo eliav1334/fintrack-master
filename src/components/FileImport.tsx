@@ -14,7 +14,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { parseFile } from "@/utils/fileParser";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, ArrowDownCircle, ArrowUpCircle, FileText, Tabs, TabsContent, TabsList, TabsTrigger, Upload } from "lucide-react";
+import { AlertCircle, ArrowDownCircle, ArrowUpCircle, FileText, Upload } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -369,7 +369,7 @@ const FileImport = () => {
     if (!newFormat.name.trim()) {
       toast({
         title: "שגיאה",
-        description: "אנא ה��ן שם לפורמט",
+        description: "אנא הזן שם לפורמט",
         variant: "destructive",
       });
       return;
@@ -898,96 +898,4 @@ const FileImport = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="date-format">פורמט תאריך</Label>
-                  <Select 
-                    value={newFormat.dateFormat}
-                    onValueChange={(value) => setNewFormat(prev => ({ ...prev, dateFormat: value }))}
-                  >
-                    <SelectTrigger id="date-format">
-                      <SelectValue placeholder="בחר פורמט תאריך" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
-                      <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
-                      <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
-                      <SelectItem value="DD-MM-YYYY">DD-MM-YYYY</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <h4 className="font-medium">הגדרת סוג עסקה</h4>
-              <div className="space-y-2">
-                <Label htmlFor="type-column">עמודת זיהוי סוג</Label>
-                <Input
-                  id="type-column"
-                  placeholder="לדוגמה, סוג או קטגוריה"
-                  value={newFormat.typeIdentifier?.column || ""}
-                  onChange={(e) => handleNewFormatChange(e, "typeIdentifier", "column")}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="income-values">
-                  ערכי הכנסה (מופרדים בפסיקים)
-                </Label>
-                <Input
-                  id="income-values"
-                  placeholder="לדוגמה, הכנסה,זיכוי,משכורת"
-                  value={newFormat.typeIdentifier?.incomeValues.join(", ") || ""}
-                  onChange={(e) => handleArrayChange(e.target.value, "typeIdentifier", "incomeValues")}
-                />
-                <p className="text-xs text-gray-500 text-right">
-                  מילים המציינות עסקת הכנסה
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="expense-values">
-                  ערכי הוצאה (מופרדים בפסיקים)
-                </Label>
-                <Input
-                  id="expense-values"
-                  placeholder="לדוגמה, הוצאה,חיוב,תשלום"
-                  value={newFormat.typeIdentifier?.expenseValues.join(", ") || ""}
-                  onChange={(e) => handleArrayChange(e.target.value, "typeIdentifier", "expenseValues")}
-                />
-                <p className="text-xs text-gray-500 text-right">
-                  מילים המציינות עסקת הוצאה
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="delimiter">מפריד CSV</Label>
-                <Select
-                  value={newFormat.delimiter || ","}
-                  onValueChange={(value) => setNewFormat(prev => ({ ...prev, delimiter: value }))}
-                >
-                  <SelectTrigger id="delimiter">
-                    <SelectValue placeholder="בחר מפריד CSV" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value=",">פסיק (,)</SelectItem>
-                    <SelectItem value=";">נקודה-פסיק (;)</SelectItem>
-                    <SelectItem value="\t">טאב</SelectItem>
-                    <SelectItem value="|">צינור (|)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setShowNewFormatDialog(false)}>
-              ביטול
-            </Button>
-            <Button type="button" onClick={addNewFormat}>
-              שמור פורמט
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
-
-export default FileImport;
+                  <Label htmlFor="

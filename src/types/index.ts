@@ -9,7 +9,24 @@ export interface Transaction {
   notes?: string;
   cardNumber?: string;
   createdAt?: string; // זמן יצירת/ייבוא העסקה
+  // שדות לחישוב חשמל
+  isElectricityBill?: boolean;
+  mainMeterReading?: {
+    current: number;
+    previous: number;
+    date: string;
+  };
+  secondaryMeterReading?: {
+    current: number;
+    previous: number;
+    date: string;
+  };
+  electricityRate?: number;
+  vatRate?: number;
 }
+
+// הוספת TransactionType כטיפוס נפרד
+export type TransactionType = "income" | "expense";
 
 export interface CategoryType {
   id: string;
@@ -45,4 +62,6 @@ export interface FileImportFormat {
     incomeValues: string[];
     expenseValues: string[];
   };
+  skipEmptyRows?: boolean;
+  headerRowIndex?: number;
 }
