@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useFinance } from "@/contexts/FinanceContext";
 import { Transaction } from "@/types";
@@ -18,8 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { format } from "date-fns";
-import { ArrowDownCircle, ArrowUpCircle, Edit, Search, Trash2, TrashIcon } from "lucide-react";
+import { format, startOfMonth, endOfMonth } from "date-fns";
+import { ArrowDownCircle, ArrowUpCircle, Edit, Search, Trash2, TrashIcon, Calendar } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +32,7 @@ import {
 import { TransactionForm } from "./transactions/TransactionForm";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import MonthPicker from "./dashboard/MonthPicker";
 
 const TransactionList = () => {
   const { state, deleteTransaction, deleteAllIncomeTransactions } = useFinance();
@@ -38,6 +40,7 @@ const TransactionList = () => {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("all");
+  const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
   const [editTransaction, setEditTransaction] = useState<Transaction | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState<boolean>(false);
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
@@ -60,6 +63,17 @@ const TransactionList = () => {
 
   const filterTransactions = () => {
     let filtered = [...state.transactions];
+
+    // Filter by selected month
+    if (selectedMonth) {
+      const firstDayOfMonth = startOfMonth(selectedMonth);
+      const lastDayOfMonth = endOfMonth(selectedMonth);
+      
+      filtered = filtered.filter(tx => {
+        const txDate = new Date(tx.date);
+        return txDate >= firstDayOfMonth && txDate <= lastDayOfMonth;
+      });
+    }
 
     if (searchTerm) {
       filtered = filtered.filter(
@@ -147,12 +161,25 @@ const TransactionList = () => {
 
   const filteredTransactions = filterTransactions();
   const hasIncomeTransactions = state.transactions.some(tx => tx.type === "income");
+  
+  // Filter monthly income transactions for the current selected month
+  const monthlyIncomeInCurrentMonth = filteredTransactions.filter(tx => 
+    tx.type === "income" && tx.description === "משכורת חודשית קבועה"
+  );
 
   return (
     <div className="animate-fade-in p-6 space-y-6">
       <h1 className="text-3xl font-semibold mb-6">עסקאות</h1>
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+          <h2 className="text-xl font-medium">סינון עסקאות לפי חודש</h2>
+          <MonthPicker 
+            selectedDate={selectedMonth} 
+            onChange={setSelectedMonth} 
+          />
+        </div>
+        
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="relative">
             <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -203,6 +230,7 @@ const TransactionList = () => {
           <div className="flex gap-2">
             <div className="text-sm text-gray-500">
               נמצאו {filteredTransactions.length} עסקאות
+              {monthlyIncomeInCurrentMonth.length > 0 && ` (כולל ${monthlyIncomeInCurrentMonth.length} משכורות חודשיות)`}
             </div>
             {hasIncomeTransactions && (
               <Button 
@@ -246,7 +274,7 @@ const TransactionList = () => {
                     (cat) => cat.id === transaction.categoryId
                   );
                   return (
-                    <TableRow key={transaction.id}>
+                    <TableRow key={`tr_${transaction.id}`}>
                       <TableCell>
                         {format(new Date(transaction.date), "dd/MM/yyyy")}
                       </TableCell>
@@ -305,9 +333,9 @@ const TransactionList = () => {
         ) : (
           <div className="py-16 text-center">
             <p className="text-gray-500">
-              לא נמצאו עסקאות{" "}
+              לא נמצאו עסקאות בחודש {format(selectedMonth, "MMMM yyyy")}
               {searchTerm || categoryFilter !== "all" || typeFilter !== "all" || dateFilter !== "all"
-                ? "עם הסינון הנוכחי"
+                ? " עם הסינון הנוכחי"
                 : ""}
             </p>
             {(searchTerm || categoryFilter !== "all" || typeFilter !== "all" || dateFilter !== "all") && (
