@@ -1,0 +1,66 @@
+
+import { generateId } from "@/utils/generateId";
+import { Transaction } from "@/types";
+import { format } from "date-fns";
+
+/**
+ * Hook to handle monthly income transactions
+ */
+export const useMonthlyIncomes = () => {
+  /**
+   * Creates fixed monthly income transactions for the last 7 months
+   * Adds exactly one income transaction per month of 16,000 ₪
+   */
+  const addMonthlyIncomes = (): Transaction[] => {
+    const currentDate = new Date();
+    
+    // Create array of the last 7 months
+    const last7Months = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      return format(date, "yyyy-MM");
+    });
+    
+    // Prepare new transactions to add
+    const newTransactions: Transaction[] = [];
+    
+    // For each of the last 7 months, add a monthly income
+    last7Months.forEach(month => {
+      const [year, monthNum] = month.split("-");
+      
+      // Create date for the beginning of the month
+      const date = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
+      
+      const monthlyIncome: Transaction = {
+        id: generateId(`tx-monthly-${month}`), // Unique ID for each month
+        description: "משכורת חודשית קבועה",
+        amount: 16000,
+        type: "income",
+        date: format(date, "yyyy-MM-dd"),
+        categoryId: "",
+        notes: `הכנסה חודשית קבועה לחודש ${month}`
+      };
+      
+      // Add to new transactions array
+      newTransactions.push(monthlyIncome);
+    });
+    
+    return newTransactions;
+  };
+
+  /**
+   * Cleans monthly income transactions from the array
+   */
+  const cleanMonthlyIncomes = (transactions: Transaction[]): Transaction[] => {
+    return transactions.filter((tx: Transaction) => 
+      !(tx.type === "income" && 
+        tx.amount === 16000 && 
+        tx.description === "משכורת חודשית קבועה")
+    );
+  };
+
+  return {
+    addMonthlyIncomes,
+    cleanMonthlyIncomes
+  };
+};
