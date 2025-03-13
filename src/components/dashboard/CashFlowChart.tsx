@@ -14,11 +14,11 @@ interface CashFlowChartProps {
 
 const CashFlowChart = ({ data, formatCurrency }: CashFlowChartProps) => {
   // הגדרת פונקציית עיצוב לתוויות הערכים
-  const formatYAxis = (value: number) => {
+  const formatYAxis = (value: number): string => {
     if (value >= 1000) {
       return `${Math.round(value / 1000)}K`;
     }
-    return value;
+    return value.toString();
   };
   
   // הגדרת פונקציית עיצוב לטולטיפ
