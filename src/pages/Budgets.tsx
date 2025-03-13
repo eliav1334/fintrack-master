@@ -12,10 +12,11 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Budget, CategoryType } from "@/types";
-import { PlusCircle, ArrowLeft, FolderPlus } from "lucide-react";
+import { PlusCircle, ArrowLeft, FolderPlus, FilePlus, FileText } from "lucide-react";
 import BudgetForm from "@/components/budgets/BudgetForm";
 import BudgetList from "@/components/budgets/BudgetList";
 import CategoryForm from "@/components/budgets/CategoryForm";
+import { toast } from "sonner";
 
 // הגדרת קבוצות קטגוריות
 const CATEGORY_GROUPS = {
@@ -30,11 +31,58 @@ const CATEGORY_GROUPS = {
   "אחר": []
 };
 
+// מערך התקציבים המוכנים מראש (מתוך התמונה שהועלתה)
+const PREDEFINED_BUDGETS = [
+  { name: "משכורת א", amount: 16000, type: "income" },
+  { name: "משכורת ב", amount: 0, type: "income" },
+  { name: "דלק", amount: 1200, type: "expense" },
+  { name: "תשלומי חניה", amount: 100, type: "expense" },
+  { name: "דוחות תנועה וחניה", amount: 100, type: "expense" },
+  { name: "כבישי אגרה", amount: 100, type: "expense" },
+  { name: "צמיגים", amount: 0, type: "expense" },
+  { name: "תאונות", amount: 0, type: "expense" },
+  { name: "טיפולים", amount: 600, type: "expense" },
+  { name: "חידוש רישיון לרכב", amount: 0, type: "expense" },
+  { name: "ביטוח חובה", amount: 0, type: "expense" },
+  { name: "ביטוח צד ג' / מקיף", amount: 0, type: "expense" },
+  { name: "סלקום TV+אינטרנט", amount: 240, type: "expense" },
+  { name: "קו סלולאר - פלאפון", amount: 250, type: "expense" },
+  { name: "נטספארק", amount: 54, type: "expense" },
+  { name: "פסיכולוג", amount: 400, type: "expense" },
+  { name: "תרופות", amount: 350, type: "expense" },
+  { name: "שיניים", amount: 0, type: "expense" },
+  { name: "ביטוח חיים", amount: 0, type: "expense" },
+  { name: "ביטוח בריאות", amount: 0, type: "expense" },
+  { name: "שירותי בריאות כללית", amount: 0, type: "expense" },
+  { name: "ביטוח דירה/רכוש", amount: 0, type: "expense" },
+  { name: "חשמל", amount: 1200, type: "expense" },
+  { name: "משכנתא", amount: 0, type: "expense" },
+  { name: "ארנונה", amount: 0, type: "expense" },
+  { name: "מים וביוב", amount: 0, type: "expense" },
+  { name: "גז", amount: 0, type: "expense" },
+  { name: "סופר", amount: 4000, type: "expense" },
+  { name: "מכולת", amount: 500, type: "expense" },
+  { name: "מסעדות", amount: 800, type: "expense" },
+  { name: "בית מלון", amount: 0, type: "expense" },
+  { name: "הוצאת מזומן", amount: 800, type: "expense" },
+  { name: "עמלות בנק", amount: 30, type: "expense" },
+  { name: "עמלת כרטיס אשראי", amount: 12, type: "expense" },
+  { name: "תוכנית חיסכון", amount: 2000, type: "expense" },
+  { name: "חסכון ילדים", amount: 600, type: "expense" },
+  { name: "פעילויות וחוגים", amount: 0, type: "expense" },
+  { name: "מעונות", amount: 7000, type: "expense" },
+  { name: "צהרון/מטפלת", amount: 4000, type: "expense" },
+  { name: "ספרי לימוד/כתיבה", amount: 0, type: "expense" },
+  { name: "מוצרי מזון/משחק", amount: 400, type: "expense" },
+  { name: "אירועים", amount: 0, type: "expense" }
+];
+
 const Budgets = () => {
   const { state, setBudget, deleteBudget, addCategory } = useFinance();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("כל הקטגוריות");
   const tabsContainerRef = useRef<HTMLDivElement>(null);
+  const [showImportSuccessToast, setShowImportSuccessToast] = useState(false);
   
   // חישוב סכום ההוצאות לפי קטגוריה וחודש
   const calculateExpenses = (categoryId: string) => {
@@ -111,6 +159,58 @@ const Budgets = () => {
   const filteredBudgets = getFilteredBudgets();
   const expenseCategories = state.categories.filter(cat => cat.type === "expense");
 
+  // פונקציה להוספת התקציבים מוכנים מראש מהטבלה
+  const importPredefinedBudgets = () => {
+    let addedCount = 0;
+    let updatedCount = 0;
+    const existingBudgets = new Set(state.budgets.map(b => {
+      const category = state.categories.find(c => c.id === b.categoryId);
+      return category?.name;
+    }));
+
+    // מעבר על התקציבים המוכנים מראש
+    PREDEFINED_BUDGETS.forEach(predefinedBudget => {
+      // דילוג על תקציבים בסכום 0
+      if (predefinedBudget.amount === 0) return;
+
+      // חיפוש קטגוריה מתאימה
+      const matchingCategory = state.categories.find(cat => 
+        cat.name.trim() === predefinedBudget.name.trim() && 
+        cat.type === predefinedBudget.type
+      );
+
+      if (matchingCategory) {
+        // בדיקה אם כבר קיים תקציב לקטגוריה זו
+        const budgetExists = existingBudgets.has(matchingCategory.name);
+
+        if (!budgetExists) {
+          // יצירת תקציב חדש
+          setBudget({
+            categoryId: matchingCategory.id,
+            amount: predefinedBudget.amount,
+            period: "monthly",
+            startDate: new Date().toISOString()
+          });
+          addedCount++;
+        } else {
+          // עדכון תקציב קיים - במקרה זה נדלג כי אנחנו לא רוצים לדרוס תקציבים קיימים
+          updatedCount++;
+        }
+      }
+    });
+
+    // הצגת הודעת הצלחה
+    toast.success(
+      `נוספו ${addedCount} תקציבים חדשים${updatedCount > 0 ? ` (${updatedCount} כבר קיימים)` : ''}`,
+      {
+        description: "התקציבים נוספו בהצלחה למערכת",
+        duration: 4000,
+      }
+    );
+    
+    setShowImportSuccessToast(true);
+  };
+
   // טיפול בגלילה אופקית עם גלגלת העכבר - עם רגישות מותאמת
   const handleWheel = (e: React.WheelEvent) => {
     if (tabsContainerRef.current) {
@@ -166,6 +266,16 @@ const Budgets = () => {
           <h2 className="text-xl font-semibold">הגדרת ומעקב אחר תקציבים</h2>
           
           <div className="flex gap-4">
+            {/* כפתור לייבוא תקציבים מוכנים מראש */}
+            <Button 
+              variant="outline" 
+              className="flex items-center gap-2" 
+              onClick={importPredefinedBudgets}
+            >
+              <FileText className="h-5 w-5" />
+              <span>ייבוא תקציבים מוכנים</span>
+            </Button>
+            
             {/* דיאלוג להוספת קטגוריה חדשה */}
             <Dialog>
               <DialogTrigger asChild>
