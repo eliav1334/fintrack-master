@@ -1,20 +1,20 @@
 
-import { CategoryType, Transaction, Budget, FileImportFormat } from "@/types";
+import { Transaction, CategoryType, Budget, FileImportFormat } from "@/types";
 
-export type CategoryMapping = {
+export interface CategoryMapping {
   description: string;
   categoryId: string;
-};
+}
 
-export type FinanceState = {
+export interface FinanceState {
   transactions: Transaction[];
   categories: CategoryType[];
   budgets: Budget[];
-  importFormats: FileImportFormat[];
-  categoryMappings: CategoryMapping[];
   isLoading: boolean;
   error: string | null;
-};
+  importFormats: FileImportFormat[];
+  categoryMappings: CategoryMapping[];
+}
 
 export type FinanceAction =
   | { type: "ADD_TRANSACTION"; payload: Transaction }
@@ -29,16 +29,20 @@ export type FinanceAction =
   | { type: "ADD_IMPORT_FORMAT"; payload: FileImportFormat }
   | { type: "UPDATE_IMPORT_FORMAT"; payload: FileImportFormat }
   | { type: "DELETE_IMPORT_FORMAT"; payload: string }
+  | { type: "SET_LOADING"; payload: boolean }
+  | { type: "SET_ERROR"; payload: string | null }
   | { type: "ADD_CATEGORY_MAPPING"; payload: CategoryMapping }
   | { type: "UPDATE_CATEGORY_MAPPING"; payload: CategoryMapping }
   | { type: "DELETE_CATEGORY_MAPPING"; payload: string }
   | { type: "SET_CATEGORY_MAPPINGS"; payload: CategoryMapping[] }
   | { type: "DELETE_ALL_INCOME_TRANSACTIONS" }
-  | { type: "SET_LOADING"; payload: boolean }
-  | { type: "SET_ERROR"; payload: string | null };
+  | { type: "RESET_STATE" };
 
-export type FinanceContextType = {
+export interface FinanceContextType extends FinanceActionCreators {
   state: FinanceState;
+}
+
+export interface FinanceActionCreators {
   addTransaction: (transaction: Omit<Transaction, "id">) => void;
   updateTransaction: (transaction: Transaction) => void;
   deleteTransaction: (id: string) => void;
@@ -55,4 +59,4 @@ export type FinanceContextType = {
   updateCategoryMapping: (mapping: CategoryMapping) => void;
   deleteCategoryMapping: (description: string) => void;
   deleteAllIncomeTransactions: () => void;
-};
+}

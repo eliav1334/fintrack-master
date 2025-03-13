@@ -11,50 +11,20 @@ import { toast } from "sonner";
  */
 export const useFinanceState = () => {
   const [state, dispatch] = useReducer(financeReducer, initialState);
-  const { addMonthlyIncomes, cleanMonthlyIncomes } = useMonthlyIncomes();
-
-  // Load data from localStorage on first render
+  const { addMonthlyIncomes, cleanMonthlyIncomes, resetAllStoredData } = useMonthlyIncomes();
+  
+  // איפוס נתונים - משתמשים בפונקציה להסרת הנתונים משמירה מקומית
   useEffect(() => {
-    const savedState = localStorage.getItem("financeState");
-    if (savedState) {
-      try {
-        const parsedState = JSON.parse(savedState);
-        
-        // Clean all fixed monthly income transactions before loading
-        const cleanedTransactions = parsedState.transactions ? 
-          cleanMonthlyIncomes(parsedState.transactions) : [];
-        
-        // Load cleaned transactions
-        if (cleanedTransactions.length > 0) {
-          dispatch({ type: "ADD_TRANSACTIONS", payload: cleanedTransactions });
-        }
-        
-        if (parsedState.budgets) {
-          parsedState.budgets.forEach((budget: Budget) => {
-            dispatch({ type: "SET_BUDGET", payload: budget });
-          });
-        }
-        if (parsedState.categoryMappings) {
-          dispatch({ 
-            type: "SET_CATEGORY_MAPPINGS", 
-            payload: parsedState.categoryMappings 
-          });
-        }
-      } catch (error) {
-        console.error("שגיאה בטעינת נתונים מהאחסון המקומי:", error);
-      }
-    }
+    // מאפסים את כל הנתונים השמורים
+    resetAllStoredData();
     
-    // Add monthly incomes after data loading (only once)
-    const checkTimeout = setTimeout(() => {
-      // Since we reset all fixed incomes, add them back in an organized way
-      const monthlyIncomes = addMonthlyIncomes();
-      dispatch({ type: "ADD_TRANSACTIONS", payload: monthlyIncomes });
-      console.log(`נוספו ${monthlyIncomes.length} עסקאות הכנסה חודשית קבועה`);
-      toast.success(`נוספו ${monthlyIncomes.length} עסקאות הכנסה חודשית קבועה`);
-    }, 800);
+    // מאתחלים את המידע מההתחלה (לא טוענים מידע ישן)
+    dispatch({ type: "RESET_STATE" });
     
-    return () => clearTimeout(checkTimeout);
+    // הוספת הכנסות חודשיות קבועות לאחר איפוס
+    const monthlyIncomes = addMonthlyIncomes();
+    dispatch({ type: "ADD_TRANSACTIONS", payload: monthlyIncomes });
+    toast.success(`נוספו ${monthlyIncomes.length} עסקאות הכנסה חודשית קבועה`);
   }, []);
 
   // Save data to localStorage whenever it changes

@@ -6,25 +6,45 @@ import DashboardSummaryCards from "./dashboard/DashboardSummaryCards";
 import DashboardCharts from "./dashboard/DashboardCharts";
 import BudgetAlertCard from "./dashboard/BudgetAlertCard";
 import MonthPicker from "./dashboard/MonthPicker";
+import { useNavigate } from "react-router-dom";
+import { Button } from "./ui/button";
+import { ArrowUpDown } from "lucide-react";
 
 const Dashboard = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const { stats, timeData, categoryData, budgetAlerts, balanceAlert, formatCurrency } = useFinanceDashboard(selectedDate);
+  const navigate = useNavigate();
 
   // פונקציה לעדכון תאריך נבחר
   const handleDateChange = (date: Date) => {
     // וידוא שמעדכנים את התאריך בצורה נכונה
     setSelectedDate(new Date(date));
   };
+  
+  // פונקציה למעבר למסך התנועות עם החודש הנבחר
+  const navigateToTransactions = () => {
+    // מעבר לדף התנועות והעברת החודש הנבחר כפרמטר
+    navigate(`/?tab=transactions&month=${selectedDate.toISOString()}`);
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold">דשבורד פיננסי</h2>
-        <MonthPicker 
-          selectedDate={selectedDate} 
-          onChange={handleDateChange} 
-        />
+        <div className="flex items-center gap-4">
+          <MonthPicker 
+            selectedDate={selectedDate} 
+            onChange={handleDateChange} 
+          />
+          <Button 
+            onClick={navigateToTransactions}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <ArrowUpDown className="h-4 w-4" />
+            <span>הצג תנועות</span>
+          </Button>
+        </div>
       </div>
 
       <DashboardSummaryCards stats={stats} formatCurrency={formatCurrency} />

@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useFinance } from "@/contexts/FinanceContext";
 import { Transaction } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ import { TransactionForm } from "./transactions/TransactionForm";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import MonthPicker from "./dashboard/MonthPicker";
+import { useLocation, useSearchParams } from "react-router-dom";
 
 const TransactionList = () => {
   const { state, deleteTransaction, deleteAllIncomeTransactions } = useFinance();
@@ -45,6 +46,25 @@ const TransactionList = () => {
   const [showConfirmDialog, setShowConfirmDialog] = useState<boolean>(false);
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
   const [showConfirmDeleteAllIncome, setShowConfirmDeleteAllIncome] = useState<boolean>(false);
+  
+  // בדיקה אם הגענו מהדשבורד עם פרמטר של חודש נבחר
+  const [searchParams] = useSearchParams();
+  const monthParam = searchParams.get('month');
+  
+  // אם יש פרמטר חודש ב-URL, נשתמש בו
+  useEffect(() => {
+    if (monthParam) {
+      try {
+        const dateFromParam = new Date(monthParam);
+        // בדיקה שהערך הוא תאריך תקין
+        if (!isNaN(dateFromParam.getTime())) {
+          setSelectedMonth(dateFromParam);
+        }
+      } catch (error) {
+        console.error("שגיאה בפרמטר החודש:", error);
+      }
+    }
+  }, [monthParam]);
 
   const getDateFilterLabel = (filter: string) => {
     switch (filter) {
@@ -274,7 +294,7 @@ const TransactionList = () => {
                     (cat) => cat.id === transaction.categoryId
                   );
                   return (
-                    <TableRow key={`tr_${transaction.id}`}>
+                    <TableRow key={`tr-${transaction.id}`}>
                       <TableCell>
                         {format(new Date(transaction.date), "dd/MM/yyyy")}
                       </TableCell>

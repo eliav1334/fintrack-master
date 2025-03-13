@@ -1,7 +1,12 @@
+
 import { FinanceState, FinanceAction } from "./types";
+import { initialState } from "./defaultValues";
 
 export const financeReducer = (state: FinanceState, action: FinanceAction): FinanceState => {
   switch (action.type) {
+    case "RESET_STATE":
+      // איפוס המערכת למצב התחלתי
+      return { ...initialState };
     case "ADD_TRANSACTION":
       // עדכון שיוך קטגוריה אוטומטי אם אין קטגוריה
       let transaction = action.payload;

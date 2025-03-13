@@ -7,6 +7,13 @@ import { format, parseISO } from "date-fns";
  * Hook to handle monthly income transactions
  */
 export const useMonthlyIncomes = () => {
+  // חיפוש האם ישנם נתוני localStorage להסרה (לצורך איפוס)
+  const resetAllStoredData = () => {
+    // הסרת כל הנתונים השמורים ב-localStorage
+    localStorage.removeItem("financeState");
+    return true;
+  };
+
   /**
    * Creates fixed monthly income transactions for the last 7 months
    * Adds exactly one income transaction per month of 16,000 ₪
@@ -28,8 +35,8 @@ export const useMonthlyIncomes = () => {
     last7Months.forEach(month => {
       const [year, monthNum] = month.split("-");
       
-      // Create date for the 10th day of the month (payday)
-      const date = new Date(parseInt(year), parseInt(monthNum) - 1, 10);
+      // Create date for the 1st day of the month (payday)
+      const date = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
       
       const monthlyIncome: Transaction = {
         id: generateId(`income-${month}`), // Unique ID for each month
@@ -69,6 +76,7 @@ export const useMonthlyIncomes = () => {
   return {
     addMonthlyIncomes,
     cleanMonthlyIncomes,
-    isMonthlyIncome
+    isMonthlyIncome,
+    resetAllStoredData
   };
 };
