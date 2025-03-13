@@ -47,6 +47,8 @@ export type FileImportFormat = {
     incomeValues: string[];
     expenseValues: string[];
   };
+  skipEmptyRows?: boolean;
+  headerRowIndex?: number;
 };
 
 export type ReportType = 'income' | 'expense' | 'balance' | 'category' | 'trend';
