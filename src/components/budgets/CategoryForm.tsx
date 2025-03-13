@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { DialogClose, DialogFooter } from "@/components/ui/dialog";
 import { CategoryType } from "@/types";
 import { CirclePicker } from "react-color";
-import { WalletIcon, CreditCard, DollarSign, PiggyBank, Wallet } from "lucide-react";
+import { WalletIcon, CreditCard, DollarSign, PiggyBank, Wallet, Home, Car, Phone, Users, HeartPulse, ShoppingBag, FileText, Calculator } from "lucide-react";
 
 interface CategoryFormProps {
   onSubmit: (category: Omit<CategoryType, "id">) => void;
@@ -18,6 +18,15 @@ const CATEGORY_ICONS = [
   { name: "כרטיס אשראי", icon: <CreditCard className="h-4 w-4" /> },
   { name: "מטבע", icon: <DollarSign className="h-4 w-4" /> },
   { name: "חיסכון", icon: <PiggyBank className="h-4 w-4" /> },
+  { name: "בית", icon: <Home className="h-4 w-4" /> },
+  { name: "רכב", icon: <Car className="h-4 w-4" /> },
+  { name: "טלפון", icon: <Phone className="h-4 w-4" /> },
+  { name: "ילדים", icon: <Users className="h-4 w-4" /> },
+  { name: "בריאות", icon: <HeartPulse className="h-4 w-4" /> },
+  { name: "מזון", icon: <ShoppingBag className="h-4 w-4" /> },
+  { name: "מסמך", icon: <FileText className="h-4 w-4" /> },
+  { name: "חישוב", icon: <Calculator className="h-4 w-4" /> },
+  { name: "תשלום", icon: <DollarSign className="h-4 w-4" /> },
 ];
 
 const CATEGORY_COLORS = [

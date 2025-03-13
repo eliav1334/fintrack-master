@@ -1,5 +1,5 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFinance } from "@/contexts/FinanceContext";
 import { Button } from "@/components/ui/button";
@@ -10,15 +10,30 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Budget } from "@/types";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Budget, CategoryType } from "@/types";
 import { PlusCircle, ArrowLeft, FolderPlus } from "lucide-react";
 import BudgetForm from "@/components/budgets/BudgetForm";
 import BudgetList from "@/components/budgets/BudgetList";
 import CategoryForm from "@/components/budgets/CategoryForm";
 
+// הגדרת קבוצות קטגוריות
+const CATEGORY_GROUPS = {
+  "הכנסות": ["משכורת", "הכנסה"],
+  "דיור": ["דירה", "משכנתא", "ארנונה", "חשמל", "גז", "מים"],
+  "רכבים": ["רכב", "דלק", "חניה", "ביטוח רכב", "טיפולים", "צמיגים", "תאונות"],
+  "מזון": ["מזון", "סופר", "מכולת", "מסעדות"],
+  "תקשורת": ["סלולאר", "אינטרנט", "טלפון", "טלוויזיה"],
+  "ביטוחים": ["ביטוח", "בריאות", "חיים"],
+  "ילדים": ["ילדים", "מעונות", "צהרון", "חינוך"],
+  "בנק": ["בנק", "עמלות", "חסכונות"],
+  "אחר": []
+};
+
 const Budgets = () => {
   const { state, setBudget, deleteBudget, addCategory } = useFinance();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("כל הקטגוריות");
   
   // חישוב סכום ההוצאות לפי קטגוריה וחודש
   const calculateExpenses = (categoryId: string) => {
@@ -36,7 +51,63 @@ const Budgets = () => {
       .reduce((sum, t) => sum + t.amount, 0);
   };
 
-  // סינון רק קטגוריות מסוג הוצאה
+  // חלוקת הקטגוריות לפי קבוצות
+  const groupCategories = () => {
+    const groups: Record<string, CategoryType[]> = {
+      "כל הקטגוריות": state.categories.filter(cat => cat.type === "expense")
+    };
+    
+    // מיון ראשוני לפי שם - כך שהקבוצות יהיו מסודרות אלפביתית
+    const sortedCategories = [...state.categories].sort((a, b) => a.name.localeCompare(b.name));
+    
+    // הוספת כל קטגוריה לקבוצה המתאימה
+    Object.keys(CATEGORY_GROUPS).forEach(groupName => {
+      const keywords = CATEGORY_GROUPS[groupName as keyof typeof CATEGORY_GROUPS];
+      
+      // סינון הקטגוריות שמתאימות לקבוצה הנוכחית
+      const categoriesInGroup = sortedCategories.filter(cat => {
+        // בדיקה אם הקטגוריה היא מסוג הוצאה ואם היא מתאימה לאחת המילות המפתח
+        if (cat.type !== "expense") return false;
+        
+        // אם זו קבוצת "אחר", נחזיר את כל הקטגוריות שלא נמצאו בקבוצות אחרות
+        if (groupName === "אחר") {
+          for (const otherGroup of Object.keys(CATEGORY_GROUPS)) {
+            if (otherGroup === "אחר") continue;
+            
+            const otherKeywords = CATEGORY_GROUPS[otherGroup as keyof typeof CATEGORY_GROUPS];
+            if (otherKeywords.some(kw => cat.name.includes(kw))) {
+              return false;
+            }
+          }
+          return true;
+        }
+        
+        // בדיקה אם שם הקטגוריה מכיל אחת ממילות המפתח
+        return keywords.some(keyword => cat.name.includes(keyword));
+      });
+      
+      if (categoriesInGroup.length > 0) {
+        groups[groupName] = categoriesInGroup;
+      }
+    });
+    
+    return groups;
+  };
+
+  const categoryGroups = groupCategories();
+  const groupNames = Object.keys(categoryGroups);
+  
+  // סינון תקציבים לפי הקבוצה הנבחרת
+  const getFilteredBudgets = () => {
+    if (activeTab === "כל הקטגוריות") {
+      return state.budgets;
+    }
+    
+    const categoryIds = categoryGroups[activeTab]?.map(cat => cat.id) || [];
+    return state.budgets.filter(budget => categoryIds.includes(budget.categoryId));
+  };
+
+  const filteredBudgets = getFilteredBudgets();
   const expenseCategories = state.categories.filter(cat => cat.type === "expense");
 
   return (
@@ -97,13 +168,28 @@ const Budgets = () => {
           </div>
         </div>
         
-        <BudgetList 
-          budgets={state.budgets}
-          categories={state.categories}
-          calculateExpenses={calculateExpenses}
-          onDelete={deleteBudget}
-          onSubmit={setBudget}
-        />
+        {/* טאבים לסינון לפי קבוצות קטגוריות */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
+          <TabsList className="mb-4 overflow-x-auto flex w-full justify-start">
+            {groupNames.map(groupName => (
+              <TabsTrigger key={groupName} value={groupName} className="min-w-fit">
+                {groupName}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          
+          {groupNames.map(groupName => (
+            <TabsContent key={groupName} value={groupName}>
+              <BudgetList 
+                budgets={filteredBudgets}
+                categories={state.categories}
+                calculateExpenses={calculateExpenses}
+                onDelete={deleteBudget}
+                onSubmit={setBudget}
+              />
+            </TabsContent>
+          ))}
+        </Tabs>
       </div>
     </div>
   );
