@@ -63,22 +63,22 @@ export const useTransactionForm = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prevData) => ({ ...prevData, [name]: value }));
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prevData) => ({ ...prevData, [name]: value }));
   };
 
   const handleSwitchChange = (name: string, checked: boolean) => {
-    setFormData((prev) => ({ ...prev, [name]: checked }));
+    setFormData((prevData) => ({ ...prevData, [name]: checked }));
   };
 
   // טיפול בשינויים בשדות תחשיב החשמל
   const handleElectricityChange = (type: string, field: string, value: string) => {
     if (type === "electricityRate" || type === "vatRate") {
-      setFormData((prev) => ({
-        ...prev,
+      setFormData((prevData) => ({
+        ...prevData,
         [type]: value ? parseFloat(value) : 0
       }));
     } else {
@@ -112,8 +112,8 @@ export const useTransactionForm = (
     const priceBeforeVat = totalKWh * (formData.electricityRate || 0);
     const totalPrice = priceBeforeVat * (1 + (formData.vatRate || 0) / 100);
     
-    setFormData(prev => ({
-      ...prev,
+    setFormData(prevData => ({
+      ...prevData,
       amount: totalPrice.toFixed(2)
     }));
     
