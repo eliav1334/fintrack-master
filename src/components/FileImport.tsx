@@ -41,6 +41,7 @@ const FileImport = () => {
   const [previewData, setPreviewData] = useState<Omit<Transaction, "id">[]>([]);
   const [showPreview, setShowPreview] = useState<boolean>(false);
   const [showNewFormatDialog, setShowNewFormatDialog] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [newFormat, setNewFormat] = useState<{
     name: string;
     mapping: {
@@ -77,7 +78,17 @@ const FileImport = () => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setSelectedFile(e.target.files[0]);
+      const file = e.target.files[0];
+      const fileExt = file.name.split('.').pop()?.toLowerCase();
+      
+      // בדיקה שהקובץ הוא מסוג המותר
+      if (!['csv', 'xlsx', 'xls'].includes(fileExt || '')) {
+        setErrorMessage("סוג קובץ לא נתמך. אנא השתמש בקובץ CSV או אקסל (xlsx/xls)");
+        return;
+      }
+      
+      setSelectedFile(file);
+      setErrorMessage(null);
       setPreviewData([]);
       setShowPreview(false);
     }
@@ -118,14 +129,17 @@ const FileImport = () => {
 
     setIsImporting(true);
     setImportProgress(10);
+    setErrorMessage(null);
 
     try {
       // Parse the file
       setImportProgress(30);
+      console.log("Parsing file:", selectedFile.name, "with format:", format.name);
       const result = await parseFile(selectedFile, format);
       setImportProgress(70);
 
       if (!result.success || !result.data) {
+        setErrorMessage(result.error || "הניתוח נכשל");
         toast({
           title: "שגיאה",
           description: result.error || "הניתוח נכשל",
@@ -136,14 +150,18 @@ const FileImport = () => {
         return;
       }
 
+      console.log("Successfully parsed file, found transactions:", result.data.length);
       // Show preview before final import
       setPreviewData(result.data);
       setShowPreview(true);
       setImportProgress(100);
     } catch (error) {
+      console.error("Error importing file:", error);
+      const errorMessage = error instanceof Error ? error.message : "אירעה שגיאה בלתי צפויה";
+      setErrorMessage(errorMessage);
       toast({
         title: "שגיאה",
-        description: "אירעה שגיאה בלתי צפויה",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -352,10 +370,17 @@ const FileImport = () => {
                     {selectedFile ? selectedFile.name : "לחץ לבחירת קובץ"}
                   </Label>
                   <p className="text-xs text-gray-500">
-                    פורמטים נתמכים: CSV, Excel
+                    פורמטים נתמכים: CSV, Excel (.xlsx, .xls)
                   </p>
                 </div>
               </div>
+              
+              {errorMessage && (
+                <div className="bg-destructive/15 p-3 rounded-md flex items-start mt-2">
+                  <AlertCircle className="h-5 w-5 text-destructive shrink-0 ml-2 mt-0.5" />
+                  <span className="text-sm text-destructive">{errorMessage}</span>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -419,7 +444,7 @@ const FileImport = () => {
             <div className="space-y-2">
               <h3 className="font-medium">דרישות פורמט הקובץ</h3>
               <ul className="list-disc pr-5 text-sm space-y-1 text-right">
-                <li>השתמש בפורמט CSV או Excel</li>
+                <li>השתמש בפורמט CSV או Excel (xlsx, xls)</li>
                 <li>כותרות העמודות צריכות להיות בשורה הראשונה</li>
                 <li>עמודות חובה: תאריך, סכום, תיאור</li>
                 <li>עמודות אופציונליות: סוג, קטגוריה</li>
@@ -430,7 +455,7 @@ const FileImport = () => {
               <h3 className="font-medium">פורמט העמודות</h3>
               <ul className="list-disc pr-5 text-sm space-y-1 text-right">
                 <li>
-                  <strong>תאריך:</strong> השתמש בפורמט תאריך עקבי (לדוגמה, YYYY-MM-DD)
+                  <strong>תאריך:</strong> השתמש בפורמט תאריך עקבי (לדוגמה, DD/MM/YYYY)
                 </li>
                 <li>
                   <strong>סכום:</strong> ערכים מספריים (חיובי להכנסה, שלילי להוצאה)
@@ -444,9 +469,9 @@ const FileImport = () => {
             <div className="space-y-2">
               <h3 className="font-medium">טיפים</h3>
               <ul className="list-disc pr-5 text-sm space-y-1 text-right">
-                <li>צור פורמטים נפרדים לייצוא נתונים מבנקים שונים</li>
+                <li>עבור קבצי אקסל מבנקים ישראליים, השתמש בפורמט "אקסל בנק ישראלי"</li>
                 <li>צפה בנתונים לפני אישור הייבוא</li>
-                <li>בדוק את מיפוי הקטגוריות כדי להבטיח קטגוריזציה נכונה</li>
+                <li>הסכומים מזוהים אוטומטית כהכנסה או הוצאה לפי הערך או עמודת הסוג</li>
               </ul>
             </div>
           </CardContent>

@@ -64,6 +64,38 @@ export const DEFAULT_IMPORT_FORMATS: FileImportFormat[] = [
       incomeValues: ["0"],
       expenseValues: ["סכום"],
     },
+  },
+  {
+    id: "format_4",
+    name: "אקסל בנק לאומי",
+    mapping: {
+      date: "תאריך",
+      amount: "סכום",
+      description: "תיאור",
+    },
+    dateFormat: "DD/MM/YYYY",
+    delimiter: ",",
+    typeIdentifier: {
+      column: "amount",
+      incomeValues: [],
+      expenseValues: [],
+    },
+  },
+  {
+    id: "format_5",
+    name: "אקסל בנק הפועלים",
+    mapping: {
+      date: "תאריך",
+      amount: "סכום",
+      description: "תיאור פעולה",
+    },
+    dateFormat: "DD/MM/YYYY",
+    delimiter: ",",
+    typeIdentifier: {
+      column: "אסמכתא",
+      incomeValues: ["זכות", "הפקדה"],
+      expenseValues: ["חובה", "משיכה"],
+    },
   }
 ];
 

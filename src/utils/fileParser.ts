@@ -25,6 +25,9 @@ export const parseCSV = async (
         const lines = csv.split("\n").filter((line) => line.trim() !== "");
         const headers = lines[0].split(format.delimiter || ",").map((header) => header.trim());
 
+        console.log("CSV Headers:", headers);
+        console.log("Format mapping:", format.mapping);
+
         // אימות קיום עמודות נדרשות
         const requiredColumns = ["amount", "date", "description"];
         const mapping = format.mapping;
@@ -89,6 +92,7 @@ export const parseCSV = async (
 
         resolve({ success: true, data });
       } catch (error) {
+        console.error("CSV Parsing Error:", error);
         resolve({
           success: false,
           error: error instanceof Error ? error.message : "שגיאה לא ידועה בניתוח הקובץ",
@@ -125,6 +129,8 @@ export const parseExcel = async (
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
         
+        console.log("Excel Workbook sheets:", workbook.SheetNames);
+        
         // המרה לנתונים בפורמט JSON
         const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, { header: 1 });
         
@@ -134,6 +140,8 @@ export const parseExcel = async (
         
         // קריאת כותרות
         const headers = jsonData[0] as string[];
+        console.log("Excel Headers:", headers);
+        console.log("Format mapping:", format.mapping);
         
         // התאמה ספציפית לפורמט הקובץ של משתמש זה (אם תזהה שזהו פורמט הבנק הספציפי)
         const isHebrewBankFormat = headers.some(h => 
@@ -144,6 +152,8 @@ export const parseExcel = async (
           )
         );
         
+        console.log("Is Hebrew Bank Format:", isHebrewBankFormat);
+        
         // אם זיהינו פורמט בנק עברי ספציפי, נתאים את המיפוי
         let adaptedMapping = { ...format.mapping };
         if (isHebrewBankFormat) {
@@ -153,10 +163,13 @@ export const parseExcel = async (
             if (typeof header === 'string') {
               if (header.includes('תאריך') || header.includes('תאריך ערך')) {
                 adaptedMapping.date = header;
+                console.log("Found date column:", header);
               } else if (header.includes('תיאור') || header.includes('פרטים')) {
                 adaptedMapping.description = header;
+                console.log("Found description column:", header);
               } else if (header.includes('סכום') || header.includes('חובה') || header.includes('זכות')) {
                 adaptedMapping.amount = header;
+                console.log("Found amount column:", header);
               }
             }
           }
@@ -170,6 +183,7 @@ export const parseExcel = async (
         });
 
         if (missingColumns.length > 0) {
+          console.error("Missing columns:", missingColumns, "Available headers:", headers);
           throw new Error(
             `עמודות חובה חסרות או לא זוהו: ${missingColumns.join(", ")}`
           );
@@ -181,6 +195,14 @@ export const parseExcel = async (
         const descriptionIndex = headers.indexOf(adaptedMapping.description);
         const typeIndex = adaptedMapping.type ? headers.indexOf(adaptedMapping.type) : -1;
         const categoryIndex = adaptedMapping.category ? headers.indexOf(adaptedMapping.category) : -1;
+
+        console.log("Column indices:", {
+          date: dateIndex,
+          amount: amountIndex,
+          description: descriptionIndex,
+          type: typeIndex,
+          category: categoryIndex
+        });
 
         // ניתוח שורות
         const transactions: Omit<Transaction, "id">[] = [];
@@ -267,8 +289,10 @@ export const parseExcel = async (
           transactions.push(transaction);
         }
 
+        console.log("Parsed transactions:", transactions.length);
         resolve({ success: true, data: transactions });
       } catch (error) {
+        console.error("Excel Parsing Error:", error);
         resolve({
           success: false,
           error: error instanceof Error ? error.message : "שגיאה לא ידועה בניתוח קובץ האקסל",
@@ -286,6 +310,7 @@ export const parseExcel = async (
 
 export const detectFileType = (file: File): "csv" | "excel" | "unknown" => {
   const extension = file.name.split(".").pop()?.toLowerCase();
+  console.log("File extension:", extension);
   if (extension === "csv") {
     return "csv";
   } else if (["xls", "xlsx", "xlsb", "xlsm"].includes(extension || "")) {
@@ -298,7 +323,9 @@ export const parseFile = async (
   file: File,
   format: FileImportFormat
 ): Promise<ParserResult> => {
+  console.log("Parsing file:", file.name, "type:", file.type);
   const fileType = detectFileType(file);
+  console.log("Detected file type:", fileType);
   
   switch (fileType) {
     case "csv":
