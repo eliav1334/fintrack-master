@@ -110,7 +110,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                 onChange={(e) => handleElectricityChange("mainMeterReading", "date", e.target.value)}
               />
               <div className="text-sm text-muted-foreground">
-                הפרש: {mainMeterDiff} קוט"ש
+                הפרש: {mainMeterDiff} קוט&quot;ש
               </div>
             </div>
             
@@ -141,7 +141,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                 onChange={(e) => handleElectricityChange("secondaryMeterReading", "date", e.target.value)}
               />
               <div className="text-sm text-muted-foreground">
-                הפרש: {secondaryMeterDiff} קוט"ש
+                הפרש: {secondaryMeterDiff} קוט&quot;ש
               </div>
             </div>
             
@@ -149,7 +149,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             <div className="grid grid-cols-2 gap-2">
               <TransactionFormField
                 id="electricityRate"
-                label="תעריף לקוט"ש (₪)"
+                label="תעריף לקוט&quot;ש (₪)"
                 type="number"
                 step="0.01"
                 value={formData.electricityRate?.toString() || ""}
@@ -157,7 +157,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
               />
               <TransactionFormField
                 id="vatRate"
-                label="מע"מ (%)"
+                label="מע&quot;מ (%)"
                 type="number"
                 step="0.1"
                 value={formData.vatRate?.toString() || "17"}
@@ -169,7 +169,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             <div className="rounded-md bg-muted p-3">
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>סה"כ צריכה:</div>
-                <div className="text-left">{totalConsumption} קוט"ש</div>
+                <div className="text-left">{totalConsumption} קוט&quot;ש</div>
                 <div>סכום לפני מע"מ:</div>
                 <div className="text-left">{totalBeforeVat.toFixed(2)} ₪</div>
                 <div>סה"כ כולל מע"מ:</div>
