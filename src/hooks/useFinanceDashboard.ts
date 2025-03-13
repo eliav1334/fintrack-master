@@ -16,8 +16,9 @@ export const useFinanceDashboard = (selectedDate: Date) => {
   const { getMonthTransactions } = useTransactionFilters();
   const { calculateStats } = useFinanceStats(state.transactions, selectedDate);
   const { getCashFlowData, getCategoryData } = useChartData(state.transactions, state.categories, selectedDate);
+  
+  // Making sure we're passing the correct parameters in the right order
   const { checkBudgetAlerts, checkBalanceAlert } = useBudgetAlerts(
-    // Fixing parameter order to match the useBudgetAlerts hook definition:
     state.transactions,
     state.categories,
     state.budgets,
