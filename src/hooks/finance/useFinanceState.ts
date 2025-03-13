@@ -35,8 +35,8 @@ export const useFinanceState = () => {
         }
         if (parsedState.categoryMappings) {
           dispatch({ 
-            type: "ADD_TRANSACTIONS", 
-            payload: [] 
+            type: "SET_CATEGORY_MAPPINGS", 
+            payload: parsedState.categoryMappings 
           });
         }
       } catch (error) {
@@ -44,7 +44,7 @@ export const useFinanceState = () => {
       }
     }
     
-    // Run monthly income check after data loading (only once)
+    // Add monthly incomes after data loading (only once)
     const checkTimeout = setTimeout(() => {
       // Since we reset all fixed incomes, add them back in an organized way
       const monthlyIncomes = addMonthlyIncomes();

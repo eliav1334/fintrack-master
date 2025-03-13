@@ -32,7 +32,7 @@ export const useMonthlyIncomes = () => {
       const date = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
       
       const monthlyIncome: Transaction = {
-        id: generateId(`tx-monthly-${month}`), // Unique ID for each month
+        id: generateId(`income-${month}`), // Unique ID for each month
         description: "משכורת חודשית קבועה",
         amount: 16000,
         type: "income",
@@ -49,18 +49,26 @@ export const useMonthlyIncomes = () => {
   };
 
   /**
+   * Checks if a transaction is a monthly income transaction
+   */
+  const isMonthlyIncome = (tx: Transaction): boolean => {
+    return (
+      tx.type === "income" && 
+      tx.amount === 16000 && 
+      tx.description === "משכורת חודשית קבועה"
+    );
+  };
+
+  /**
    * Cleans monthly income transactions from the array
    */
   const cleanMonthlyIncomes = (transactions: Transaction[]): Transaction[] => {
-    return transactions.filter((tx: Transaction) => 
-      !(tx.type === "income" && 
-        tx.amount === 16000 && 
-        tx.description === "משכורת חודשית קבועה")
-    );
+    return transactions.filter(tx => !isMonthlyIncome(tx));
   };
 
   return {
     addMonthlyIncomes,
-    cleanMonthlyIncomes
+    cleanMonthlyIncomes,
+    isMonthlyIncome
   };
 };
