@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFinance } from "@/contexts/FinanceContext";
@@ -111,14 +112,39 @@ const Budgets = () => {
   const filteredBudgets = getFilteredBudgets();
   const expenseCategories = state.categories.filter(cat => cat.type === "expense");
 
-  // חדש: טיפול בגלילה אופקית עם גלגלת העכבר
+  // משופר: טיפול בגלילה אופקית עם גלגלת העכבר - עם רגישות מותאמת
   const handleWheel = (e: React.WheelEvent) => {
     if (tabsContainerRef.current) {
       e.preventDefault();
-      // כיוון הגלילה מותאם לכיוון RTL
-      tabsContainerRef.current.scrollLeft -= e.deltaY;
+      
+      // הגדרת רגישות הגלילה - ערך נמוך יותר לגלילה יותר איטית ומדויקת
+      const sensitivity = 0.5; 
+      
+      // כיוון הגלילה מותאם לכיוון RTL עם מהירות מותאמת
+      tabsContainerRef.current.scrollLeft -= e.deltaY * sensitivity;
+      
+      // הוספת תמיכה בגלילה אופקית ישירה (אם קיימת)
+      if (e.deltaX !== 0) {
+        tabsContainerRef.current.scrollLeft -= e.deltaX * sensitivity;
+      }
     }
   };
+
+  // התאמה של רוחב התצוגה כשהקומפוננטה נטענת
+  useEffect(() => {
+    // בדיקה אם קיים טאב פעיל ויש צורך לגלול אליו
+    if (tabsContainerRef.current && activeTab) {
+      const activeTabElement = document.querySelector(`[data-value="${activeTab}"]`);
+      if (activeTabElement) {
+        // מיקום הטאב הפעיל במרכז התצוגה
+        const tabsWidth = tabsContainerRef.current.clientWidth;
+        const tabPosition = (activeTabElement as HTMLElement).offsetLeft;
+        const tabWidth = (activeTabElement as HTMLElement).clientWidth;
+        
+        tabsContainerRef.current.scrollLeft = tabPosition - (tabsWidth / 2) + (tabWidth / 2);
+      }
+    }
+  }, [activeTab]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -180,22 +206,55 @@ const Budgets = () => {
         
         {/* טאבים לסינון לפי קבוצות קטגוריות עם גלילה משופרת */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
-          <div 
-            className="relative overflow-hidden" 
-            onWheel={handleWheel}
-          >
+          <div className="relative overflow-hidden border rounded-md">
             <div 
               ref={tabsContainerRef}
-              className="overflow-x-auto scroll-smooth pb-2" 
+              className="overflow-x-auto pb-2" 
               style={{ scrollBehavior: 'smooth' }}
+              onWheel={handleWheel}
             >
-              <TabsList className="inline-flex w-max py-2 px-4">
+              <TabsList className="inline-flex w-max py-2 px-4 bg-transparent">
                 {groupNames.map(groupName => (
-                  <TabsTrigger key={groupName} value={groupName} className="min-w-fit mx-1">
+                  <TabsTrigger 
+                    key={groupName} 
+                    value={groupName} 
+                    className="min-w-fit mx-1"
+                    data-value={groupName}
+                  >
                     {groupName}
                   </TabsTrigger>
                 ))}
               </TabsList>
+            </div>
+            
+            {/* חצים לגלילה בטלפונים */}
+            <div className="absolute left-0 top-0 bottom-0 flex items-center">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
+                onClick={() => {
+                  if (tabsContainerRef.current) {
+                    tabsContainerRef.current.scrollLeft -= 100;
+                  }
+                }}
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="absolute right-0 top-0 bottom-0 flex items-center">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
+                onClick={() => {
+                  if (tabsContainerRef.current) {
+                    tabsContainerRef.current.scrollLeft += 100;
+                  }
+                }}
+              >
+                <ArrowLeft className="h-4 w-4 transform rotate-180" />
+              </Button>
             </div>
           </div>
           
