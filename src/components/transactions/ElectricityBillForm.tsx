@@ -7,7 +7,7 @@ import { Calculator } from "lucide-react";
 
 interface ElectricityBillFormProps {
   formData: TransactionFormData;
-  handleElectricityChange: (type: string, field: string, value: string) => void;
+  handleElectricityChange: (type: string, field: string, value: string | number) => void;
   calculateElectricityAmount: () => void;
 }
 

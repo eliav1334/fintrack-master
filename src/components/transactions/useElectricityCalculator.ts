@@ -12,11 +12,14 @@ export const useElectricityCalculator = ({ formData, setFormData }: UseElectrici
   const { toast } = useToast();
 
   // טיפול בשינויים בשדות תחשיב החשמל
-  const handleElectricityChange = (type: string, field: string, value: string) => {
+  const handleElectricityChange = (type: string, field: string, value: string | number) => {
+    // Convert value to string for consistent processing
+    const stringValue = String(value);
+    
     if (type === "electricityRate" || type === "vatRate") {
       setFormData((prevData) => ({
         ...prevData,
-        [type]: value ? parseFloat(value) : 0
+        [type]: stringValue ? parseFloat(stringValue) : 0
       }));
     } else {
       setFormData((prevData) => {
@@ -26,7 +29,7 @@ export const useElectricityCalculator = ({ formData, setFormData }: UseElectrici
           ...prevData,
           [type]: {
             ...prevValue,
-            [field]: field === "date" ? value : (value ? parseFloat(value) : 0)
+            [field]: field === "date" ? stringValue : (stringValue ? parseFloat(stringValue) : 0)
           }
         };
       });

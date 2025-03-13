@@ -42,7 +42,7 @@ export interface UseTransactionFormResult {
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   handleSelectChange: (field: string, value: any) => void;
   handleSwitchChange: (field: string, checked: boolean) => void;
-  handleElectricityChange: (readingType: string, field: string, value: number) => void;
+  handleElectricityChange: (readingType: string, field: string, value: string | number) => void;
   handleInstallmentChange: (field: string, value: number) => void;
   calculateElectricityAmount: () => void;
   handleSubmit: (e: React.FormEvent) => void;
