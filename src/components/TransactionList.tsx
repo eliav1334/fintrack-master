@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useFinance } from "@/contexts/FinanceContext";
 import { Transaction } from "@/types";
@@ -20,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { format } from "date-fns";
-import { ArrowDownCircle, ArrowUpCircle, Edit, Search, Trash2 } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Edit, Search, Trash2, TrashIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -31,9 +30,10 @@ import {
 } from "@/components/ui/dialog";
 import { TransactionForm } from "./transactions/TransactionForm";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const TransactionList = () => {
-  const { state, deleteTransaction } = useFinance();
+  const { state, deleteTransaction, deleteAllIncomeTransactions } = useFinance();
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -41,6 +41,7 @@ const TransactionList = () => {
   const [editTransaction, setEditTransaction] = useState<Transaction | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState<boolean>(false);
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
+  const [showConfirmDeleteAllIncome, setShowConfirmDeleteAllIncome] = useState<boolean>(false);
 
   const getDateFilterLabel = (filter: string) => {
     switch (filter) {
@@ -60,7 +61,6 @@ const TransactionList = () => {
   const filterTransactions = () => {
     let filtered = [...state.transactions];
 
-    // Search filter
     if (searchTerm) {
       filtered = filtered.filter(
         (tx) =>
@@ -68,17 +68,14 @@ const TransactionList = () => {
       );
     }
 
-    // Category filter
     if (categoryFilter !== "all") {
       filtered = filtered.filter((tx) => tx.categoryId === categoryFilter);
     }
 
-    // Type filter
     if (typeFilter !== "all") {
       filtered = filtered.filter((tx) => tx.type === typeFilter);
     }
 
-    // Date filter
     if (dateFilter !== "all") {
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -104,7 +101,6 @@ const TransactionList = () => {
       });
     }
 
-    // Sort by date (newest first)
     return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   };
 
@@ -119,6 +115,16 @@ const TransactionList = () => {
       setShowConfirmDialog(false);
       setTransactionToDelete(null);
     }
+  };
+
+  const handleDeleteAllIncome = () => {
+    setShowConfirmDeleteAllIncome(true);
+  };
+
+  const confirmDeleteAllIncome = () => {
+    deleteAllIncomeTransactions();
+    setShowConfirmDeleteAllIncome(false);
+    toast.success("כל עסקאות ההכנסה נמחקו בהצלחה");
   };
 
   const handleEdit = (transaction: Transaction) => {
@@ -140,12 +146,12 @@ const TransactionList = () => {
   };
 
   const filteredTransactions = filterTransactions();
+  const hasIncomeTransactions = state.transactions.some(tx => tx.type === "income");
 
   return (
     <div className="animate-fade-in p-6 space-y-6">
       <h1 className="text-3xl font-semibold mb-6">עסקאות</h1>
 
-      {/* Filters */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="relative">
@@ -194,8 +200,21 @@ const TransactionList = () => {
           </Select>
         </div>
         <div className="flex justify-between mt-4">
-          <div className="text-sm text-gray-500">
-            נמצאו {filteredTransactions.length} עסקאות
+          <div className="flex gap-2">
+            <div className="text-sm text-gray-500">
+              נמצאו {filteredTransactions.length} עסקאות
+            </div>
+            {hasIncomeTransactions && (
+              <Button 
+                variant="destructive"
+                size="sm"
+                onClick={handleDeleteAllIncome}
+                className="flex items-center gap-1"
+              >
+                <TrashIcon className="h-3.5 w-3.5" />
+                מחק את כל ההכנסות
+              </Button>
+            )}
           </div>
           <Button 
             variant="outline"
@@ -207,7 +226,6 @@ const TransactionList = () => {
         </div>
       </div>
 
-      {/* Transactions Table */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         {filteredTransactions.length > 0 ? (
           <div className="overflow-x-auto">
@@ -301,7 +319,6 @@ const TransactionList = () => {
         )}
       </div>
 
-      {/* Edit Transaction Dialog */}
       {editTransaction && (
         <Dialog open={!!editTransaction} onOpenChange={() => setEditTransaction(null)}>
           <DialogContent className="sm:max-w-lg">
@@ -319,7 +336,6 @@ const TransactionList = () => {
         </Dialog>
       )}
 
-      {/* Confirm Delete Dialog */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -334,6 +350,25 @@ const TransactionList = () => {
             </Button>
             <Button variant="destructive" onClick={confirmDelete}>
               מחק
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showConfirmDeleteAllIncome} onOpenChange={setShowConfirmDeleteAllIncome}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>מחיקת כל עסקאות ההכנסה</DialogTitle>
+            <DialogDescription>
+              האם אתה בטוח שברצונך למחוק את כל עסקאות ההכנסה? פעולה זו אינה ניתנת לביטול.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowConfirmDeleteAllIncome(false)}>
+              ביטול
+            </Button>
+            <Button variant="destructive" onClick={confirmDeleteAllIncome}>
+              מחק את כל ההכנסות
             </Button>
           </DialogFooter>
         </DialogContent>
