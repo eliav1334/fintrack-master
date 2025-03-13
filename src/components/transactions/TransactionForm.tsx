@@ -75,7 +75,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         />
       </div>
 
-      <TransactionFormActions isEditing={isEditing} onClose={onClose} />
+      <TransactionFormActions isEditing={isEditing} onCancel={onClose} />
     </form>
   );
 };
