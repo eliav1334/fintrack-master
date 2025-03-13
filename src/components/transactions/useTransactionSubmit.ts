@@ -4,7 +4,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useFinance } from "@/contexts/FinanceContext";
 import { TransactionFormData } from "./transactionFormModels";
 import { useTransactionFormValidator } from "./useTransactionFormValidator";
-import { format } from "date-fns";
 
 interface UseTransactionSubmitParams {
   formData: TransactionFormData;
@@ -72,14 +71,6 @@ export const useTransactionSubmit = ({
           title: "הצלחה",
           description: "העסקה נוספה בהצלחה",
         });
-        
-        // בדיקה אם מדובר במשכורת קבועה של 16000 והצגת הודעה מתאימה
-        if (formData.type === "income" && parseFloat(formData.amount) === 16000) {
-          toast({
-            title: "משכורת חודשית",
-            description: "נרשמה הכנסה חודשית קבועה של 16,000 ₪",
-          });
-        }
       }
 
       // Reset form data if not editing
