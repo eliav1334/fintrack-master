@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useFinance } from "@/contexts/FinanceContext";
 import Dashboard from "@/components/Dashboard";
 import TransactionList from "@/components/TransactionList";
@@ -16,8 +16,34 @@ import {
 
 const Index = () => {
   const { state } = useFinance();
-  const [activeTab, setActiveTab] = useState("dashboard");
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // שימוש ב-URLSearchParams כדי לנהל את מצב הטאב בתוך ה-URL, מבלי לרענן את הדף במעבר בין טאבים
+  const queryParams = new URLSearchParams(location.search);
+  const tabParam = queryParams.get('tab');
+  
+  const [activeTab, setActiveTab] = useState(tabParam || "dashboard");
+
+  // עדכון ה-URL כאשר הטאב משתנה, אבל ללא ריענון הדף
+  useEffect(() => {
+    const newParams = new URLSearchParams(location.search);
+    if (activeTab !== "dashboard") {
+      newParams.set('tab', activeTab);
+    } else {
+      newParams.delete('tab');
+    }
+    
+    const newSearch = newParams.toString();
+    const newPath = newSearch ? `${location.pathname}?${newSearch}` : location.pathname;
+    
+    // עדכון של ה-URL מבלי לרענן את הדף
+    window.history.replaceState(null, '', newPath);
+  }, [activeTab, location.pathname, location.search]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
 
   const handleNavigateToBudgets = () => {
     navigate('/budgets');
@@ -43,7 +69,7 @@ const Index = () => {
         <Tabs 
           defaultValue="dashboard" 
           value={activeTab}
-          onValueChange={setActiveTab}
+          onValueChange={handleTabChange}
           className="w-full"
         >
           {/* תפריט ניווט */}

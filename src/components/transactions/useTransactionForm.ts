@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Transaction, TransactionType } from "@/types";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -7,6 +7,9 @@ import { useFinance } from "@/contexts/FinanceContext";
 import { TransactionFormData, UseTransactionFormParams, UseTransactionFormResult } from "./transactionFormModels";
 import { useElectricityCalculator } from "./useElectricityCalculator";
 import { useTransactionFormValidator } from "./useTransactionFormValidator";
+
+// מפתח לשמירת נתוני הטופס הזמניים ב-sessionStorage
+const FORM_STORAGE_KEY = "transaction_form_data";
 
 export const useTransactionForm = (
   initialTransaction?: Transaction,
@@ -16,28 +19,75 @@ export const useTransactionForm = (
   const { toast } = useToast();
   const isEditing = !!initialTransaction;
 
-  const [formData, setFormData] = useState<TransactionFormData>({
-    description: initialTransaction?.description || "",
-    amount: initialTransaction?.amount.toString() || "",
-    type: initialTransaction?.type || "expense",
-    date: initialTransaction?.date || format(new Date(), "yyyy-MM-dd"),
-    categoryId: initialTransaction?.categoryId || "",
-    notes: initialTransaction?.notes || "",
-    // אתחול שדות חשמל
-    isElectricityBill: initialTransaction?.isElectricityBill || false,
-    mainMeterReading: initialTransaction?.mainMeterReading || {
-      current: 0,
-      previous: 0,
+  // אתחול נתוני הטופס - מנסה לטעון מהאחסון אם ישנם, אחרת משתמש בברירות מחדל או בעסקה שהועברה
+  const initializeFormData = (): TransactionFormData => {
+    // אם בעריכה, תמיד נשתמש בערכים של העסקה שנשלחה
+    if (isEditing && initialTransaction) {
+      return {
+        description: initialTransaction.description || "",
+        amount: initialTransaction.amount.toString() || "",
+        type: initialTransaction.type || "expense",
+        date: initialTransaction.date || format(new Date(), "yyyy-MM-dd"),
+        categoryId: initialTransaction.categoryId || "",
+        notes: initialTransaction.notes || "",
+        isElectricityBill: initialTransaction.isElectricityBill || false,
+        mainMeterReading: initialTransaction.mainMeterReading || {
+          current: 0,
+          previous: 0,
+          date: format(new Date(), "yyyy-MM-dd"),
+        },
+        secondaryMeterReading: initialTransaction.secondaryMeterReading || {
+          current: 0,
+          previous: 0,
+          date: format(new Date(), "yyyy-MM-dd"),
+        },
+        electricityRate: initialTransaction.electricityRate || 0.60,
+        vatRate: initialTransaction.vatRate || 17,
+      };
+    }
+    
+    // אם לא בעריכה, ננסה לטעון מהאחסון
+    try {
+      const savedData = sessionStorage.getItem(FORM_STORAGE_KEY);
+      if (savedData) {
+        return JSON.parse(savedData);
+      }
+    } catch (error) {
+      console.error("שגיאה בטעינת נתוני טופס:", error);
+    }
+    
+    // ברירת מחדל אם אין נתונים באחסון
+    return {
+      description: "",
+      amount: "",
+      type: "expense",
       date: format(new Date(), "yyyy-MM-dd"),
-    },
-    secondaryMeterReading: initialTransaction?.secondaryMeterReading || {
-      current: 0,
-      previous: 0,
-      date: format(new Date(), "yyyy-MM-dd"),
-    },
-    electricityRate: initialTransaction?.electricityRate || 0.60, // תעריף ברירת מחדל
-    vatRate: initialTransaction?.vatRate || 17, // מע"מ ברירת מחדל
-  });
+      categoryId: "",
+      notes: "",
+      isElectricityBill: false,
+      mainMeterReading: {
+        current: 0,
+        previous: 0,
+        date: format(new Date(), "yyyy-MM-dd"),
+      },
+      secondaryMeterReading: {
+        current: 0,
+        previous: 0,
+        date: format(new Date(), "yyyy-MM-dd"),
+      },
+      electricityRate: 0.60,
+      vatRate: 17,
+    };
+  };
+
+  const [formData, setFormData] = useState<TransactionFormData>(initializeFormData);
+
+  // שמירת נתוני הטופס ב-sessionStorage בכל שינוי אם לא במצב עריכה
+  useEffect(() => {
+    if (!isEditing) {
+      sessionStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(formData));
+    }
+  }, [formData, isEditing]);
 
   // טעינת ולידטור הטופס
   const { validateForm } = useTransactionFormValidator();
@@ -106,9 +156,9 @@ export const useTransactionForm = (
         });
       }
 
-      // איפוס הטופס אם לא בעריכה
+      // איפוס הטופס והאחסון אם לא בעריכה
       if (!isEditing) {
-        setFormData({
+        const defaultFormData = {
           description: "",
           amount: "",
           type: "expense",
@@ -128,7 +178,10 @@ export const useTransactionForm = (
           },
           electricityRate: 0.60,
           vatRate: 17,
-        });
+        };
+        
+        setFormData(defaultFormData);
+        sessionStorage.removeItem(FORM_STORAGE_KEY);
       }
 
       if (onClose) {
