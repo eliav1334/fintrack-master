@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { format, subMonths, addMonths, getYear, setMonth } from "date-fns";
 import { he } from "date-fns/locale";
@@ -11,7 +10,7 @@ import { cn } from "@/lib/utils";
 
 interface MonthPickerProps {
   selectedDate: Date;
-  onDateChange: (date: Date) => void;
+  onChange: (date: Date) => void;
 }
 
 const HEBREW_MONTHS = [
@@ -19,7 +18,7 @@ const HEBREW_MONTHS = [
   "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"
 ];
 
-const MonthPicker: React.FC<MonthPickerProps> = ({ selectedDate, onDateChange }) => {
+const MonthPicker: React.FC<MonthPickerProps> = ({ selectedDate, onChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   
   // מקבל את החודש הנוכחי (0-11)
@@ -31,13 +30,13 @@ const MonthPicker: React.FC<MonthPickerProps> = ({ selectedDate, onDateChange })
     const newDate = direction === "prev" 
       ? subMonths(selectedDate, 1)
       : addMonths(selectedDate, 1);
-    onDateChange(newDate);
+    onChange(newDate);
   };
   
   // פונקציה לשינוי החודש באמצעות הבוחר
   const handleMonthChange = (monthIndex: string) => {
     const newDate = setMonth(selectedDate, parseInt(monthIndex));
-    onDateChange(newDate);
+    onChange(newDate);
     setIsOpen(false);
   };
 
@@ -45,7 +44,7 @@ const MonthPicker: React.FC<MonthPickerProps> = ({ selectedDate, onDateChange })
   const handleYearChange = (year: string) => {
     const newDate = new Date(selectedDate);
     newDate.setFullYear(parseInt(year));
-    onDateChange(newDate);
+    onChange(newDate);
   };
   
   // יצירת אפשרויות שנים מ-2020 עד 2025
@@ -120,14 +119,14 @@ const MonthPicker: React.FC<MonthPickerProps> = ({ selectedDate, onDateChange })
                 selected={selectedDate}
                 onSelect={(date) => {
                   if (date) {
-                    onDateChange(date);
+                    onChange(date);
                     setIsOpen(false);
                   }
                 }}
                 className={cn("p-3 pointer-events-auto")}
                 locale={he}
                 month={selectedDate}
-                onMonthChange={onDateChange}
+                onMonthChange={onChange}
                 captionLayout="dropdown-buttons"
                 fromMonth={new Date(2020, 0)}
                 toMonth={new Date(2025, 11)}
