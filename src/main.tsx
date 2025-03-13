@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 
-// Set document language to Hebrew
+// Set document language to Hebrew and direction to RTL
 document.documentElement.lang = 'he';
 document.documentElement.dir = 'rtl';
 
