@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useFinance } from "@/contexts/FinanceContext";
 import { format } from "date-fns";
@@ -33,7 +32,9 @@ const Dashboard = () => {
   const [timeData, setTimeData] = useState<{ date: string; income: number; expense: number }[]>([]);
   const [categoryData, setCategoryData] = useState<{ name: string; value: number; color: string }[]>([]);
   const [budgetAlerts, setBudgetAlerts] = useState<{ categoryName: string; current: number; limit: number; percentage: number; type?: "income" | "expense" }[]>([]);
+  const [balanceAlert, setBalanceAlert] = useState<{ isNegative: boolean; income: number; expense: number; difference: number } | null>(null);
   const [notifiedBudgets, setNotifiedBudgets] = useState<Set<string>>(new Set());
+  const [notifiedNegativeBalance, setNotifiedNegativeBalance] = useState<boolean>(false);
 
   useEffect(() => {
     const today = new Date();
@@ -86,6 +87,39 @@ const Dashboard = () => {
       expenseChange: calculateChange(currentExpense, lastExpense),
       balanceChange: calculateChange(currentBalance, lastBalance),
     });
+
+    // בדיקה אם המאזן שלילי והגדרת התראה
+    if (currentIncome > 0 && currentExpense > 0) {
+      const isNegative = currentBalance < 0;
+      if (isNegative) {
+        setBalanceAlert({
+          isNegative,
+          income: currentIncome,
+          expense: currentExpense,
+          difference: Math.abs(currentBalance),
+        });
+        
+        // הצגת התראה על מאזן שלילי (רק פעם אחת)
+        if (!notifiedNegativeBalance) {
+          toast({
+            title: "התראת מאזן שלילי",
+            description: `ההוצאות (${new Intl.NumberFormat("he-IL", {
+              style: "currency",
+              currency: "ILS",
+            }).format(currentExpense)}) גבוהות מההכנסות (${new Intl.NumberFormat("he-IL", {
+              style: "currency",
+              currency: "ILS",
+            }).format(currentIncome)}) בחודש הנוכחי`,
+            variant: "destructive",
+          });
+          setNotifiedNegativeBalance(true);
+        }
+      } else {
+        setBalanceAlert(null);
+      }
+    } else {
+      setBalanceAlert(null);
+    }
 
     // יצירת נתונים לגרף של 30 הימים האחרונים
     const last30Days = new Date();
@@ -198,7 +232,7 @@ const Dashboard = () => {
         });
       }
     });
-  }, [state.transactions, state.categories, state.budgets, toast, notifiedBudgets]);
+  }, [state.transactions, state.categories, state.budgets, toast, notifiedBudgets, notifiedNegativeBalance]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("he-IL", {
@@ -282,9 +316,11 @@ const Dashboard = () => {
       </div>
 
       {/* התראות תקציב */}
-      {budgetAlerts.length > 0 && (
-        <BudgetAlertCard alerts={budgetAlerts} formatCurrency={formatCurrency} />
-      )}
+      <BudgetAlertCard 
+        alerts={budgetAlerts} 
+        balanceAlert={balanceAlert || undefined} 
+        formatCurrency={formatCurrency} 
+      />
     </div>
   );
 };

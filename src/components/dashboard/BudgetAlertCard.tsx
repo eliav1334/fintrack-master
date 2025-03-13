@@ -11,19 +11,31 @@ interface BudgetAlertItem {
   type?: "income" | "expense";
 }
 
+// הוספתי ממשק חדש להתראות מאזן
+interface BalanceAlert {
+  isNegative: boolean;
+  income: number;
+  expense: number;
+  difference: number;
+}
+
 interface BudgetAlertCardProps {
   alerts: BudgetAlertItem[];
+  balanceAlert?: BalanceAlert; // אופציונלי - התראת מאזן שלילי
   formatCurrency: (value: number) => string;
 }
 
-const BudgetAlertCard = ({ alerts, formatCurrency }: BudgetAlertCardProps) => {
+const BudgetAlertCard = ({ alerts, balanceAlert, formatCurrency }: BudgetAlertCardProps) => {
   // סינון רק התראות על הוצאות (לא הכנסות) עם הוצאות בפועל
   const filteredAlerts = alerts.filter(alert => 
     alert.current > 0 && 
     alert.type !== "income"
   );
 
-  if (filteredAlerts.length === 0) {
+  // בדיקה אם יש התראות תקציב או התראת מאזן שלילי
+  const hasAlerts = filteredAlerts.length > 0 || (balanceAlert && balanceAlert.isNegative);
+
+  if (!hasAlerts) {
     return null;
   }
 
@@ -38,6 +50,26 @@ const BudgetAlertCard = ({ alerts, formatCurrency }: BudgetAlertCardProps) => {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
+          {/* התראת מאזן שלילי */}
+          {balanceAlert && balanceAlert.isNegative && (
+            <div 
+              className="rounded-lg p-3 border bg-[#FFDEE2]/50 border-[#ea384c]/30 mb-4"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-[#ea384c]">מאזן שלילי בחודש הנוכחי</p>
+                  <div className="text-sm text-slate-600">
+                    הכנסות: {formatCurrency(balanceAlert.income)} | הוצאות: {formatCurrency(balanceAlert.expense)}
+                  </div>
+                </div>
+                <div className="px-2 py-1 rounded-full text-sm font-medium bg-[#ea384c] text-white">
+                  {formatCurrency(balanceAlert.difference)}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* התראות תקציב קטגוריות */}
           {filteredAlerts.map((alert, idx) => (
             <div 
               key={idx} 
