@@ -34,7 +34,10 @@ export const TransactionFormField: React.FC<TransactionFormFieldProps> = ({
 }) => {
   return (
     <div className="space-y-2">
-      <Label htmlFor={id}>{label}{required && <span className="text-destructive ml-1">*</span>}</Label>
+      <Label htmlFor={id}>
+        {label}
+        {required && <span className="text-destructive ml-1">*</span>}
+      </Label>
       <Input
         id={id}
         name={id}
