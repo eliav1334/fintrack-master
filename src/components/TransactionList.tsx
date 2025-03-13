@@ -29,7 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { TransactionForm } from "./TransactionForm";
+import { TransactionForm } from "./transactions/TransactionForm";
 import { cn } from "@/lib/utils";
 
 const TransactionList = () => {
