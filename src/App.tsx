@@ -13,23 +13,25 @@ import "./App.css";
 // יצירת לקוח שאילתות חדש
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <FinanceProvider>
-      <TooltipProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/budgets" element={<Budgets />} />
-            {/* יש להוסיף נתיבים מותאמים אישית מעל נתיב ה-"*" שתופס הכל */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-        <Toaster />
-        <Sonner />
-      </TooltipProvider>
-    </FinanceProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <FinanceProvider>
+        <TooltipProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/budgets" element={<Budgets />} />
+              {/* יש להוסיף נתיבים מותאמים אישית מעל נתיב ה-"*" שתופס הכל */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+          <Toaster />
+          <Sonner />
+        </TooltipProvider>
+      </FinanceProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
