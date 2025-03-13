@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useFinance } from "@/contexts/FinanceContext";
 import { TransactionFormData } from "./transactionFormModels";
 import { useTransactionFormValidator } from "./useTransactionFormValidator";
+import { format } from "date-fns";
 
 interface UseTransactionSubmitParams {
   formData: TransactionFormData;
@@ -23,7 +24,7 @@ export const useTransactionSubmit = ({
   resetFormData,
   onClose
 }: UseTransactionSubmitParams) => {
-  const { addTransaction, updateTransaction } = useFinance();
+  const { addTransaction, updateTransaction, state } = useFinance();
   const { toast } = useToast();
   const { validateForm } = useTransactionFormValidator();
 
@@ -79,6 +80,9 @@ export const useTransactionSubmit = ({
             description: "נרשמה הכנסה חודשית קבועה של 16,000 ₪",
           });
         }
+        
+        // בדיקה אם נדרש להוסיף הכנסה חודשית אוטומטית
+        checkForMonthlyIncome();
       }
 
       // Reset form data if not editing
@@ -94,6 +98,45 @@ export const useTransactionSubmit = ({
         title: "שגיאה",
         description: "אירעה שגיאה. נא לנסות שוב.",
         variant: "destructive",
+      });
+    }
+  };
+  
+  /**
+   * בדיקה אם נדרש להוסיף הכנסה חודשית אוטומטית של 16,000 ₪
+   */
+  const checkForMonthlyIncome = () => {
+    const currentDate = new Date();
+    const currentMonth = format(currentDate, "yyyy-MM");
+    
+    // בדיקה אם כבר נרשמה הכנסה קבועה לחודש הנוכחי
+    const hasMonthlyIncome = state.transactions.some(transaction => {
+      // בודק אם זו הכנסה בסך 16000
+      const isMonthlyIncome = transaction.type === "income" && transaction.amount === 16000;
+      
+      // מחלץ את החודש והשנה מתאריך העסקה
+      const transactionMonth = transaction.date ? format(new Date(transaction.date), "yyyy-MM") : "";
+      
+      // החזרת אמת אם נמצאה עסקה מתאימה בחודש הנוכחי
+      return isMonthlyIncome && transactionMonth === currentMonth;
+    });
+    
+    // אם אין הכנסה חודשית לחודש הנוכחי, מוסיף אותה
+    if (!hasMonthlyIncome) {
+      const monthlyIncome: Omit<Transaction, "id"> = {
+        description: "משכורת חודשית קבועה",
+        amount: 16000,
+        type: "income",
+        date: format(currentDate, "yyyy-MM-dd"),
+        categoryId: "",  // ניתן להוסיף קטגוריה מתאימה אם קיימת
+        notes: "הכנסה חודשית קבועה"
+      };
+      
+      addTransaction(monthlyIncome);
+      
+      toast({
+        title: "הכנסה חודשית",
+        description: "נוספה אוטומטית הכנסה חודשית קבועה של 16,000 ₪",
       });
     }
   };
