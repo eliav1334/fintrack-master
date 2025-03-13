@@ -10,7 +10,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Budget, CategoryType } from "@/types";
 import { PlusCircle, ArrowLeft, FolderPlus } from "lucide-react";
@@ -112,13 +111,13 @@ const Budgets = () => {
   const filteredBudgets = getFilteredBudgets();
   const expenseCategories = state.categories.filter(cat => cat.type === "expense");
 
-  // משופר: טיפול בגלילה אופקית עם גלגלת העכבר - עם רגישות מותאמת
+  // טיפול בגלילה אופקית עם גלגלת העכבר - עם רגישות מותאמת
   const handleWheel = (e: React.WheelEvent) => {
     if (tabsContainerRef.current) {
       e.preventDefault();
       
       // הגדרת רגישות הגלילה - ערך נמוך יותר לגלילה יותר איטית ומדויקת
-      const sensitivity = 0.5; 
+      const sensitivity = 1.5; 
       
       // כיוון הגלילה מותאם לכיוון RTL עם מהירות מותאמת
       tabsContainerRef.current.scrollLeft -= e.deltaY * sensitivity;
@@ -205,71 +204,171 @@ const Budgets = () => {
         </div>
         
         {/* טאבים לסינון לפי קבוצות קטגוריות עם גלילה משופרת */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
-          <div className="relative overflow-hidden border rounded-md">
-            <div 
-              ref={tabsContainerRef}
-              className="overflow-x-auto pb-2" 
-              style={{ scrollBehavior: 'smooth' }}
-              onWheel={handleWheel}
-            >
-              <TabsList className="inline-flex w-max py-2 px-4 bg-transparent">
-                {groupNames.map(groupName => (
-                  <TabsTrigger 
-                    key={groupName} 
-                    value={groupName} 
-                    className="min-w-fit mx-1"
-                    data-value={groupName}
-                  >
-                    {groupName}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </div>
-            
-            {/* חצים לגלילה בטלפונים */}
-            <div className="absolute left-0 top-0 bottom-0 flex items-center">
-              <Button 
-                variant="ghost" 
-                size="icon"
-                className="h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
-                onClick={() => {
-                  if (tabsContainerRef.current) {
-                    tabsContainerRef.current.scrollLeft -= 100;
-                  }
-                }}
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="absolute right-0 top-0 bottom-0 flex items-center">
-              <Button 
-                variant="ghost" 
-                size="icon"
-                className="h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
-                onClick={() => {
-                  if (tabsContainerRef.current) {
-                    tabsContainerRef.current.scrollLeft += 100;
-                  }
-                }}
-              >
-                <ArrowLeft className="h-4 w-4 transform rotate-180" />
-              </Button>
+        <div className="relative mb-6 border rounded-lg overflow-hidden">
+          <div 
+            ref={tabsContainerRef}
+            className="overflow-x-auto pb-2 pt-2 px-4 hide-scrollbar"
+            style={{ scrollBehavior: 'smooth' }}
+            onWheel={handleWheel}
+          >
+            <div className="flex gap-2 flex-nowrap min-w-max">
+              {groupNames.map(groupName => (
+                <button
+                  key={groupName}
+                  onClick={() => setActiveTab(groupName)}
+                  className={`px-3 py-1 rounded-md whitespace-nowrap text-sm transition-colors
+                    ${activeTab === groupName 
+                      ? 'bg-primary text-primary-foreground font-medium' 
+                      : 'bg-muted/40 hover:bg-muted text-foreground'
+                    }`}
+                  data-value={groupName}
+                >
+                  {groupName}
+                </button>
+              ))}
             </div>
           </div>
           
-          {groupNames.map(groupName => (
-            <TabsContent key={groupName} value={groupName}>
-              <BudgetList 
-                budgets={filteredBudgets}
-                categories={state.categories}
-                calculateExpenses={calculateExpenses}
-                onDelete={deleteBudget}
-                onSubmit={setBudget}
-              />
-            </TabsContent>
-          ))}
-        </Tabs>
+          {/* חצים לגלילה */}
+          <div className="absolute left-0 top-0 bottom-0 flex items-center">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background shadow-sm"
+              onClick={() => {
+                if (tabsContainerRef.current) {
+                  tabsContainerRef.current.scrollLeft -= 150;
+                }
+              }}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="absolute right-0 top-0 bottom-0 flex items-center">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background shadow-sm"
+              onClick={() => {
+                if (tabsContainerRef.current) {
+                  tabsContainerRef.current.scrollLeft += 150;
+                }
+              }}
+            >
+              <ArrowLeft className="h-4 w-4 transform rotate-180" />
+            </Button>
+          </div>
+        </div>
+        
+        {/* תצוגת כל הקטגוריות יחד בדף אחד */}
+        <div className="space-y-10">
+          {Object.entries(categoryGroups).map(([groupName, categories]) => {
+            // קבלת התקציבים המתאימים לקבוצה הנוכחית
+            const categoryIds = categories.map(cat => cat.id);
+            const budgetsInGroup = state.budgets.filter(budget => 
+              categoryIds.includes(budget.categoryId)
+            );
+            
+            if (budgetsInGroup.length === 0 && groupName !== "כל הקטגוריות") {
+              return null; // לא נציג קבוצות ריקות
+            }
+            
+            return (
+              <div key={groupName} className="bg-card rounded-lg p-6 shadow-sm animate-fade-up">
+                <h3 className="text-lg font-medium mb-4 border-b pb-2">
+                  {groupName}
+                  <span className="text-muted-foreground text-sm mr-2">
+                    ({budgetsInGroup.length} תקציבים)
+                  </span>
+                </h3>
+                
+                {budgetsInGroup.length > 0 ? (
+                  <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                    {budgetsInGroup.map(budget => {
+                      const category = state.categories.find(c => c.id === budget.categoryId);
+                      const expenses = calculateExpenses(budget.categoryId);
+                      
+                      return (
+                        <div 
+                          key={budget.id} 
+                          className="bg-background border rounded-md p-4 hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex justify-between items-start mb-3">
+                            <div>
+                              <h4 className="font-medium">{category?.name || 'קטגוריה לא ידועה'}</h4>
+                              <p className="text-xs text-muted-foreground">
+                                {budget.period === "monthly" && "תקציב חודשי"}
+                                {budget.period === "yearly" && "תקציב שנתי"}
+                                {budget.period === "weekly" && "תקציב שבועי"}
+                                {budget.period === "daily" && "תקציב יומי"}
+                              </p>
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => deleteBudget(budget.id)}
+                            >
+                              <span className="sr-only">מחיקה</span>
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M3 6h18"></path>
+                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                              </svg>
+                            </Button>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span className={expenses > budget.amount ? "text-destructive font-medium" : ""}>
+                                {Math.min(Math.round((expenses / budget.amount) * 100), 100)}% מנוצל
+                              </span>
+                              <span className="font-medium">
+                                {new Intl.NumberFormat('he-IL', { style: 'currency', currency: 'ILS', maximumFractionDigits: 0 }).format(expenses)} / 
+                                {new Intl.NumberFormat('he-IL', { style: 'currency', currency: 'ILS', maximumFractionDigits: 0 }).format(budget.amount)}
+                              </span>
+                            </div>
+                            
+                            <div className="w-full bg-muted rounded-full h-2">
+                              <div 
+                                className={`h-2 rounded-full ${
+                                  expenses > budget.amount 
+                                    ? 'bg-destructive' 
+                                    : expenses > budget.amount * 0.85 
+                                      ? 'bg-amber-500' 
+                                      : 'bg-primary'
+                                }`}
+                                style={{ width: `${Math.min(Math.round((expenses / budget.amount) * 100), 100)}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground mb-4">אין תקציבים בקטגוריה זו</p>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline">הוספת תקציב חדש</Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>הגדרת תקציב חדש</DialogTitle>
+                        </DialogHeader>
+                        <BudgetForm 
+                          expenseCategories={expenseCategories} 
+                          onSubmit={setBudget} 
+                        />
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
