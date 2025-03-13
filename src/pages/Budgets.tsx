@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFinance } from "@/contexts/FinanceContext";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ const Budgets = () => {
   const { state, setBudget, deleteBudget, addCategory } = useFinance();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("כל הקטגוריות");
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
   
   // חישוב סכום ההוצאות לפי קטגוריה וחודש
   const calculateExpenses = (categoryId: string) => {
@@ -110,6 +111,15 @@ const Budgets = () => {
   const filteredBudgets = getFilteredBudgets();
   const expenseCategories = state.categories.filter(cat => cat.type === "expense");
 
+  // חדש: טיפול בגלילה אופקית עם גלגלת העכבר
+  const handleWheel = (e: React.WheelEvent) => {
+    if (tabsContainerRef.current) {
+      e.preventDefault();
+      // כיוון הגלילה מותאם לכיוון RTL
+      tabsContainerRef.current.scrollLeft -= e.deltaY;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border py-4 px-6 bg-card">
@@ -168,10 +178,17 @@ const Budgets = () => {
           </div>
         </div>
         
-        {/* טאבים לסינון לפי קבוצות קטגוריות עם גלילה חלקה */}
+        {/* טאבים לסינון לפי קבוצות קטגוריות עם גלילה משופרת */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
-          <div className="relative">
-            <ScrollArea className="w-full whitespace-nowrap rounded-md border">
+          <div 
+            className="relative overflow-hidden" 
+            onWheel={handleWheel}
+          >
+            <div 
+              ref={tabsContainerRef}
+              className="overflow-x-auto scroll-smooth pb-2" 
+              style={{ scrollBehavior: 'smooth' }}
+            >
               <TabsList className="inline-flex w-max py-2 px-4">
                 {groupNames.map(groupName => (
                   <TabsTrigger key={groupName} value={groupName} className="min-w-fit mx-1">
@@ -179,7 +196,7 @@ const Budgets = () => {
                   </TabsTrigger>
                 ))}
               </TabsList>
-            </ScrollArea>
+            </div>
           </div>
           
           {groupNames.map(groupName => (
