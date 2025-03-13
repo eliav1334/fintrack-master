@@ -15,19 +15,19 @@ export const useFinanceDashboard = (selectedDate: Date) => {
   const { formatCurrency } = useCurrencyFormatter();
   const { getMonthTransactions } = useTransactionFilters();
   const { calculateStats } = useFinanceStats(state.transactions, selectedDate);
-  const { calculateTimeData, calculateCategoryData } = useChartData(state.transactions, state.categories, selectedDate);
-  const { calculateBudgetAlerts, calculateBalanceAlert } = useBudgetAlerts(state.budgets, state.categories, state.transactions, selectedDate);
+  const { getCashFlowData, getCategoryData } = useChartData(state.transactions, state.categories, selectedDate);
+  const { checkBudgetAlerts, checkBalanceAlert } = useBudgetAlerts(state.budgets, state.categories, state.transactions, selectedDate);
 
   // מחשב נתונים סטטיסטיים
   const stats = useMemo(() => calculateStats(), [calculateStats]);
 
   // מחשב נתוני גרפים
-  const timeData = useMemo(() => calculateTimeData(), [calculateTimeData]);
-  const categoryData = useMemo(() => calculateCategoryData(), [calculateCategoryData]);
+  const timeData = useMemo(() => getCashFlowData(), [getCashFlowData]);
+  const categoryData = useMemo(() => getCategoryData(), [getCategoryData]);
 
   // מחשב התראות תקציב
-  const budgetAlerts = useMemo(() => calculateBudgetAlerts(), [calculateBudgetAlerts]);
-  const balanceAlert = useMemo(() => calculateBalanceAlert(stats), [calculateBalanceAlert, stats]);
+  const budgetAlerts = useMemo(() => checkBudgetAlerts(), [checkBudgetAlerts]);
+  const balanceAlert = useMemo(() => checkBalanceAlert(), [checkBalanceAlert]);
 
   return {
     stats,
