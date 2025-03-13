@@ -32,6 +32,39 @@ export const DEFAULT_IMPORT_FORMATS: FileImportFormat[] = [
       expenseValues: ["הוצאה", "חיוב", "משיכה"],
     },
   },
+  {
+    id: "format_2",
+    name: "אקסל בנק ישראלי",
+    mapping: {
+      date: "תאריך ערך",
+      amount: "סכום",
+      description: "תיאור",
+      type: "סוג פעולה",
+    },
+    dateFormat: "DD/MM/YYYY",
+    delimiter: ",",
+    typeIdentifier: {
+      column: "סוג פעולה",
+      incomeValues: ["זיכוי", "הפקדה", "העברה", "משכורת"],
+      expenseValues: ["חיוב", "משיכה", "תשלום", "עמלה"],
+    },
+  },
+  {
+    id: "format_3",
+    name: "חשבון עו\"ש - פורמט אוטומטי",
+    mapping: {
+      date: "תאריך",
+      amount: "סכום חובה",
+      description: "תיאור",
+    },
+    dateFormat: "DD/MM/YYYY",
+    delimiter: ",",
+    typeIdentifier: {
+      column: "סכום חובה",
+      incomeValues: ["0"],
+      expenseValues: ["סכום"],
+    },
+  }
 ];
 
 export const initialState: FinanceState = {
