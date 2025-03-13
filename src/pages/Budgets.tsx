@@ -8,11 +8,10 @@ import { Link } from "react-router-dom";
 import { BudgetList, CategoryList, BudgetPlanner } from "@/components/budgets";
 import { useFinance } from "@/contexts/FinanceContext";
 import { Budget } from "@/types";
-import { nanoid } from 'nanoid';
 
 const Budgets = () => {
   const [activeTab, setActiveTab] = useState<string>("budgets");
-  const { state, dispatch } = useFinance();
+  const { state, deleteBudget, setBudget } = useFinance();
 
   const calculateExpenses = (categoryId: string) => {
     return state.transactions
@@ -21,20 +20,11 @@ const Budgets = () => {
   };
 
   const handleDeleteBudget = (id: string) => {
-    dispatch({
-      type: "DELETE_BUDGET",
-      payload: id
-    });
+    deleteBudget(id);
   };
 
   const handleSubmitBudget = (budget: Omit<Budget, "id">) => {
-    dispatch({
-      type: "ADD_BUDGET",
-      payload: {
-        ...budget,
-        id: nanoid()
-      }
-    });
+    setBudget(budget);
   };
 
   return (
