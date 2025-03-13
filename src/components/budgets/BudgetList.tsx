@@ -20,7 +20,7 @@ const BudgetList = ({
 }: BudgetListProps) => {
   const expenseCategories = categories.filter(cat => cat.type === "expense");
 
-  if (budgets.length === 0) {
+  if (!budgets || budgets.length === 0) {
     return <BudgetEmpty expenseCategories={expenseCategories} onSubmit={onSubmit} />;
   }
 

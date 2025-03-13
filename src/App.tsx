@@ -8,6 +8,7 @@ import { FinanceProvider } from "@/contexts/FinanceContext";
 import Index from "./pages/Index";
 import Budgets from "./pages/Budgets";
 import NotFound from "./pages/NotFound";
+import "./App.css";
 
 const queryClient = new QueryClient();
 
@@ -15,8 +16,6 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <FinanceProvider>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
@@ -25,6 +24,8 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
+        <Toaster />
+        <Sonner />
       </TooltipProvider>
     </FinanceProvider>
   </QueryClientProvider>

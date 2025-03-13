@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFinance } from "@/contexts/FinanceContext";
@@ -7,6 +8,7 @@ import { TransactionForm } from "@/components/TransactionForm";
 import FileImport from "@/components/FileImport";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { 
   BarChart3, PlusCircle, FileText, 
   PieChart, Settings, ArrowDownUp 
@@ -17,11 +19,24 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const navigate = useNavigate();
 
+  const handleNavigateToBudgets = () => {
+    navigate('/budgets');
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* כותרת ראשית */}
       <header className="border-b border-border py-4 px-6 bg-card">
-        <h1 className="text-2xl font-bold text-center">ניהול תקציב אישי</h1>
+        <div className="container mx-auto flex justify-between items-center">
+          <h1 className="text-2xl font-bold">ניהול תקציב אישי</h1>
+          <Button 
+            variant="outline" 
+            onClick={handleNavigateToBudgets}
+            className="hidden sm:flex"
+          >
+            תקציבים
+          </Button>
+        </div>
       </header>
 
       <div className="container mx-auto px-4 py-6 max-w-7xl">
@@ -123,6 +138,7 @@ const Index = () => {
                         <p>לא הוגדרו תקציבים</p>
                         <button 
                           className="mt-4 text-primary hover:underline"
+                          onClick={handleNavigateToBudgets}
                         >
                           הגדר תקציב חדש
                         </button>
