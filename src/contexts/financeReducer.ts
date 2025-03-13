@@ -66,6 +66,13 @@ export const financeReducer = (state: FinanceState, action: FinanceAction): Fina
           (transaction) => transaction.id !== action.payload
         ),
       };
+    case "DELETE_ALL_INCOME_TRANSACTIONS":
+      return {
+        ...state,
+        transactions: state.transactions.filter(
+          (transaction) => transaction.type !== "income"
+        ),
+      };
     case "ADD_TRANSACTIONS":
       // עדכון שיוך קטגוריות אוטומטי למספר עסקאות
       const enhancedTransactions = action.payload.map(transaction => {

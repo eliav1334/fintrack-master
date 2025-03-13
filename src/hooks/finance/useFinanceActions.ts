@@ -22,6 +22,10 @@ export const useFinanceActions = (dispatch: React.Dispatch<any>) => {
   const deleteTransaction = (id: string) => {
     dispatch({ type: "DELETE_TRANSACTION", payload: id });
   };
+  
+  const deleteAllIncomeTransactions = () => {
+    dispatch({ type: "DELETE_ALL_INCOME_TRANSACTIONS" });
+  };
 
   const addTransactions = (transactions: Omit<Transaction, "id">[]) => {
     const newTransactions: Transaction[] = transactions.map((transaction) => ({
@@ -93,6 +97,7 @@ export const useFinanceActions = (dispatch: React.Dispatch<any>) => {
     addTransaction,
     updateTransaction,
     deleteTransaction,
+    deleteAllIncomeTransactions,
     addTransactions,
     addCategory,
     updateCategory,
