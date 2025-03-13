@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { useFinance } from "@/contexts/FinanceContext";
-import { Transaction, TransactionType } from "@/types"; // תיקון הייבוא - הוספת TransactionType
+import { Transaction, TransactionType } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/components/ui/use-toast";
 import { DialogFooter } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface TransactionFormProps {
   transaction?: Transaction;
@@ -214,24 +215,26 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             <SelectTrigger>
               <SelectValue placeholder="בחר קטגוריה" />
             </SelectTrigger>
-            <SelectContent>
-              {filteredCategories.length > 0 ? (
-                filteredCategories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    <div className="flex items-center">
-                      <span
-                        className="w-2 h-2 rounded-full ml-2"
-                        style={{ backgroundColor: category.color }}
-                      />
-                      {category.name}
-                    </div>
+            <SelectContent className="max-h-[var(--radix-select-content-available-height)]">
+              <ScrollArea className="h-[200px]">
+                {filteredCategories.length > 0 ? (
+                  filteredCategories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      <div className="flex items-center">
+                        <span
+                          className="w-2 h-2 rounded-full ml-2"
+                          style={{ backgroundColor: category.color }}
+                        />
+                        {category.name}
+                      </div>
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem disabled value="none">
+                    אין קטגוריות זמינות לסוג זה
                   </SelectItem>
-                ))
-              ) : (
-                <SelectItem disabled value="none">
-                  אין קטגוריות זמינות לסוג זה
-                </SelectItem>
-              )}
+                )}
+              </ScrollArea>
             </SelectContent>
           </Select>
         </div>
