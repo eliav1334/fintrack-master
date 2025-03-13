@@ -17,7 +17,7 @@ export const useFinanceDashboard = (selectedDate: Date) => {
   const { calculateStats } = useFinanceStats(state.transactions, selectedDate);
   const { getCashFlowData, getCategoryData } = useChartData(state.transactions, state.categories, selectedDate);
   
-  // Making sure we're passing the correct parameters in the right order
+  // Fix to ensure parameters are passed in the correct order with the correct types
   const { checkBudgetAlerts, checkBalanceAlert } = useBudgetAlerts(
     state.transactions,
     state.categories,

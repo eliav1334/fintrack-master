@@ -12,6 +12,10 @@ import "./App.css";
 
 const queryClient = new QueryClient();
 
+// Setting document direction for Hebrew
+document.documentElement.dir = "rtl";
+document.documentElement.lang = "he";
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <FinanceProvider>
