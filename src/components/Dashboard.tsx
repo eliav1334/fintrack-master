@@ -32,7 +32,7 @@ const Dashboard = () => {
   });
   const [timeData, setTimeData] = useState<{ date: string; income: number; expense: number }[]>([]);
   const [categoryData, setCategoryData] = useState<{ name: string; value: number; color: string }[]>([]);
-  const [budgetAlerts, setBudgetAlerts] = useState<{ categoryName: string; current: number; limit: number; percentage: number }[]>([]);
+  const [budgetAlerts, setBudgetAlerts] = useState<{ categoryName: string; current: number; limit: number; percentage: number; type?: "income" | "expense" }[]>([]);
   const [notifiedBudgets, setNotifiedBudgets] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -156,7 +156,7 @@ const Dashboard = () => {
     setCategoryData(categoryChartData);
 
     // בדיקת התראות תקציב
-    const alerts: { categoryName: string; current: number; limit: number; percentage: number }[] = [];
+    const alerts: { categoryName: string; current: number; limit: number; percentage: number; type?: "income" | "expense" }[] = [];
     
     state.budgets.forEach((budget) => {
       const category = state.categories.find((cat) => cat.id === budget.categoryId);
@@ -174,6 +174,7 @@ const Dashboard = () => {
           current: currentSpent,
           limit: budget.amount,
           percentage,
+          type: category.type // הוספת סוג הקטגוריה להתראות
         });
       }
     });

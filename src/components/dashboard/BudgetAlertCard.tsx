@@ -1,7 +1,6 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; 
 import { BadgeAlert } from "lucide-react";
 
 interface BudgetAlertItem {
@@ -9,6 +8,7 @@ interface BudgetAlertItem {
   current: number;
   limit: number;
   percentage: number;
+  type?: "income" | "expense";
 }
 
 interface BudgetAlertCardProps {
@@ -17,8 +17,11 @@ interface BudgetAlertCardProps {
 }
 
 const BudgetAlertCard = ({ alerts, formatCurrency }: BudgetAlertCardProps) => {
-  // סינון רק התראות עם הוצאות בפועל
-  const filteredAlerts = alerts.filter(alert => alert.current > 0);
+  // סינון רק התראות על הוצאות (לא הכנסות) עם הוצאות בפועל
+  const filteredAlerts = alerts.filter(alert => 
+    alert.current > 0 && 
+    alert.type !== "income"
+  );
 
   if (filteredAlerts.length === 0) {
     return null;
