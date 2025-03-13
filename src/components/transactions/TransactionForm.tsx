@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ElectricityBillForm } from "./ElectricityBillForm";
+import { InstallmentForm } from "./InstallmentForm";
 
 interface TransactionFormProps {
   transaction?: Transaction;
@@ -28,6 +29,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     handleSelectChange,
     handleSwitchChange,
     handleElectricityChange,
+    handleInstallmentChange,
     calculateElectricityAmount,
     handleSubmit,
   } = useTransactionForm(transaction, onClose);
@@ -48,33 +50,54 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
           onChange={handleInputChange}
         />
 
-        {/* תוספת - בורר עבור תחשיב חשמל */}
+        {/* תוספת - בורר עבור עסקה בתשלומים */}
         <div className="flex items-center space-x-2 space-x-reverse rtl:space-x-reverse">
           <Switch
-            id="isElectricityBill"
-            checked={formData.isElectricityBill}
-            onCheckedChange={(checked) => handleSwitchChange("isElectricityBill", checked)}
+            id="isInstallment"
+            checked={formData.isInstallment}
+            onCheckedChange={(checked) => handleSwitchChange("isInstallment", checked)}
           />
-          <Label htmlFor="isElectricityBill" className="mr-2">חשבון חשמל עם שני מונים</Label>
+          <Label htmlFor="isInstallment" className="mr-2">עסקה בתשלומים</Label>
         </div>
-
-        {formData.isElectricityBill ? (
-          <ElectricityBillForm 
+        
+        {/* טופס תשלומים */}
+        {formData.isInstallment ? (
+          <InstallmentForm 
             formData={formData}
-            handleElectricityChange={handleElectricityChange}
-            calculateElectricityAmount={calculateElectricityAmount}
+            onChange={handleInputChange}
+            onInstallmentChange={handleInstallmentChange}
           />
         ) : (
-          <TransactionFormField
-            id="amount"
-            label="סכום"
-            type="number"
-            step="0.01"
-            min="0"
-            placeholder="0.00"
-            value={formData.amount}
-            onChange={handleInputChange}
-          />
+          <>
+            {/* תוספת - בורר עבור תחשיב חשמל */}
+            <div className="flex items-center space-x-2 space-x-reverse rtl:space-x-reverse">
+              <Switch
+                id="isElectricityBill"
+                checked={formData.isElectricityBill}
+                onCheckedChange={(checked) => handleSwitchChange("isElectricityBill", checked)}
+              />
+              <Label htmlFor="isElectricityBill" className="mr-2">חשבון חשמל עם שני מונים</Label>
+            </div>
+
+            {formData.isElectricityBill ? (
+              <ElectricityBillForm 
+                formData={formData}
+                handleElectricityChange={handleElectricityChange}
+                calculateElectricityAmount={calculateElectricityAmount}
+              />
+            ) : (
+              <TransactionFormField
+                id="amount"
+                label="סכום"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                value={formData.amount}
+                onChange={handleInputChange}
+              />
+            )}
+          </>
         )}
 
         <TransactionFormField

@@ -35,35 +35,50 @@ export const useTransactionSubmit = ({
     }
 
     try {
-      const transactionData = {
+      const transactionData: Partial<Transaction> = {
         description: formData.description.trim(),
         amount: parseFloat(formData.amount),
         type: formData.type,
         date: formData.date,
         categoryId: formData.categoryId,
         notes: formData.notes.trim(),
-        // Add electricity fields only if relevant
-        ...(formData.isElectricityBill ? {
-          isElectricityBill: true,
-          mainMeterReading: formData.mainMeterReading,
-          secondaryMeterReading: formData.secondaryMeterReading,
-          electricityRate: formData.electricityRate,
-          vatRate: formData.vatRate
-        } : {})
+        isInstallment: formData.isInstallment,
       };
+      
+      if (formData.isInstallment) {
+        transactionData.installmentDetails = {
+          totalAmount: formData.installmentDetails.totalAmount,
+          currentInstallment: formData.installmentDetails.currentInstallment,
+          totalInstallments: formData.installmentDetails.totalInstallments
+        };
+      } else if (formData.isElectricityBill) {
+        transactionData.isElectricityBill = true;
+        transactionData.mainMeterReading = formData.mainMeterReading;
+        transactionData.secondaryMeterReading = formData.secondaryMeterReading;
+        transactionData.electricityRate = formData.electricityRate;
+        transactionData.vatRate = formData.vatRate;
+      }
 
       if (isEditing && initialTransaction) {
-        updateTransaction({ ...transactionData, id: initialTransaction.id });
+        updateTransaction({ ...transactionData, id: initialTransaction.id } as Transaction);
         toast({
           title: "הצלחה",
           description: "העסקה עודכנה בהצלחה",
         });
       } else {
-        addTransaction(transactionData);
+        addTransaction(transactionData as Omit<Transaction, "id">);
         toast({
           title: "הצלחה",
           description: "העסקה נוספה בהצלחה",
         });
+        
+        // בדיקה אם מדובר במשכורת קבועה של 16000 והצגת הודעה מתאימה
+        if (formData.type === "income" && parseFloat(formData.amount) === 16000) {
+          toast({
+            title: "משכורת חודשית",
+            description: "נרשמה הכנסה חודשית קבועה של 16,000 ₪",
+          });
+        }
       }
 
       // Reset form data if not editing

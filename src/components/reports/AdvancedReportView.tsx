@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, DownloadIcon, ArrowDownUp, BarChart3, PieChart } from "lucide-react";
+import { CalendarIcon, DownloadIcon, ArrowDownUp, BarChart3, PieChart, CreditCard } from "lucide-react";
 import { useFinance } from "@/contexts/FinanceContext";
 import { useCurrencyFormatter } from "@/hooks/finance/useCurrencyFormatter";
 import { format } from "date-fns";
@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Transaction } from "@/types";
 import * as XLSX from "xlsx";
+import { ReportTypesSheet } from "./ReportTypesSheet";
 
 interface ExportOptions {
   format: "excel" | "csv" | "pdf";
@@ -93,6 +94,7 @@ export const AdvancedReportView: React.FC = () => {
         סכום: tx.amount,
         סוג: tx.type === "income" ? "הכנסה" : "הוצאה",
         קטגוריה: category?.name || "ללא קטגוריה",
+        תשלומים: tx.isInstallment ? `${tx.installmentDetails?.currentInstallment || 1}/${tx.installmentDetails?.totalInstallments || 1}` : "-",
       };
       
       // הוספת שדה הערות אם נדרש
@@ -113,6 +115,8 @@ export const AdvancedReportView: React.FC = () => {
         <CardTitle className="flex items-center justify-between">
           <span>דוחות מתקדמים</span>
           <div className="flex space-x-2 space-x-reverse">
+            <ReportTypesSheet />
+            
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-1">
@@ -152,9 +156,10 @@ export const AdvancedReportView: React.FC = () => {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="monthly" value={reportType} onValueChange={setReportType}>
-          <TabsList className="grid grid-cols-4 mb-4">
+          <TabsList className="grid grid-cols-5 mb-4">
             <TabsTrigger value="monthly">דוח חודשי</TabsTrigger>
             <TabsTrigger value="category">לפי קטגוריות</TabsTrigger>
+            <TabsTrigger value="installments">דוח תשלומים</TabsTrigger>
             <TabsTrigger value="trends">מגמות</TabsTrigger>
             <TabsTrigger value="export">ייצוא מותאם</TabsTrigger>
           </TabsList>
@@ -174,6 +179,20 @@ export const AdvancedReportView: React.FC = () => {
             <div className="h-64 flex items-center justify-center border rounded-lg">
               <PieChart className="h-16 w-16 text-muted-foreground" />
               <span className="mr-2 text-muted-foreground">נתוני הגרף יוצגו כאן</span>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="installments" className="space-y-4">
+            <h3 className="text-lg font-semibold">דוח עסקאות בתשלומים</h3>
+            <p className="text-muted-foreground">ניתוח של עסקאות המשולמות בתשלומים לאורך זמן</p>
+            <div className="h-64 flex items-center justify-center border rounded-lg">
+              <CreditCard className="h-16 w-16 text-muted-foreground" />
+              <span className="mr-2 text-muted-foreground">
+                דוח תשלומים יאפשר מעקב אחר עסקאות בתשלומים והצגת התשלומים העתידיים הצפויים בכל חודש
+              </span>
+            </div>
+            <div className="p-4 bg-muted/30 rounded-lg text-sm">
+              <strong>הערה חשובה:</strong> במערכת נרשם רק התשלום החודשי עבור כל חודש, ולא הסכום המלא של העסקה בתשלומים.
             </div>
           </TabsContent>
           

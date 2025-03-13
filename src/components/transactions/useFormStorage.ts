@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { Transaction, TransactionType } from "@/types";
@@ -36,6 +37,12 @@ export const useFormStorage = (initialTransaction?: Transaction) => {
         },
         electricityRate: initialTransaction.electricityRate || 0.60,
         vatRate: initialTransaction.vatRate || 17,
+        isInstallment: initialTransaction.isInstallment || false,
+        installmentDetails: initialTransaction.installmentDetails || {
+          totalAmount: 0,
+          currentInstallment: 1,
+          totalInstallments: 1,
+        },
       };
     }
     
@@ -70,6 +77,12 @@ export const useFormStorage = (initialTransaction?: Transaction) => {
       },
       electricityRate: 0.60,
       vatRate: 17,
+      isInstallment: false,
+      installmentDetails: {
+        totalAmount: 0,
+        currentInstallment: 1,
+        totalInstallments: 1,
+      },
     };
   };
 
@@ -106,6 +119,12 @@ export const useFormStorage = (initialTransaction?: Transaction) => {
       },
       electricityRate: 0.60,
       vatRate: 17,
+      isInstallment: false,
+      installmentDetails: {
+        totalAmount: 0,
+        currentInstallment: 1,
+        totalInstallments: 1,
+      },
     };
     
     setFormData(defaultFormData);

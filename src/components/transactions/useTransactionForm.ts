@@ -30,6 +30,41 @@ export const useTransactionForm = (
     setFormData
   });
   
+  // Handle installment fields changes
+  const handleInstallmentChange = useCallback((field: string, value: number) => {
+    if (field === "currentAmount") {
+      // עדכון הסכום החודשי בטופס
+      setFormData(prev => ({
+        ...prev,
+        amount: value.toString()
+      }));
+      return;
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      installmentDetails: {
+        ...prev.installmentDetails,
+        [field]: value
+      }
+    }));
+    
+    // אם מדובר בשינוי בסכום הכולל או במספר התשלומים, אז נחשב את התשלום החודשי
+    if (field === "totalAmount" || field === "totalInstallments") {
+      const { totalAmount, totalInstallments } = formData.installmentDetails;
+      
+      // חישוב התשלום החודשי רק אם יש ערכים תקפים
+      if (totalAmount && totalInstallments) {
+        const monthlyPayment = totalAmount / totalInstallments;
+        
+        setFormData(prev => ({
+          ...prev,
+          amount: monthlyPayment.toString()
+        }));
+      }
+    }
+  }, [formData.installmentDetails, setFormData]);
+  
   // Load submission handler
   const { handleSubmit } = useTransactionSubmit({
     formData,
@@ -49,6 +84,7 @@ export const useTransactionForm = (
     handleSelectChange,
     handleSwitchChange,
     handleElectricityChange,
+    handleInstallmentChange,
     calculateElectricityAmount,
     handleSubmit,
   };

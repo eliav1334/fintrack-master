@@ -23,6 +23,13 @@ export interface Transaction {
   };
   electricityRate?: number;
   vatRate?: number;
+  // שדות לתשלומים
+  isInstallment?: boolean;
+  installmentDetails?: {
+    totalAmount: number;
+    currentInstallment: number;
+    totalInstallments: number;
+  };
 }
 
 // הוספת TransactionType כטיפוס נפרד
