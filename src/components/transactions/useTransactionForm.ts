@@ -82,15 +82,17 @@ export const useTransactionForm = (
         [type]: value ? parseFloat(value) : 0
       }));
     } else {
-      // Fix for the spread type error - type assertion to ensure we're spreading an object
-      const prevValue = prev[type as keyof typeof prev] as Record<string, any> || {};
-      setFormData((prev) => ({
-        ...prev,
-        [type]: {
-          ...prevValue,
-          [field]: field === "date" ? value : (value ? parseFloat(value) : 0)
-        }
-      }));
+      setFormData((prevData) => {
+        // Fix for the spread type error - type assertion to ensure we're spreading an object
+        const prevValue = prevData[type as keyof typeof prevData] as Record<string, any> || {};
+        return {
+          ...prevData,
+          [type]: {
+            ...prevValue,
+            [field]: field === "date" ? value : (value ? parseFloat(value) : 0)
+          }
+        };
+      });
     }
   };
 
