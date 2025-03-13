@@ -1,3 +1,4 @@
+
 import { CategoryType, FileImportFormat } from "@/types";
 import { FinanceState } from "./types";
 
@@ -111,6 +112,24 @@ export const DEFAULT_IMPORT_FORMATS: FileImportFormat[] = [
       incomeValues: [],
       expenseValues: [],
     },
+  },
+  {
+    id: "format_7",
+    name: "כרטיס אשראי - שורות ריקות",
+    mapping: {
+      date: "תאריך",
+      amount: "סכום",
+      description: "פירוט",
+    },
+    dateFormat: "DD/MM/YYYY",
+    delimiter: ",",
+    typeIdentifier: {
+      column: "amount",
+      incomeValues: [],
+      expenseValues: [],
+    },
+    skipEmptyRows: true,
+    headerRowIndex: 2,
   },
 ];
 
