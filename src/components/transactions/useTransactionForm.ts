@@ -4,34 +4,14 @@ import { Transaction, TransactionType } from "@/types";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useFinance } from "@/contexts/FinanceContext";
-
-export interface TransactionFormData {
-  description: string;
-  amount: string;
-  type: TransactionType;
-  date: string;
-  categoryId: string;
-  notes: string;
-  // שדות חדשים לתחשיב חשמל
-  isElectricityBill?: boolean;
-  mainMeterReading?: {
-    current: number;
-    previous: number;
-    date: string;
-  };
-  secondaryMeterReading?: {
-    current: number;
-    previous: number;
-    date: string;
-  };
-  electricityRate?: number;
-  vatRate?: number;
-}
+import { TransactionFormData, UseTransactionFormParams, UseTransactionFormResult } from "./transactionFormModels";
+import { useElectricityCalculator } from "./useElectricityCalculator";
+import { useTransactionFormValidator } from "./useTransactionFormValidator";
 
 export const useTransactionForm = (
   initialTransaction?: Transaction,
   onClose?: () => void
-) => {
+): UseTransactionFormResult => {
   const { state, addTransaction, updateTransaction } = useFinance();
   const { toast } = useToast();
   const isEditing = !!initialTransaction;
@@ -59,6 +39,16 @@ export const useTransactionForm = (
     vatRate: initialTransaction?.vatRate || 17, // מע"מ ברירת מחדל
   });
 
+  // טעינת ולידטור הטופס
+  const { validateForm } = useTransactionFormValidator();
+
+  // טעינת מחשבון החשמל
+  const { handleElectricityChange, calculateElectricityAmount } = useElectricityCalculator({
+    formData,
+    setFormData
+  });
+
+  // טיפול בשינוי קלט רגיל
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -66,103 +56,21 @@ export const useTransactionForm = (
     setFormData((prevData) => ({ ...prevData, [name]: value }));
   };
 
+  // טיפול בשינוי בחירה
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prevData) => ({ ...prevData, [name]: value }));
   };
 
+  // טיפול בשינוי מתג
   const handleSwitchChange = (name: string, checked: boolean) => {
     setFormData((prevData) => ({ ...prevData, [name]: checked }));
   };
 
-  // טיפול בשינויים בשדות תחשיב החשמל
-  const handleElectricityChange = (type: string, field: string, value: string) => {
-    if (type === "electricityRate" || type === "vatRate") {
-      setFormData((prevData) => ({
-        ...prevData,
-        [type]: value ? parseFloat(value) : 0
-      }));
-    } else {
-      setFormData((prevData) => {
-        // Fix for the spread type error - type assertion to ensure we're spreading an object
-        const prevValue = prevData[type as keyof typeof prevData] as Record<string, any> || {};
-        return {
-          ...prevData,
-          [type]: {
-            ...prevValue,
-            [field]: field === "date" ? value : (value ? parseFloat(value) : 0)
-          }
-        };
-      });
-    }
-  };
-
-  // חישוב וקביעת סכום חשבון החשמל
-  const calculateElectricityAmount = () => {
-    if (!formData.isElectricityBill) return;
-    
-    const mainDiff = 
-      (formData.mainMeterReading?.current || 0) - 
-      (formData.mainMeterReading?.previous || 0);
-      
-    const secondaryDiff = 
-      (formData.secondaryMeterReading?.current || 0) - 
-      (formData.secondaryMeterReading?.previous || 0);
-    
-    const totalKWh = mainDiff + secondaryDiff;
-    const priceBeforeVat = totalKWh * (formData.electricityRate || 0);
-    const totalPrice = priceBeforeVat * (1 + (formData.vatRate || 0) / 100);
-    
-    setFormData(prevData => ({
-      ...prevData,
-      amount: totalPrice.toFixed(2)
-    }));
-    
-    // הצגת הודעה
-    toast({
-      title: "חושב סכום חשבון חשמל",
-      description: `סה"כ ${totalKWh} קוט"ש × ${formData.electricityRate} ₪ + מע"מ = ${totalPrice.toFixed(2)} ₪`,
-    });
-  };
-
-  const filteredCategories = state.categories.filter(
-    (category) => category.type === formData.type
-  );
-
-  const validateForm = () => {
-    if (!formData.description.trim()) {
-      toast({
-        title: "שגיאה",
-        description: "נא להזין תיאור",
-        variant: "destructive",
-      });
-      return false;
-    }
-    
-    if (!formData.amount || isNaN(Number(formData.amount)) || Number(formData.amount) <= 0) {
-      toast({
-        title: "שגיאה",
-        description: "נא להזין סכום תקין",
-        variant: "destructive",
-      });
-      return false;
-    }
-    
-    if (!formData.categoryId) {
-      toast({
-        title: "שגיאה",
-        description: "נא לבחור קטגוריה",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    return true;
-  };
-
+  // טיפול בשליחת הטופס
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
+    if (!validateForm(formData)) {
       return;
     }
 
@@ -174,7 +82,7 @@ export const useTransactionForm = (
         date: formData.date,
         categoryId: formData.categoryId,
         notes: formData.notes.trim(),
-        // Adding electricity fields only if relevant
+        // הוספת שדות חשמל רק אם רלוונטי
         ...(formData.isElectricityBill ? {
           isElectricityBill: true,
           mainMeterReading: formData.mainMeterReading,

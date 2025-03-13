@@ -17,7 +17,10 @@ interface BudgetAlertCardProps {
 }
 
 const BudgetAlertCard = ({ alerts, formatCurrency }: BudgetAlertCardProps) => {
-  if (alerts.length === 0) {
+  // סינון רק התראות עם הוצאות בפועל
+  const filteredAlerts = alerts.filter(alert => alert.current > 0);
+
+  if (filteredAlerts.length === 0) {
     return null;
   }
 
@@ -32,7 +35,7 @@ const BudgetAlertCard = ({ alerts, formatCurrency }: BudgetAlertCardProps) => {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {alerts.map((alert, idx) => (
+          {filteredAlerts.map((alert, idx) => (
             <div 
               key={idx} 
               className={cn(

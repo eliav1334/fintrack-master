@@ -15,15 +15,15 @@ interface BudgetCardProps {
 }
 
 const BudgetCard = ({ budget, category, expenses, onDelete }: BudgetCardProps) => {
-  const percentage = Math.min(Math.round((expenses / budget.amount) * 100), 100);
+  const percentage = expenses > 0 ? Math.min(Math.round((expenses / budget.amount) * 100), 100) : 0;
   const isOverBudget = expenses > budget.amount;
   const warningThreshold = 85; // התראה כשמגיעים ל-85% מהתקציב
   const isNearBudgetLimit = percentage >= warningThreshold && !isOverBudget;
   const [hasNotified, setHasNotified] = useState(false);
   
-  // שליחת התראה כאשר מגיעים לסף האזהרה או חורגים מהתקציב - רק פעם אחת
+  // שליחת התראה כאשר מגיעים לסף האזהרה או חורגים מהתקציב - רק פעם אחת ורק אם יש הוצאות
   useEffect(() => {
-    if (!hasNotified) {
+    if (!hasNotified && expenses > 0) {
       if (isOverBudget) {
         toast({
           title: "חריגה מהתקציב",
@@ -40,7 +40,7 @@ const BudgetCard = ({ budget, category, expenses, onDelete }: BudgetCardProps) =
         setHasNotified(true);
       }
     }
-  }, [isOverBudget, isNearBudgetLimit, percentage, category?.name, hasNotified]);
+  }, [isOverBudget, isNearBudgetLimit, percentage, category?.name, hasNotified, expenses]);
 
   // איפוס דגל ההתראה כאשר משתנה אחוז הניצול (למשל בכל חודש חדש)
   useEffect(() => {
@@ -55,7 +55,7 @@ const BudgetCard = ({ budget, category, expenses, onDelete }: BudgetCardProps) =
         <div>
           <h3 className="text-xl font-semibold flex items-center gap-2">
             {category ? category.name : 'קטגוריה לא ידועה'}
-            {isOverBudget && <AlertCircle className="h-5 w-5 text-[#ea384c]" />}
+            {isOverBudget && expenses > 0 && <AlertCircle className="h-5 w-5 text-[#ea384c]" />}
           </h3>
           <p className="text-sm text-muted-foreground">
             {budget.period === "monthly" && "תקציב חודשי"}
@@ -76,11 +76,13 @@ const BudgetCard = ({ budget, category, expenses, onDelete }: BudgetCardProps) =
       <div className="space-y-3">
         <div className="flex justify-between">
           <span>
-            {isOverBudget ? 
-              <span className="text-[#ea384c] font-medium">חריגה מהתקציב!</span> : 
-              isNearBudgetLimit ?
-              <span className="text-amber-500 font-medium">{percentage}% מנוצל</span> :
-              `${percentage}% מנוצל`
+            {expenses === 0 ? 
+              "0% מנוצל" :
+              isOverBudget ? 
+                <span className="text-[#ea384c] font-medium">חריגה מהתקציב!</span> : 
+                isNearBudgetLimit ?
+                  <span className="text-amber-500 font-medium">{percentage}% מנוצל</span> :
+                  `${percentage}% מנוצל`
             }
           </span>
           <span>
@@ -91,11 +93,11 @@ const BudgetCard = ({ budget, category, expenses, onDelete }: BudgetCardProps) =
         
         <Progress 
           value={percentage} 
-          className={isOverBudget ? "bg-red-100" : isNearBudgetLimit ? "bg-amber-100" : ""}
+          className={isOverBudget && expenses > 0 ? "bg-red-100" : isNearBudgetLimit && expenses > 0 ? "bg-amber-100" : ""}
           indicatorClassName={
-            isOverBudget 
+            isOverBudget && expenses > 0
               ? "bg-[#ea384c]" 
-              : isNearBudgetLimit 
+              : isNearBudgetLimit && expenses > 0
                 ? "bg-amber-500" 
                 : undefined
           }
