@@ -33,6 +33,7 @@ export type FinanceAction =
   | { type: "UPDATE_CATEGORY_MAPPING"; payload: CategoryMapping }
   | { type: "DELETE_CATEGORY_MAPPING"; payload: string }
   | { type: "SET_CATEGORY_MAPPINGS"; payload: CategoryMapping[] }
+  | { type: "DELETE_ALL_INCOME_TRANSACTIONS" }
   | { type: "SET_LOADING"; payload: boolean }
   | { type: "SET_ERROR"; payload: string | null };
 
@@ -53,4 +54,5 @@ export type FinanceContextType = {
   addCategoryMapping: (mapping: Omit<CategoryMapping, "id">) => void;
   updateCategoryMapping: (mapping: CategoryMapping) => void;
   deleteCategoryMapping: (description: string) => void;
+  deleteAllIncomeTransactions: () => void;
 };
