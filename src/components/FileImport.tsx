@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useFinance } from "@/contexts/FinanceContext";
 import { FileImportFormat, Transaction } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -33,6 +32,62 @@ import { format } from "date-fns";
 import ImportHistory from "./ImportHistory";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+// כרטיסי אשראי מותרים לייבוא
+const ALLOWED_CARD_NUMBERS = ["1515", "0691"];
+// כרטיסי אשראי לא מותרים לייבוא
+const BLOCKED_CARD_NUMBER = "2623";
+
+// תהליך איתור תשלומים קבועים וזיהוי חריגות מחיר
+const analyzeRecurringTransactions = (
+  newTransactions: Omit<Transaction, "id">[],
+  existingTransactions: Transaction[]
+): string[] => {
+  const alerts: string[] = [];
+  
+  // יצירת מפתח עבור תשלומים קבועים
+  const recurringPayments = new Map<string, Transaction[]>();
+  
+  // מיון תשלומים קבועים קיימים
+  existingTransactions.forEach(tx => {
+    if (tx.type === "expense") {
+      const key = tx.description.trim().toLowerCase();
+      if (!recurringPayments.has(key)) {
+        recurringPayments.set(key, []);
+      }
+      recurringPayments.get(key)?.push(tx);
+    }
+  });
+  
+  // עבור כל עסקה חדשה, בדוק אם היא תשלום קבוע
+  newTransactions.forEach(newTx => {
+    if (newTx.type === "expense") {
+      const key = newTx.description.trim().toLowerCase();
+      const existingPayments = recurringPayments.get(key);
+      
+      // אם יש לפחות 2 עסקאות באותו הסכום בעבר - כנראה תשלום קבוע
+      if (existingPayments && existingPayments.length >= 2) {
+        // בדיקה אם הסכומים שווים פחות או יותר
+        const commonAmount = existingPayments[0].amount;
+        const sameAmountCount = existingPayments.filter(tx => 
+          Math.abs(tx.amount - commonAmount) < 0.01
+        ).length;
+        
+        // אם רוב התשלומים באותו סכום - כנראה תשלום קבוע
+        if (sameAmountCount > existingPayments.length / 2) {
+          // בדיקה אם הסכום החדש גבוה מהסכום הקבוע
+          if (newTx.amount > commonAmount * 1.1) { // עליה של 10% ומעלה
+            alerts.push(
+              `עליית מחיר בתשלום קבוע: ${newTx.description} - ${newTx.amount.toFixed(2)}₪ במקום ${commonAmount.toFixed(2)}₪ (עליה של ${((newTx.amount - commonAmount) / commonAmount * 100).toFixed(1)}%)`
+            );
+          }
+        }
+      }
+    }
+  });
+  
+  return alerts;
+};
+
 const FileImport = () => {
   const { state, addTransactions, addImportFormat } = useFinance();
   const { toast } = useToast();
@@ -46,11 +101,12 @@ const FileImport = () => {
   const [showPreview, setShowPreview] = useState<boolean>(false);
   const [showNewFormatDialog, setShowNewFormatDialog] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [cardFilter, setCardFilter] = useState<string[]>([]);
+  const [cardFilter, setCardFilter] = useState<string[]>(ALLOWED_CARD_NUMBERS);
   const [cardNumbersInput, setCardNumbersInput] = useState<string>("");
   const [extractedCardNumbers, setExtractedCardNumbers] = useState<string[]>([]);
-  const [selectedCardNumbers, setSelectedCardNumbers] = useState<string[]>([]);
+  const [selectedCardNumbers, setSelectedCardNumbers] = useState<string[]>(ALLOWED_CARD_NUMBERS);
   const [showCardFilterDialog, setShowCardFilterDialog] = useState<boolean>(false);
+  const [priceAlerts, setPriceAlerts] = useState<string[]>([]);
   
   const [newFormat, setNewFormat] = useState<{
     name: string;
@@ -88,6 +144,12 @@ const FileImport = () => {
     },
   });
 
+  // עדכון טעינת כרטיסי אשראי כברירת מחדל
+  useEffect(() => {
+    setCardFilter(ALLOWED_CARD_NUMBERS);
+    setSelectedCardNumbers(ALLOWED_CARD_NUMBERS);
+  }, []);
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
@@ -102,10 +164,13 @@ const FileImport = () => {
       setErrorMessage(null);
       setPreviewData([]);
       setShowPreview(false);
+      setPriceAlerts([]);
       
+      // איפוס כרטיסי אשראי לברירת מחדל המותרים
       setCardNumbersInput("");
       setExtractedCardNumbers([]);
-      setSelectedCardNumbers([]);
+      setSelectedCardNumbers(ALLOWED_CARD_NUMBERS);
+      setCardFilter(ALLOWED_CARD_NUMBERS);
       
       if (selectedFormatId) {
         const format = state.importFormats.find(f => f.id === selectedFormatId);
@@ -147,7 +212,24 @@ const FileImport = () => {
         
         if (cardNumbers.length > 0) {
           setExtractedCardNumbers(cardNumbers);
-          setShowCardFilterDialog(true);
+          // מסנן כרטיסים לפי ההגבלות
+          const allowedCards = cardNumbers.filter(card => 
+            ALLOWED_CARD_NUMBERS.some(allowed => card.includes(allowed)) && 
+            !card.includes(BLOCKED_CARD_NUMBER)
+          );
+          setSelectedCardNumbers(allowedCards);
+          setCardFilter(allowedCards);
+          
+          // אם יש כרטיסים מותרים, הצג חלון סינון
+          if (allowedCards.length > 0) {
+            setShowCardFilterDialog(true);
+          } else {
+            toast({
+              title: "אזהרה",
+              description: "לא נמצאו כרטיסי אשראי מותרים בקובץ",
+              variant: "destructive"
+            });
+          }
         }
       }
       
@@ -159,6 +241,28 @@ const FileImport = () => {
   };
 
   const handleCardFilterChange = (cardNumber: string, checked: boolean) => {
+    // אם זהו הכרטיס החסום, לא נאפשר סימון
+    if (cardNumber.includes(BLOCKED_CARD_NUMBER)) {
+      toast({
+        title: "לא ניתן לייבא",
+        description: `כרטיס אשראי ${BLOCKED_CARD_NUMBER} אינו מורשה לייבוא`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // בדיקה אם הכרטיס מותר
+    const isAllowed = ALLOWED_CARD_NUMBERS.some(allowed => cardNumber.includes(allowed));
+    
+    if (!isAllowed) {
+      toast({
+        title: "לא ניתן לייבא",
+        description: `רק כרטיסי אשראי ${ALLOWED_CARD_NUMBERS.join(', ')} מורשים לייבוא`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
     if (checked) {
       setSelectedCardNumbers(prev => [...prev, cardNumber]);
     } else {
@@ -167,18 +271,25 @@ const FileImport = () => {
   };
 
   const applyCardFilter = () => {
-    setCardFilter(selectedCardNumbers);
+    // ודא שרק כרטיסים מורשים נכללים
+    const filteredCards = selectedCardNumbers.filter(card => 
+      ALLOWED_CARD_NUMBERS.some(allowed => card.includes(allowed)) && 
+      !card.includes(BLOCKED_CARD_NUMBER)
+    );
+    
+    setCardFilter(filteredCards);
     setShowCardFilterDialog(false);
     
-    if (selectedCardNumbers.length > 0) {
+    if (filteredCards.length > 0) {
       toast({
         title: "סינון הוגדר",
-        description: `יבוצע סינון לפי ${selectedCardNumbers.length} מספרי כרטיסים`,
+        description: `יבוצע סינון לפי ${filteredCards.length} מספרי כרטיסים מורשים`,
       });
     } else {
       toast({
-        title: "סינון בוטל",
-        description: "יבואו כל העסקאות ללא סינון",
+        title: "אזהרה",
+        description: "לא נבחרו כרטיסים מורשים, ייבוא לא יכלול עסקאות",
+        variant: "destructive"
       });
     }
   };
@@ -212,14 +323,25 @@ const FileImport = () => {
       return;
     }
 
+    // ודא שכרטיס 2623 לא נכלל בסינון
+    const safeCardFilter = cardFilter.filter(card => !card.includes(BLOCKED_CARD_NUMBER));
+    if (safeCardFilter.length < cardFilter.length) {
+      toast({
+        title: "אזהרה",
+        description: `כרטיס ${BLOCKED_CARD_NUMBER} הוסר מהסינון כי אינו מורשה לייבוא`,
+      });
+      setCardFilter(safeCardFilter);
+    }
+
     setIsImporting(true);
     setImportProgress(10);
     setErrorMessage(null);
+    setPriceAlerts([]);
 
     try {
       setImportProgress(30);
-      console.log("Parsing file:", selectedFile.name, "with format:", format.name, "card filter:", cardFilter);
-      const result = await parseFile(selectedFile, format, cardFilter.length > 0 ? cardFilter : undefined);
+      console.log("Parsing file:", selectedFile.name, "with format:", format.name, "card filter:", safeCardFilter);
+      const result = await parseFile(selectedFile, format, safeCardFilter.length > 0 ? safeCardFilter : undefined);
       setImportProgress(70);
 
       if (!result.success || !result.data) {
@@ -240,6 +362,15 @@ const FileImport = () => {
         ...tx,
         createdAt: now
       }));
+      
+      // בדיקת תשלומים קבועים וזיהוי חריגות מחיר
+      const alerts = analyzeRecurringTransactions(dataWithCreatedAt, state.transactions);
+      setPriceAlerts(alerts);
+      
+      if (alerts.length > 0) {
+        console.log("Price increase alerts:", alerts);
+      }
+      
       setPreviewData(dataWithCreatedAt);
       setShowPreview(true);
       setImportProgress(100);
@@ -269,17 +400,32 @@ const FileImport = () => {
 
     try {
       addTransactions(previewData);
+      
+      let successMessage = `יובאו ${previewData.length} עסקאות בהצלחה`;
+      if (priceAlerts.length > 0) {
+        successMessage += ` (כולל ${priceAlerts.length} תשלומים קבועים עם שינויי מחיר)`;
+      }
+      
       toast({
         title: "הצלחה",
-        description: `יובאו ${previewData.length} עסקאות בהצלחה`,
+        description: successMessage,
+      });
+      
+      // התראות על חריגות מחיר
+      priceAlerts.forEach(alert => {
+        toast({
+          title: "התראת עליית מחיר",
+          description: alert,
+          variant: "destructive",
+          duration: 8000 // זמן ארוך יותר להתראות חשובות
+        });
       });
       
       setSelectedFile(null);
       setPreviewData([]);
+      setPriceAlerts([]);
       setShowPreview(false);
       setImportProgress(0);
-      setCardFilter([]);
-      setSelectedCardNumbers([]);
       
       const fileInput = document.getElementById("file-upload") as HTMLInputElement;
       if (fileInput) {
@@ -458,7 +604,7 @@ const FileImport = () => {
             <CardHeader>
               <CardTitle>העלאת קובץ</CardTitle>
               <CardDescription>
-                ייבוא עסקאות מקובץ CSV או Excel
+                ייבוא עסקאות מקובץ CSV או Excel (מורשה רק לכרטיסים 1515 ו-0691)
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -482,6 +628,9 @@ const FileImport = () => {
                     </Label>
                     <p className="text-xs text-gray-500">
                       פורמטים נתמכים: CSV, Excel (.xlsx, .xls)
+                    </p>
+                    <p className="text-xs text-amber-500 font-medium">
+                      הערה: מורשה לייבא רק כרטיסים 1515 ו-0691
                     </p>
                   </div>
                 </div>
@@ -523,7 +672,7 @@ const FileImport = () => {
               {cardFilter.length > 0 && (
                 <div className="p-3 bg-primary/10 rounded-md">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="font-medium text-sm">סינון לפי כרטיסי אשראי:</span>
+                    <span className="font-medium text-sm">סינון לפי כרטיסי אשראי מורשים:</span>
                     <Button 
                       variant="ghost" 
                       size="sm" 
@@ -586,6 +735,19 @@ const FileImport = () => {
               </div>
               
               <div className="space-y-2">
+                <h3 className="font-medium">הגבלות ייבוא</h3>
+                <ul className="list-disc pr-5 text-sm space-y-1 text-right">
+                  <li>
+                    <strong className="text-green-600">מורשה לייבא:</strong> כרטיסי אשראי המכילים את המספרים 1515 או 0691
+                  </li>
+                  <li>
+                    <strong className="text-red-600">לא מורשה לייבא:</strong> כרטיסי אשראי המכילים את המספר 2623
+                  </li>
+                  <li>המערכת מזהה תשלומים קבועים ומתריעה על עליות מחיר חריגות</li>
+                </ul>
+              </div>
+              
+              <div className="space-y-2">
                 <h3 className="font-medium">פורמט העמודות</h3>
                 <ul className="list-disc pr-5 text-sm space-y-1 text-right">
                   <li>
@@ -604,20 +766,11 @@ const FileImport = () => {
               </div>
               
               <div className="space-y-2">
-                <h3 className="font-medium">סינון לפי כרטיס אשראי</h3>
+                <h3 className="font-medium">זיהוי תשלומים קבועים</h3>
                 <ul className="list-disc pr-5 text-sm space-y-1 text-right">
-                  <li>ניתן לסנן עסקאות לפי מספרי כרטיסי אשראי ספציפיים</li>
-                  <li>בחר כרטיסים מהרשימה לאחר בחירת קובץ</li>
-                  <li>מערכת הסינון תציג רק עסקאות מהכרטיסים שנבחרו</li>
-                </ul>
-              </div>
-              
-              <div className="space-y-2">
-                <h3 className="font-medium">טיפים</h3>
-                <ul className="list-disc pr-5 text-sm space-y-1 text-right">
-                  <li>עבור קבצי אקסל מבנקים ישראליים, השתמש בפורמט "אקסל בנק ישראלי"</li>
-                  <li>צפה בנתונים לפני אישור הייבוא</li>
-                  <li>הסכומים מזוהים אוטומטית כהכנסה או הוצאה לפי הערך או עמודת הסוג</li>
+                  <li>המערכת מזהה תשלומים קבועים לפי תיאור העסקה וחזרתיות</li>
+                  <li>כאשר מזוהה עלייה של 10% ומעלה במחיר של תשלום קבוע, תוצג התראה</li>
+                  <li>תשלומים קבועים חריגים מסומנים להתייחסות מיוחדת</li>
                 </ul>
               </div>
             </CardContent>
@@ -630,9 +783,9 @@ const FileImport = () => {
       <Dialog open={showCardFilterDialog} onOpenChange={setShowCardFilterDialog}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>סינון לפי כרטיסי אשראי</DialogTitle>
+            <DialogTitle>סינון לפי כרטיסי אשראי מורשים</DialogTitle>
             <DialogDescription>
-              בחר את מספרי כרטיסי האשראי שברצונך לייבא מהם עסקאות
+              מורשה לייבא רק כרטיסים המכילים 1515 או 0691
             </DialogDescription>
           </DialogHeader>
           
@@ -641,21 +794,38 @@ const FileImport = () => {
               <div className="space-y-4">
                 <p className="text-sm">מספרי כרטיסי אשראי שזוהו בקובץ:</p>
                 <div className="space-y-2 border rounded-md p-3">
-                  {extractedCardNumbers.map((cardNumber) => (
-                    <div key={cardNumber} className="flex items-center space-x-2 pl-2 ml-2">
-                      <Checkbox 
-                        id={`card-${cardNumber}`}
-                        checked={selectedCardNumbers.includes(cardNumber)}
-                        onCheckedChange={(checked) => handleCardFilterChange(cardNumber, checked === true)}
-                      />
-                      <Label htmlFor={`card-${cardNumber}`} className="text-sm cursor-pointer">
-                        {cardNumber}
-                      </Label>
-                    </div>
-                  ))}
+                  {extractedCardNumbers.map((cardNumber) => {
+                    // בדיקה אם הכרטיס מכיל את המספר החסום
+                    const isBlocked = cardNumber.includes(BLOCKED_CARD_NUMBER);
+                    // בדיקה אם הכרטיס מכיל אחד מהמספרים המותרים
+                    const isAllowed = ALLOWED_CARD_NUMBERS.some(allowed => 
+                      cardNumber.includes(allowed)
+                    );
+                    
+                    return (
+                      <div key={cardNumber} className="flex items-center space-x-2 pl-2 ml-2">
+                        <Checkbox 
+                          id={`card-${cardNumber}`}
+                          checked={selectedCardNumbers.includes(cardNumber) && isAllowed && !isBlocked}
+                          disabled={isBlocked || !isAllowed}
+                          onCheckedChange={(checked) => handleCardFilterChange(cardNumber, checked === true)}
+                        />
+                        <Label 
+                          htmlFor={`card-${cardNumber}`} 
+                          className={`text-sm cursor-pointer ${isBlocked ? 'text-red-500 line-through' : ''} ${!isAllowed && !isBlocked ? 'text-gray-400' : ''}`}>
+                          {cardNumber}
+                          {isBlocked && <span className="mr-2 text-red-500 text-xs">(חסום)</span>}
+                          {!isAllowed && !isBlocked && <span className="mr-2 text-gray-500 text-xs">(לא מורשה)</span>}
+                        </Label>
+                      </div>
+                    );
+                  })}
                 </div>
                 
-                <div className="flex justify-end pt-2">
+                <div className="flex justify-between pt-2">
+                  <p className="text-xs text-amber-500">
+                    שים לב: רק כרטיסים 1515 ו-0691 מורשים לייבוא
+                  </p>
                   <p className="text-xs text-gray-500">
                     נבחרו {selectedCardNumbers.length} מתוך {extractedCardNumbers.length} כרטיסים
                   </p>
@@ -666,31 +836,18 @@ const FileImport = () => {
                 <p className="text-gray-500">לא זוהו מספרי כרטיסי אשראי בקובץ שנבחר</p>
               </div>
             )}
-            
-            <div className="space-y-2">
-              <Label htmlFor="manual-card-numbers">הוסף מספרי כרטיסים ידנית (מופרדים בפסיקים)</Label>
-              <Input
-                id="manual-card-numbers"
-                placeholder="לדוגמה: 1234, 5678"
-                value={cardNumbersInput}
-                onChange={(e) => setCardNumbersInput(e.target.value)}
-              />
-              <p className="text-xs text-gray-500">
-                הוסף מספרי כרטיסים ידנית אם הם לא זוהו אוטומטית
-              </p>
-            </div>
           </div>
           
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => {
-                setSelectedCardNumbers([]);
-                setCardFilter([]);
+                setSelectedCardNumbers(ALLOWED_CARD_NUMBERS);
+                setCardFilter(ALLOWED_CARD_NUMBERS);
                 setShowCardFilterDialog(false);
               }}
             >
-              בטל סינון
+              איפוס לברירת מחדל
             </Button>
             <Button onClick={applyCardFilter}>
               החל סינון
@@ -718,272 +875,4 @@ const FileImport = () => {
                   </div>
                   <div className="flex items-center space-x-4">
                     <div>
-                      <span className="font-medium text-finance-income">הכנסות: </span>
-                      <span>
-                        {formatCurrency(
-                          previewData
-                            .filter((tx) => tx.type === "income")
-                            .reduce((sum, tx) => sum + tx.amount, 0)
-                        )}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-finance-expense">הוצאות: </span>
-                      <span>
-                        {formatCurrency(
-                          previewData
-                            .filter((tx) => tx.type === "expense")
-                            .reduce((sum, tx) => sum + tx.amount, 0)
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="border rounded-lg overflow-hidden">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="bg-gray-50 dark:bg-gray-800">
-                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          תאריך
-                        </th>
-                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          תיאור
-                        </th>
-                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          סוג
-                        </th>
-                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          כרטיס
-                        </th>
-                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          קטגוריה
-                        </th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          סכום
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                      {previewData.map((tx, index) => {
-                        const category = state.categories.find(
-                          (cat) => cat.id === tx.categoryId
-                        );
-                        return (
-                          <tr key={index}>
-                            <td className="px-4 py-2 text-sm text-right">
-                              {tx.date}
-                            </td>
-                            <td className="px-4 py-2 text-sm max-w-[200px] truncate text-right">
-                              {tx.description}
-                            </td>
-                            <td className="px-4 py-2 text-sm text-right">
-                              <span className="inline-flex items-center">
-                                {tx.type === "income" ? (
-                                  <ArrowUpCircle className="ml-1 h-3 w-3 text-finance-income" />
-                                ) : (
-                                  <ArrowDownCircle className="ml-1 h-3 w-3 text-finance-expense" />
-                                )}
-                                {tx.type === "income" ? "הכנסה" : "הוצאה"}
-                              </span>
-                            </td>
-                            <td className="px-4 py-2 text-sm text-right">
-                              {tx.cardNumber || "-"}
-                            </td>
-                            <td className="px-4 py-2 text-sm text-right">
-                              {category?.name || "ללא קטגוריה"}
-                            </td>
-                            <td className={`px-4 py-2 text-sm text-left ${
-                              tx.type === "income"
-                                ? "text-finance-income"
-                                : "text-finance-expense"
-                            }`}>
-                              {formatCurrency(tx.amount)}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </ScrollArea>
-          </div>
-          
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={cancelImport}>
-              ביטול
-            </Button>
-            <Button type="button" onClick={confirmImport}>
-              ייבא {previewData.length} עסקאות
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showNewFormatDialog} onOpenChange={setShowNewFormatDialog}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>יצירת פורמט ייבוא חדש</DialogTitle>
-            <DialogDescription>
-              הגדר כיצד עמודות הקובץ ממופות לנתוני העסקאות
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-6 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="format-name">שם הפורמט</Label>
-              <Input
-                id="format-name"
-                name="name"
-                placeholder="לדוגמה, פורמט הבנק שלי"
-                value={newFormat.name}
-                onChange={(e) => handleNewFormatChange(e)}
-              />
-            </div>
-            
-            <div className="space-y-4">
-              <h4 className="font-medium">מיפוי עמודות</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="map-date">עמודת תאריך <span className="text-red-500">*</span></Label>
-                  <Input
-                    id="map-date"
-                    placeholder="לדוגמה, תאריך"
-                    value={newFormat.mapping.date}
-                    onChange={(e) => handleNewFormatChange(e, "mapping", "date")}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="map-amount">עמודת סכום <span className="text-red-500">*</span></Label>
-                  <Input
-                    id="map-amount"
-                    placeholder="לדוגמה, סכום"
-                    value={newFormat.mapping.amount}
-                    onChange={(e) => handleNewFormatChange(e, "mapping", "amount")}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="map-description">עמודת תיאור <span className="text-red-500">*</span></Label>
-                  <Input
-                    id="map-description"
-                    placeholder="לדוגמה, תיאור"
-                    value={newFormat.mapping.description}
-                    onChange={(e) => handleNewFormatChange(e, "mapping", "description")}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="map-type">עמודת סוג (אופציונלי)</Label>
-                  <Input
-                    id="map-type"
-                    placeholder="לדוגמה, סוג"
-                    value={newFormat.mapping.type || ""}
-                    onChange={(e) => handleNewFormatChange(e, "mapping", "type")}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="map-category">עמודת קטגוריה (אופציונלי)</Label>
-                  <Input
-                    id="map-category"
-                    placeholder="לדוגמה, קטגוריה"
-                    value={newFormat.mapping.category || ""}
-                    onChange={(e) => handleNewFormatChange(e, "mapping", "category")}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="map-card-number">עמודת מספר כרטיס (אופציונלי)</Label>
-                  <Input
-                    id="map-card-number"
-                    placeholder="לדוגמה, מספר כרטיס"
-                    value={newFormat.mapping.cardNumber || ""}
-                    onChange={(e) => handleNewFormatChange(e, "mapping", "cardNumber")}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="date-format">פורמט תאריך</Label>
-              <Input
-                id="date-format"
-                name="dateFormat"
-                placeholder="YYYY-MM-DD"
-                value={newFormat.dateFormat}
-                onChange={(e) => handleNewFormatChange(e)}
-              />
-              <p className="text-xs text-gray-500">
-                לדוגמה: YYYY-MM-DD, DD/MM/YYYY, MM/DD/YYYY
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="delimiter">תו מפריד (לקבצי CSV)</Label>
-              <Input
-                id="delimiter"
-                name="delimiter"
-                placeholder=","
-                value={newFormat.delimiter || ""}
-                onChange={(e) => handleNewFormatChange(e)}
-              />
-              <p className="text-xs text-gray-500">
-                לרוב משתמשים בפסיק (,) או טאב (\\t)
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <h4 className="font-medium">זיהוי סוג העסקה</h4>
-              
-              <div className="space-y-2">
-                <Label htmlFor="type-column">עמודת זיהוי הסוג</Label>
-                <Input
-                  id="type-column"
-                  placeholder="שם העמודה לזיהוי הכנסה/הוצאה"
-                  value={newFormat.typeIdentifier.column}
-                  onChange={(e) => handleNewFormatChange(e, "typeIdentifier", "column")}
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="income-values">ערכים להכנסה</Label>
-                  <Textarea
-                    id="income-values"
-                    placeholder="לדוגמה: הכנסה,זכות,income"
-                    value={newFormat.typeIdentifier.incomeValues.join(", ")}
-                    onChange={(e) => handleArrayChange(e.target.value, "typeIdentifier", "incomeValues")}
-                  />
-                  <p className="text-xs text-gray-500">
-                    הפרד ערכים בפסיקים
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="expense-values">ערכים להוצאה</Label>
-                  <Textarea
-                    id="expense-values"
-                    placeholder="לדוגמה: הוצאה,חובה,expense"
-                    value={newFormat.typeIdentifier.expenseValues.join(", ")}
-                    onChange={(e) => handleArrayChange(e.target.value, "typeIdentifier", "expenseValues")}
-                  />
-                  <p className="text-xs text-gray-500">
-                    הפרד ערכים בפסיקים
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNewFormatDialog(false)}>
-              ביטול
-            </Button>
-            <Button onClick={addNewFormat}>
-              הוסף פורמט
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
-
-export default FileImport;
+                      <span

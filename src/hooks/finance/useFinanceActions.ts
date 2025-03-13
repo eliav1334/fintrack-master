@@ -1,3 +1,4 @@
+
 import { Transaction, CategoryType, Budget, FileImportFormat } from "@/types";
 import { CategoryMapping } from "@/contexts/types";
 import { generateId } from "@/utils/generateId";
@@ -88,11 +89,6 @@ export const useFinanceActions = (dispatch: React.Dispatch<any>) => {
     dispatch({ type: "DELETE_CATEGORY_MAPPING", payload: description });
   };
 
-  // חדש: פונקציה למחיקת כל עסקאות ההכנסה
-  const deleteAllIncomeTransactions = () => {
-    dispatch({ type: "DELETE_ALL_INCOME_TRANSACTIONS" });
-  };
-
   return {
     addTransaction,
     updateTransaction,
@@ -108,7 +104,6 @@ export const useFinanceActions = (dispatch: React.Dispatch<any>) => {
     deleteImportFormat,
     addCategoryMapping,
     updateCategoryMapping,
-    deleteCategoryMapping,
-    deleteAllIncomeTransactions
+    deleteCategoryMapping
   };
 };

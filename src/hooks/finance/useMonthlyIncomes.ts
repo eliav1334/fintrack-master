@@ -1,7 +1,7 @@
 
 import { generateId } from "@/utils/generateId";
 import { Transaction } from "@/types";
-import { format, parseISO } from "date-fns";
+import { format } from "date-fns";
 
 /**
  * Hook to handle monthly income transactions
@@ -16,7 +16,7 @@ export const useMonthlyIncomes = () => {
 
   /**
    * Creates fixed monthly income transactions for the last 7 months
-   * Adds exactly one income transaction per month of 16,000 ₪
+   * Adds exactly one income transaction per month of 16,000 ₪ on the 1st of each month
    */
   const addMonthlyIncomes = (): Transaction[] => {
     const currentDate = new Date();
@@ -35,7 +35,7 @@ export const useMonthlyIncomes = () => {
     last7Months.forEach(month => {
       const [year, monthNum] = month.split("-");
       
-      // Create date for the 1st day of the month (payday)
+      // Create date for the 1st day of the month (payday - תמיד ב-1 לחודש)
       const date = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
       
       const monthlyIncome: Transaction = {

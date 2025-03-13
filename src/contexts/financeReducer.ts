@@ -1,4 +1,3 @@
-
 import { FinanceState, FinanceAction } from "./types";
 import { initialState } from "./defaultValues";
 
@@ -195,13 +194,6 @@ export const financeReducer = (state: FinanceState, action: FinanceAction): Fina
       return {
         ...state,
         error: action.payload,
-      };
-    case "DELETE_ALL_INCOME_TRANSACTIONS":
-      return {
-        ...state,
-        transactions: state.transactions.filter(
-          (transaction) => transaction.type !== "income"
-        ),
       };
     default:
       return state;

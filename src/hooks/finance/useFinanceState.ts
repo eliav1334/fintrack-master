@@ -22,9 +22,11 @@ export const useFinanceState = () => {
     dispatch({ type: "RESET_STATE" });
     
     // הוספת הכנסות חודשיות קבועות לאחר איפוס
-    const monthlyIncomes = addMonthlyIncomes();
-    dispatch({ type: "ADD_TRANSACTIONS", payload: monthlyIncomes });
-    toast.success(`נוספו ${monthlyIncomes.length} עסקאות הכנסה חודשית קבועה`);
+    setTimeout(() => {
+      const monthlyIncomes = addMonthlyIncomes();
+      dispatch({ type: "ADD_TRANSACTIONS", payload: monthlyIncomes });
+      toast.success(`נוספו ${monthlyIncomes.length} עסקאות הכנסה חודשית קבועה`);
+    }, 800);
   }, []);
 
   // Save data to localStorage whenever it changes
