@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useFinance } from "@/contexts/FinanceContext";
 import { FileImportFormat, Transaction } from "@/types";
@@ -15,7 +14,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { parseFile } from "@/utils/fileParser";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, ArrowDownCircle, ArrowUpCircle, CheckCircle, FileText, Upload } from "lucide-react";
+import { AlertCircle, ArrowDownCircle, ArrowUpCircle, FileText, Tabs, TabsContent, TabsList, TabsTrigger, Upload } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -30,11 +29,13 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
+import ImportHistory from "./ImportHistory";
 
 const FileImport = () => {
   const { state, addTransactions, addImportFormat } = useFinance();
   const { toast } = useToast();
   
+  const [activeTab, setActiveTab] = useState<"import" | "history">("import");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedFormatId, setSelectedFormatId] = useState<string>("");
   const [isImporting, setIsImporting] = useState<boolean>(false);
@@ -90,7 +91,6 @@ const FileImport = () => {
       const file = e.target.files[0];
       const fileExt = file.name.split('.').pop()?.toLowerCase();
       
-      // בדיקה שהקובץ הוא מסוג המותר
       if (!['csv', 'xlsx', 'xls'].includes(fileExt || '')) {
         setErrorMessage("סוג קובץ לא נתמך. אנא השתמש בקובץ CSV או אקסל (xlsx/xls)");
         return;
@@ -101,12 +101,10 @@ const FileImport = () => {
       setPreviewData([]);
       setShowPreview(false);
       
-      // נקה את רשימת מספרי הכרטיסים הנבחרים והמזוהים
       setCardNumbersInput("");
       setExtractedCardNumbers([]);
       setSelectedCardNumbers([]);
       
-      // אם יש פורמט נבחר, בדוק אם אפשר לחלץ מספרי כרטיסים מהקובץ
       if (selectedFormatId) {
         const format = state.importFormats.find(f => f.id === selectedFormatId);
         if (format) {
@@ -119,7 +117,6 @@ const FileImport = () => {
   const handleFormatChange = async (value: string) => {
     setSelectedFormatId(value);
     
-    // אם כבר יש קובץ נבחר, נסה לחלץ מספרי כרטיסים מהקובץ
     if (selectedFile) {
       const format = state.importFormats.find(f => f.id === value);
       if (format) {
@@ -128,16 +125,13 @@ const FileImport = () => {
     }
   };
 
-  // פונקציה לחילוץ מספרי כרטיסי אשראי מהקובץ
   const extractCardNumbersFromFile = async (file: File, format: FileImportFormat) => {
     try {
       setImportProgress(10);
       
-      // ייבוא זמני ללא סינון כדי לזהות את כל מספרי הכרטיסים
       const result = await parseFile(file, format);
       
       if (result.success && result.data && result.data.length > 0) {
-        // חילוץ מספרי כרטיסים ייחודיים
         const uniqueCardNumbers = new Set<string>();
         
         result.data.forEach(tx => {
@@ -174,7 +168,6 @@ const FileImport = () => {
     setCardFilter(selectedCardNumbers);
     setShowCardFilterDialog(false);
     
-    // עדכון הודעה למשתמש
     if (selectedCardNumbers.length > 0) {
       toast({
         title: "סינון הוגדר",
@@ -222,7 +215,6 @@ const FileImport = () => {
     setErrorMessage(null);
 
     try {
-      // Parse the file with card filtering
       setImportProgress(30);
       console.log("Parsing file:", selectedFile.name, "with format:", format.name, "card filter:", cardFilter);
       const result = await parseFile(selectedFile, format, cardFilter.length > 0 ? cardFilter : undefined);
@@ -241,8 +233,12 @@ const FileImport = () => {
       }
 
       console.log("Successfully parsed file, found transactions:", result.data.length);
-      // Show preview before final import
-      setPreviewData(result.data);
+      const now = new Date().toISOString();
+      const dataWithCreatedAt = result.data.map(tx => ({
+        ...tx,
+        createdAt: now
+      }));
+      setPreviewData(dataWithCreatedAt);
       setShowPreview(true);
       setImportProgress(100);
     } catch (error) {
@@ -276,7 +272,6 @@ const FileImport = () => {
         description: `יובאו ${previewData.length} עסקאות בהצלחה`,
       });
       
-      // Reset state
       setSelectedFile(null);
       setPreviewData([]);
       setShowPreview(false);
@@ -284,11 +279,12 @@ const FileImport = () => {
       setCardFilter([]);
       setSelectedCardNumbers([]);
       
-      // Clear file input
       const fileInput = document.getElementById("file-upload") as HTMLInputElement;
       if (fileInput) {
         fileInput.value = "";
       }
+      
+      setActiveTab("history");
     } catch (error) {
       toast({
         title: "שגיאה",
@@ -306,7 +302,6 @@ const FileImport = () => {
     setCardFilter([]);
     setSelectedCardNumbers([]);
     
-    // Clear file input
     const fileInput = document.getElementById("file-upload") as HTMLInputElement;
     if (fileInput) {
       fileInput.value = "";
@@ -371,11 +366,10 @@ const FileImport = () => {
   };
 
   const addNewFormat = () => {
-    // Validate form
     if (!newFormat.name.trim()) {
       toast({
         title: "שגיאה",
-        description: "אנא הזן שם לפורמט",
+        description: "אנא ה��ן שם לפורמט",
         variant: "destructive",
       });
       return;
@@ -397,7 +391,6 @@ const FileImport = () => {
         description: "פורמט ייבוא חדש נוסף בהצלחה",
       });
       
-      // Reset form and close dialog
       setNewFormat({
         name: "",
         mapping: {
@@ -437,179 +430,201 @@ const FileImport = () => {
     <div className="animate-fade-in p-6 space-y-6">
       <h1 className="text-3xl font-semibold mb-6">ייבוא עסקאות</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="finance-card finance-card-hover">
-          <CardHeader>
-            <CardTitle>העלאת קובץ</CardTitle>
-            <CardDescription>
-              ייבוא עסקאות מקובץ CSV או Excel
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="file-upload">בחר קובץ</Label>
-              <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg p-6 text-center">
-                <Input
-                  id="file-upload"
-                  type="file"
-                  accept=".csv,.xlsx,.xls"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-                <div className="flex flex-col items-center justify-center space-y-2">
-                  <FileText className="h-10 w-10 text-gray-400" />
-                  <Label
-                    htmlFor="file-upload"
-                    className="text-sm text-primary cursor-pointer hover:underline"
-                  >
-                    {selectedFile ? selectedFile.name : "לחץ לבחירת קובץ"}
-                  </Label>
-                  <p className="text-xs text-gray-500">
-                    פורמטים נתמכים: CSV, Excel (.xlsx, .xls)
-                  </p>
-                </div>
-              </div>
-              
-              {errorMessage && (
-                <div className="bg-destructive/15 p-3 rounded-md flex items-start mt-2">
-                  <AlertCircle className="h-5 w-5 text-destructive shrink-0 ml-2 mt-0.5" />
-                  <span className="text-sm text-destructive">{errorMessage}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label htmlFor="format">פורמט ייבוא</Label>
-                <Button
-                  type="button"
-                  variant="link"
-                  className="p-0 h-auto text-xs"
-                  onClick={() => setShowNewFormatDialog(true)}
-                >
-                  + הוסף פורמט חדש
-                </Button>
-              </div>
-              <Select value={selectedFormatId} onValueChange={handleFormatChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="בחר פורמט" />
-                </SelectTrigger>
-                <SelectContent>
-                  {state.importFormats.map((format) => (
-                    <SelectItem key={format.id} value={format.id}>
-                      {format.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* הצגת כרטיסי אשראי נבחרים לסינון */}
-            {cardFilter.length > 0 && (
-              <div className="p-3 bg-primary/10 rounded-md">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="font-medium text-sm">סינון לפי כרטיסי אשראי:</span>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-7 px-2 text-xs"
-                    onClick={() => setShowCardFilterDialog(true)}
-                  >
-                    שנה
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  {cardFilter.map((card) => (
-                    <span key={card} className="px-2 py-1 bg-primary/20 text-xs rounded-full">
-                      {card}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <Button
-              onClick={handleImport}
-              disabled={!selectedFile || !selectedFormatId || isImporting}
-              className="w-full"
-            >
-              {isImporting ? (
-                <>
-                  <Upload className="mr-2 h-4 w-4 animate-spin" />
-                  מייבא...
-                </>
-              ) : (
-                <>
-                  <Upload className="mr-2 h-4 w-4" />
-                  ייבא עסקאות
-                </>
-              )}
-            </Button>
-
-            {isImporting && (
-              <Progress value={importProgress} className="h-2" />
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="finance-card finance-card-hover">
-          <CardHeader>
-            <CardTitle>הוראות ייבוא</CardTitle>
-            <CardDescription>
-              למד כיצד להכין את הקובץ לייבוא
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <h3 className="font-medium">דרישות פורמט הקובץ</h3>
-              <ul className="list-disc pr-5 text-sm space-y-1 text-right">
-                <li>השתמש בפורמט CSV או Excel (xlsx, xls)</li>
-                <li>כותרות העמודות צריכות להיות בשורה הראשונה</li>
-                <li>עמודות חובה: תאריך, סכום, תיאור</li>
-                <li>עמודות אופציונליות: סוג, קטגוריה, מספר כרטיס</li>
-              </ul>
-            </div>
-            
-            <div className="space-y-2">
-              <h3 className="font-medium">פורמט העמודות</h3>
-              <ul className="list-disc pr-5 text-sm space-y-1 text-right">
-                <li>
-                  <strong>תאריך:</strong> השתמש בפורמט תאריך עקבי (לדוגמה, DD/MM/YYYY)
-                </li>
-                <li>
-                  <strong>סכום:</strong> ערכים מספריים (חיובי להכנסה, שלילי להוצאה)
-                </li>
-                <li>
-                  <strong>סוג:</strong> טקסט המציין את סוג העסקה (לדוגמה, "הכנסה", "הוצאה")
-                </li>
-                <li>
-                  <strong>מספר כרטיס:</strong> עמודה המכילה את מספר כרטיס האשראי או מזהה אחר
-                </li>
-              </ul>
-            </div>
-            
-            <div className="space-y-2">
-              <h3 className="font-medium">סינון לפי כרטיס אשראי</h3>
-              <ul className="list-disc pr-5 text-sm space-y-1 text-right">
-                <li>ניתן לסנן עסקאות לפי מספרי כרטיסי אשראי ספציפיים</li>
-                <li>בחר כרטיסים מהרשימה לאחר בחירת קובץ</li>
-                <li>מערכת הסינון תציג רק עסקאות מהכרטיסים שנבחרו</li>
-              </ul>
-            </div>
-            
-            <div className="space-y-2">
-              <h3 className="font-medium">טיפים</h3>
-              <ul className="list-disc pr-5 text-sm space-y-1 text-right">
-                <li>עבור קבצי אקסל מבנקים ישראליים, השתמש בפורמט "אקסל בנק ישראלי"</li>
-                <li>צפה בנתונים לפני אישור הייבוא</li>
-                <li>הסכומים מזוהים אוטומטית כהכנסה או הוצאה לפי הערך או עמודת הסוג</li>
-              </ul>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="mb-6">
+        <div className="flex items-center border-b pb-2 mb-4">
+          <Button
+            variant={activeTab === "import" ? "default" : "ghost"}
+            className="ml-4"
+            onClick={() => setActiveTab("import")}
+          >
+            <Upload className="h-4 w-4 ml-2" />
+            ייבוא חדש
+          </Button>
+          <Button
+            variant={activeTab === "history" ? "default" : "ghost"}
+            onClick={() => setActiveTab("history")}
+          >
+            <FileText className="h-4 w-4 ml-2" />
+            היסטוריית ייבוא
+          </Button>
+        </div>
       </div>
 
-      {/* Dialog לבחירת כרטיסי אשראי לסינון */}
+      {activeTab === "import" ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="finance-card finance-card-hover">
+            <CardHeader>
+              <CardTitle>העלאת קובץ</CardTitle>
+              <CardDescription>
+                ייבוא עסקאות מקובץ CSV או Excel
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="file-upload">בחר קובץ</Label>
+                <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg p-6 text-center">
+                  <Input
+                    id="file-upload"
+                    type="file"
+                    accept=".csv,.xlsx,.xls"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                  <div className="flex flex-col items-center justify-center space-y-2">
+                    <FileText className="h-10 w-10 text-gray-400" />
+                    <Label
+                      htmlFor="file-upload"
+                      className="text-sm text-primary cursor-pointer hover:underline"
+                    >
+                      {selectedFile ? selectedFile.name : "לחץ לבחירת קובץ"}
+                    </Label>
+                    <p className="text-xs text-gray-500">
+                      פורמטים נתמכים: CSV, Excel (.xlsx, .xls)
+                    </p>
+                  </div>
+                </div>
+                
+                {errorMessage && (
+                  <div className="bg-destructive/15 p-3 rounded-md flex items-start mt-2">
+                    <AlertCircle className="h-5 w-5 text-destructive shrink-0 ml-2 mt-0.5" />
+                    <span className="text-sm text-destructive">{errorMessage}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="format">פורמט ייבוא</Label>
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="p-0 h-auto text-xs"
+                    onClick={() => setShowNewFormatDialog(true)}
+                  >
+                    + הוסף פורמט חדש
+                  </Button>
+                </div>
+                <Select value={selectedFormatId} onValueChange={handleFormatChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="בחר פורמט" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {state.importFormats.map((format) => (
+                      <SelectItem key={format.id} value={format.id}>
+                        {format.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {cardFilter.length > 0 && (
+                <div className="p-3 bg-primary/10 rounded-md">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-medium text-sm">סינון לפי כרטיסי אשראי:</span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-7 px-2 text-xs"
+                      onClick={() => setShowCardFilterDialog(true)}
+                    >
+                      שנה
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {cardFilter.map((card) => (
+                      <span key={card} className="px-2 py-1 bg-primary/20 text-xs rounded-full">
+                        {card}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <Button
+                onClick={handleImport}
+                disabled={!selectedFile || !selectedFormatId || isImporting}
+                className="w-full"
+              >
+                {isImporting ? (
+                  <>
+                    <Upload className="mr-2 h-4 w-4 animate-spin" />
+                    מייבא...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    ייבא עסקאות
+                  </>
+                )}
+              </Button>
+
+              {isImporting && (
+                <Progress value={importProgress} className="h-2" />
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="finance-card finance-card-hover">
+            <CardHeader>
+              <CardTitle>הוראות ייבוא</CardTitle>
+              <CardDescription>
+                למד כיצד להכין את הקובץ לייבוא
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <h3 className="font-medium">דרישות פורמט הקובץ</h3>
+                <ul className="list-disc pr-5 text-sm space-y-1 text-right">
+                  <li>השתמש בפורמט CSV או Excel (xlsx, xls)</li>
+                  <li>כותרות העמודות צריכות להיות בשורה הראשונה</li>
+                  <li>עמודות חובה: תאריך, סכום, תיאור</li>
+                  <li>עמודות אופציונליות: סוג, קטגוריה, מספר כרטיס</li>
+                </ul>
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="font-medium">פורמט העמודות</h3>
+                <ul className="list-disc pr-5 text-sm space-y-1 text-right">
+                  <li>
+                    <strong>תאריך:</strong> השתמש בפורמט תאריך עקבי (לדוגמה, DD/MM/YYYY)
+                  </li>
+                  <li>
+                    <strong>סכום:</strong> ערכים מספריים (חיובי להכנסה, שלילי להוצאה)
+                  </li>
+                  <li>
+                    <strong>סוג:</strong> טקסט המציין את סוג העסקה (לדוגמה, "הכנסה", "הוצאה")
+                  </li>
+                  <li>
+                    <strong>מספר כרטיס:</strong> עמודה המכילה את מספר כרטיס האשראי או מזהה אחר
+                  </li>
+                </ul>
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="font-medium">סינון לפי כרטיס אשראי</h3>
+                <ul className="list-disc pr-5 text-sm space-y-1 text-right">
+                  <li>ניתן לסנן עסקאות לפי מספרי כרטיסי אשראי ספציפיים</li>
+                  <li>בחר כרטיסים מהרשימה לאחר בחירת קובץ</li>
+                  <li>מערכת הסינון תציג רק עסקאות מהכרטיסים שנבחרו</li>
+                </ul>
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="font-medium">טיפים</h3>
+                <ul className="list-disc pr-5 text-sm space-y-1 text-right">
+                  <li>עבור קבצי אקסל מבנקים ישראליים, השתמש בפורמט "אקסל בנק ישראלי"</li>
+                  <li>צפה בנתונים לפני אישור הייבוא</li>
+                  <li>הסכומים מזוהים אוטומטית כהכנסה או הוצאה לפי הערך או עמודת הסוג</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <ImportHistory />
+      )}
+
       <Dialog open={showCardFilterDialog} onOpenChange={setShowCardFilterDialog}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -620,7 +635,6 @@ const FileImport = () => {
           </DialogHeader>
           
           <div className="space-y-4 py-4">
-            {/* רשימת כרטיסי אשראי שזוהו בקובץ */}
             {extractedCardNumbers.length > 0 ? (
               <div className="space-y-4">
                 <p className="text-sm">מספרי כרטיסי אשראי שזוהו בקובץ:</p>
@@ -651,7 +665,6 @@ const FileImport = () => {
               </div>
             )}
             
-            {/* הוספה ידנית של מספרי כרטיסים */}
             <div className="space-y-2">
               <Label htmlFor="manual-card-numbers">הוסף מספרי כרטיסים ידנית (מופרדים בפסיקים)</Label>
               <Input
@@ -684,7 +697,6 @@ const FileImport = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Preview Dialog */}
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
         <DialogContent className="sm:max-w-[900px] h-[80vh] flex flex-col">
           <DialogHeader>
@@ -807,7 +819,6 @@ const FileImport = () => {
         </DialogContent>
       </Dialog>
 
-      {/* New Format Dialog */}
       <Dialog open={showNewFormatDialog} onOpenChange={setShowNewFormatDialog}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>

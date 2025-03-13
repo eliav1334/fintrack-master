@@ -1,13 +1,5 @@
 
-export type CategoryType = {
-  id: string;
-  name: string;
-  type: "income" | "expense";
-  color: string;
-  icon: string; // הוספת שדה אייקון
-};
-
-export type Transaction = {
+export interface Transaction {
   id: string;
   date: string;
   amount: number;
@@ -16,34 +8,26 @@ export type Transaction = {
   categoryId: string;
   notes?: string;
   cardNumber?: string;
-  // שדות עבור תחשיב חשמל
-  isElectricityBill?: boolean;
-  mainMeterReading?: {
-    current: number;
-    previous: number;
-    date: string;
-  };
-  secondaryMeterReading?: {
-    current: number;
-    previous: number;
-    date: string;
-  };
-  electricityRate?: number;
-  vatRate?: number;
-};
+  createdAt?: string; // זמן יצירת/ייבוא העסקה
+}
 
-// הוספת טיפוס עבור סוגי עסקאות - חסר היה ייבוא ב-Dashboard וב-TransactionForm
-export type TransactionType = "income" | "expense";
+export interface CategoryType {
+  id: string;
+  name: string;
+  type: "income" | "expense";
+  color: string;
+  icon?: string;
+}
 
-export type Budget = {
+export interface Budget {
   id: string;
   categoryId: string;
   amount: number;
+  period: "daily" | "weekly" | "monthly" | "yearly";
   startDate: string;
-  period: "daily" | "weekly" | "monthly" | "yearly"; // הוספת שדה תקופה
-};
+}
 
-export type FileImportFormat = {
+export interface FileImportFormat {
   id: string;
   name: string;
   mapping: {
@@ -61,6 +45,4 @@ export type FileImportFormat = {
     incomeValues: string[];
     expenseValues: string[];
   };
-  skipEmptyRows?: boolean; // הוספת שדה דילוג על שורות ריקות
-  headerRowIndex?: number; // הוספת שדה אינדקס שורת כותרת
-};
+}

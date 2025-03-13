@@ -193,6 +193,7 @@ export const parseExcel = async (
         let typeIndex = -1;
         let categoryIndex = -1;
         let cardNumberIndex = -1;
+        let transactionDateIndex = -1; // אינדקס לתאריך העסקה (בניגוד לתאריך החיוב)
 
         // התאמה לפורמט כרטיס אשראי ישראלי
         if (format.name === "כרטיס אשראי ישראלי") {
@@ -201,7 +202,9 @@ export const parseExcel = async (
             if (typeof header === 'string') {
               // בדיקת כל עמודה אפשרית
               if (header.includes("תאריך") && header.includes("עסקה")) {
-                dateIndex = i;
+                transactionDateIndex = i; // תאריך העסקה
+              } else if (header.includes("תאריך") && header.includes("חיוב")) {
+                dateIndex = i; // תאריך החיוב
               } else if (header.includes("שם בית העסק")) {
                 descriptionIndex = i;
               } else if (header.includes("סכום") && header.includes("חיוב")) {
@@ -211,6 +214,11 @@ export const parseExcel = async (
                 cardNumberIndex = i;
               }
             }
+          }
+          
+          // אם לא מצאנו עמודת תאריך חיוב אבל יש תאריך עסקה, נשתמש בתאריך העסקה כברירת מחדל
+          if (dateIndex === -1 && transactionDateIndex !== -1) {
+            dateIndex = transactionDateIndex;
           }
         } else {
           // התאמה רגילה לפי מיפוי הפורמט
@@ -237,6 +245,7 @@ export const parseExcel = async (
 
         console.log("Column indices:", {
           date: dateIndex,
+          transactionDate: transactionDateIndex,
           amount: amountIndex,
           description: descriptionIndex,
           type: typeIndex,
@@ -275,6 +284,7 @@ export const parseExcel = async (
           let amountValue = row[amountIndex];
           let descriptionValue = row[descriptionIndex];
           let cardNumberValue = cardNumberIndex !== -1 ? row[cardNumberIndex] : null;
+          let transactionDateValue = transactionDateIndex !== -1 ? row[transactionDateIndex] : null;
           
           // דילוג על שורות שאינן מכילות נתוני עסקאות חיוניים
           if (!dateValue && !amountValue && !descriptionValue) {
@@ -293,23 +303,24 @@ export const parseExcel = async (
             }
           }
           
-          // טיפול בתאריך
+          // טיפול בתאריך - עדיפות לתאריך העסקה אם קיים
           let dateStr: string;
+          let actualDateValue = transactionDateValue || dateValue; // העדפת תאריך העסקה על פני תאריך החיוב
           
-          if (dateValue instanceof Date) {
-            dateStr = dateValue.toISOString().split('T')[0];
-          } else if (typeof dateValue === 'number') {
+          if (actualDateValue instanceof Date) {
+            dateStr = actualDateValue.toISOString().split('T')[0];
+          } else if (typeof actualDateValue === 'number') {
             // תאריך אקסל מספרי
-            const excelDate = new Date(Math.round((dateValue - 25569) * 86400 * 1000));
+            const excelDate = new Date(Math.round((actualDateValue - 25569) * 86400 * 1000));
             dateStr = excelDate.toISOString().split('T')[0];
           } else {
             // טיפול במחרוזת תאריך
-            dateStr = String(dateValue || '');
+            dateStr = String(actualDateValue || '');
             
-            // תיקון לפורמט תאריך בכרטיס אשראי - לדוגמה: DD-MM-YYYY
-            if (format.name === "כרטיס אשראי ישראלי" && typeof dateValue === 'string') {
-              // נסיון לחלץ תאריך בפורמט DD-MM-YYYY
-              const dateMatch = dateValue.match(/(\d{1,2})[-.\/](\d{1,2})[-.\/](\d{2,4})/);
+            // תיקון לפורמט תאריך בכרטיס אשראי ישראלי
+            if (format.name === "כרטיס אשראי ישראלי" && typeof actualDateValue === 'string') {
+              // נסיון לחלץ תאריך בפורמט DD/MM/YYYY או DD-MM-YYYY
+              const dateMatch = actualDateValue.match(/(\d{1,2})[-.\/](\d{1,2})[-.\/](\d{2,4})/);
               if (dateMatch) {
                 const day = dateMatch[1].padStart(2, '0');
                 const month = dateMatch[2].padStart(2, '0');
@@ -376,13 +387,40 @@ export const parseExcel = async (
             ? description.substring(0, 97) + '...' 
             : description;
 
+          // הוספת מידע לגבי תאריך העסקה להערות אם קיים תאריך עסקה שונה מתאריך החיוב
+          let notes = format.name === "כרטיס אשראי ישראלי" ? "יובא מכרטיס אשראי" : "יובא מקובץ אקסל";
+          
+          if (transactionDateIndex !== -1 && transactionDateValue && dateValue !== transactionDateValue) {
+            let transactionDateStr = "";
+            
+            if (typeof transactionDateValue === 'string') {
+              // ניסיון לפרסר את תאריך העסקה
+              const dateMatch = transactionDateValue.match(/(\d{1,2})[-.\/](\d{1,2})[-.\/](\d{2,4})/);
+              if (dateMatch) {
+                const day = dateMatch[1].padStart(2, '0');
+                const month = dateMatch[2].padStart(2, '0');
+                let year = dateMatch[3];
+                if (year.length === 2) year = '20' + year;
+                transactionDateStr = `${day}/${month}/${year}`;
+              } else {
+                transactionDateStr = transactionDateValue;
+              }
+            } else if (transactionDateValue instanceof Date) {
+              transactionDateStr = transactionDateValue.toLocaleDateString('he-IL');
+            }
+            
+            if (transactionDateStr) {
+              notes += ` | תאריך עסקה: ${transactionDateStr}`;
+            }
+          }
+
           const transaction: Omit<Transaction, "id"> = {
             date: dateStr,
             amount,
             description: truncatedDescription,
             type,
             categoryId: categoryIndex >= 0 ? String(row[categoryIndex] || '') : "",
-            notes: format.name === "כרטיס אשראי ישראלי" ? "יובא מכרטיס אשראי" : "יובא מקובץ אקסל"
+            notes
           };
 
           // הוספת מספר כרטיס לעסקה אם קיים
