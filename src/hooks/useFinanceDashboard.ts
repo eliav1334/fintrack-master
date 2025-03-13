@@ -8,7 +8,7 @@ import { useChartData } from "./finance/useChartData";
 import { useBudgetAlerts } from "./finance/useBudgetAlerts";
 
 /**
- * Combined hook for the finance dashboard
+ * הוק משולב לדשבורד הפיננסי
  */
 export const useFinanceDashboard = (selectedDate: Date) => {
   const { state } = useFinance();
@@ -17,7 +17,7 @@ export const useFinanceDashboard = (selectedDate: Date) => {
   const { calculateStats } = useFinanceStats(state.transactions, selectedDate);
   const { getCashFlowData, getCategoryData } = useChartData(state.transactions, state.categories, selectedDate);
   
-  // Fixed parameter order to match useBudgetAlerts definition
+  // סדר הפרמטרים תואם להגדרת useBudgetAlerts
   const { checkBudgetAlerts, checkBalanceAlert } = useBudgetAlerts(
     state.transactions,
     state.categories,

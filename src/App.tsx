@@ -10,6 +10,7 @@ import Budgets from "./pages/Budgets";
 import NotFound from "./pages/NotFound";
 import "./App.css";
 
+// יצירת לקוח שאילתות חדש
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -20,7 +21,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/budgets" element={<Budgets />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            {/* יש להוסיף נתיבים מותאמים אישית מעל נתיב ה-"*" שתופס הכל */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
