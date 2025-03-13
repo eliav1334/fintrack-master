@@ -1,13 +1,12 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useFinance } from "@/contexts/FinanceContext";
-import { TransactionType } from "@/types";
+import { Transaction } from "@/types";
 import { format } from "date-fns";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ArrowDownCircle, ArrowUpCircle, ChevronRight, DollarSign, TrendingDown, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 type PeriodStats = {
   income: number;

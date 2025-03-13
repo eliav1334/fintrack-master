@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { useFinance } from "@/contexts/FinanceContext";
-import { Transaction, TransactionType } from "@/types";
+import { Transaction, TransactionType } from "@/types"; // תיקון הייבוא - הוספת TransactionType
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

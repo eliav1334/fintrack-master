@@ -1,8 +1,10 @@
+
 export type CategoryType = {
   id: string;
   name: string;
   type: "income" | "expense";
   color: string;
+  icon: string; // הוספת שדה אייקון
 };
 
 export type Transaction = {
@@ -13,14 +15,18 @@ export type Transaction = {
   type: "income" | "expense";
   categoryId: string;
   notes?: string;
-  cardNumber?: string; // הוספת שדה מספר כרטיס אשראי
+  cardNumber?: string;
 };
+
+// הוספת טיפוס עבור סוגי עסקאות - חסר היה ייבוא ב-Dashboard וב-TransactionForm
+export type TransactionType = "income" | "expense";
 
 export type Budget = {
   id: string;
   categoryId: string;
   amount: number;
   startDate: string;
+  period: "daily" | "weekly" | "monthly" | "yearly"; // הוספת שדה תקופה
 };
 
 export type FileImportFormat = {
@@ -41,4 +47,6 @@ export type FileImportFormat = {
     incomeValues: string[];
     expenseValues: string[];
   };
+  skipEmptyRows?: boolean; // הוספת שדה דילוג על שורות ריקות
+  headerRowIndex?: number; // הוספת שדה אינדקס שורת כותרת
 };
