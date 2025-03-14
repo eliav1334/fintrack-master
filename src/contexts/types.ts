@@ -59,4 +59,5 @@ export interface FinanceActionCreators {
   updateCategoryMapping: (mapping: CategoryMapping) => void;
   deleteCategoryMapping: (description: string) => void;
   deleteAllIncomeTransactions: () => void;
+  resetState: () => void;
 }
