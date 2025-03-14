@@ -52,14 +52,19 @@ export const useFinanceState = () => {
 
   // שמירת נתונים ב-localStorage בכל שינוי
   useEffect(() => {
-    localStorage.setItem(
-      "financeState",
-      JSON.stringify({
-        transactions: state.transactions,
-        budgets: state.budgets,
-        categoryMappings: state.categoryMappings
-      })
-    );
+    try {
+      localStorage.setItem(
+        "financeState",
+        JSON.stringify({
+          transactions: state.transactions,
+          budgets: state.budgets,
+          categoryMappings: state.categoryMappings
+        })
+      );
+    } catch (error) {
+      console.error("שגיאה בשמירת נתונים לאחסון מקומי:", error);
+      toast.error("שגיאה בשמירת נתונים");
+    }
   }, [state.transactions, state.budgets, state.categoryMappings]);
 
   return { state, dispatch };

@@ -26,7 +26,14 @@ export interface TransactionFormData {
     totalAmount: number;
     currentInstallment: number;
     totalInstallments: number;
+    installmentNumber?: number; // מספר תשלום נוכחי
+    originalTransactionDate?: string; // תאריך עסקה מקורי
+    installmentDate?: string; // תאריך תשלום
+    remainingAmount?: number; // סכום נותר לתשלום
   };
+  cardNumber?: string; // מספר כרטיס אשראי
+  businessCategory?: string; // קטגוריית בית עסק
+  transactionCode?: string; // קוד עסקה מחברת האשראי
 }
 
 export interface UseTransactionFormResult {

@@ -29,7 +29,16 @@ export interface Transaction {
     totalAmount: number;
     currentInstallment: number;
     totalInstallments: number;
+    installmentNumber?: number; // מספר התשלום הנוכחי
+    installmentDate?: string; // תאריך חיוב התשלום
+    originalTransactionDate?: string; // תאריך העסקה המקורית
+    remainingAmount?: number; // סכום שנותר לתשלום
   };
+  // שדות נוספים לכרטיסי אשראי
+  originalAmount?: number; // סכום מקורי לפני פיצול לתשלומים
+  transactionCode?: string; // קוד עסקה ייחודי מחברת האשראי
+  businessIdentifier?: string; // מזהה בית עסק
+  businessCategory?: string; // קטגוריית בית עסק
 }
 
 // הוספת TransactionType כטיפוס נפרד
@@ -61,6 +70,17 @@ export interface FileImportFormat {
     type?: string;
     category?: string;
     cardNumber?: string;
+    // שדות נוספים למיפוי קבצי כרטיסי אשראי
+    totalAmount?: string; // סכום עסקה כולל
+    installmentAmount?: string; // סכום תשלום בודד
+    installmentNumber?: string; // מספר תשלום נוכחי
+    totalInstallments?: string; // סך תשלומים
+    businessCategory?: string; // קטגוריית בית עסק
+    originalTransactionDate?: string; // תאריך עסקה מקורי
+    chargeDate?: string; // תאריך חיוב
+    transactionCode?: string; // קוד עסקה
+    businessIdentifier?: string; // מזהה בית עסק
+    currencyCode?: string; // קוד מטבע
   };
   dateFormat: string;
   delimiter?: string;
@@ -71,4 +91,19 @@ export interface FileImportFormat {
   };
   skipEmptyRows?: boolean;
   headerRowIndex?: number;
+  // שדות חדשים לתמיכה בגליונות מרובים
+  sheetSupport?: boolean; // האם יש תמיכה בגליונות מרובים
+  sheetSelection?: {
+    type: "all" | "specific" | "named"; // סוג בחירת גליונות
+    names?: string[]; // שמות גליונות ספציפיים
+    skipEmpty?: boolean; // דלג על גליונות ריקים
+  };
+  // זיהוי תשלומים
+  installmentIdentifier?: {
+    enabled: boolean;
+    pattern: string[]; // תבניות טקסט לזיהוי תשלומים
+    totalField?: string; // שדה סכום כולל
+    numberField?: string; // שדה מספר תשלום
+    countField?: string; // שדה מספר תשלומים כולל
+  };
 }

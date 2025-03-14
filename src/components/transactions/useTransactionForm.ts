@@ -41,6 +41,34 @@ export const useTransactionForm = (
       return;
     }
     
+    // אם מדובר בשדה של מספר התשלום הנוכחי
+    if (field === "installmentNumber") {
+      setFormData(prev => ({
+        ...prev,
+        installmentDetails: {
+          ...prev.installmentDetails,
+          installmentNumber: value,
+          // חישוב הסכום החודשי אם יש סכום כולל
+          currentInstallment: prev.installmentDetails.totalAmount > 0 
+            ? prev.installmentDetails.totalAmount / prev.installmentDetails.totalInstallments 
+            : prev.installmentDetails.currentInstallment
+        }
+      }));
+      return;
+    }
+    
+    // אם מדובר בסכום נותר לתשלום
+    if (field === "remainingAmount") {
+      setFormData(prev => ({
+        ...prev,
+        installmentDetails: {
+          ...prev.installmentDetails,
+          remainingAmount: value
+        }
+      }));
+      return;
+    }
+    
     setFormData(prev => ({
       ...prev,
       installmentDetails: {
@@ -59,7 +87,11 @@ export const useTransactionForm = (
         
         setFormData(prev => ({
           ...prev,
-          amount: monthlyPayment.toString()
+          amount: monthlyPayment.toString(),
+          installmentDetails: {
+            ...prev.installmentDetails,
+            currentInstallment: monthlyPayment
+          }
         }));
       }
     }
