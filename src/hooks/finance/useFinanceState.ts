@@ -13,20 +13,41 @@ export const useFinanceState = () => {
   const [state, dispatch] = useReducer(financeReducer, initialState);
   const { addMonthlyIncomes, cleanMonthlyIncomes, resetAllStoredData } = useMonthlyIncomes();
   
-  // איפוס נתונים - משתמשים בפונקציה להסרת הנתונים משמירה מקומית
+  // טעינת נתונים מ-localStorage בעת האתחול
   useEffect(() => {
-    // מאפסים את כל הנתונים השמורים
-    resetAllStoredData();
+    // ניסיון לטעון נתונים שמורים
+    const savedData = localStorage.getItem("financeState");
     
-    // מאתחלים את המידע מההתחלה (לא טוענים מידע ישן)
-    dispatch({ type: "RESET_STATE" });
-    
-    // הוספת הכנסות חודשיות קבועות לאחר איפוס
-    setTimeout(() => {
-      const monthlyIncomes = addMonthlyIncomes();
-      dispatch({ type: "ADD_TRANSACTIONS", payload: monthlyIncomes });
-      toast.success(`נוספו ${monthlyIncomes.length} עסקאות הכנסה חודשית קבועה`);
-    }, 800);
+    if (savedData) {
+      try {
+        const parsedData = JSON.parse(savedData);
+        // עדכון ה-state עם הנתונים השמורים
+        if (parsedData.transactions) {
+          dispatch({ type: "ADD_TRANSACTIONS", payload: parsedData.transactions });
+        }
+        if (parsedData.budgets) {
+          parsedData.budgets.forEach((budget: Budget) => {
+            dispatch({ type: "SET_BUDGET", payload: budget });
+          });
+        }
+        if (parsedData.categoryMappings) {
+          dispatch({ type: "SET_CATEGORY_MAPPINGS", payload: parsedData.categoryMappings });
+        }
+        
+        console.log("נטענו נתונים מהאחסון המקומי:", parsedData);
+      } catch (error) {
+        console.error("שגיאה בטעינת נתונים מהאחסון המקומי:", error);
+        resetAllStoredData();
+      }
+    } else {
+      // אם אין נתונים שמורים, יצירת הכנסות חודשיות קבועות
+      console.log("אין נתונים שמורים, מוסיף הכנסות חודשיות קבועות");
+      setTimeout(() => {
+        const monthlyIncomes = addMonthlyIncomes();
+        dispatch({ type: "ADD_TRANSACTIONS", payload: monthlyIncomes });
+        toast.success(`נוספו ${monthlyIncomes.length} עסקאות הכנסה חודשית קבועה`);
+      }, 800);
+    }
   }, []);
 
   // שמירת נתונים ב-localStorage בכל שינוי
