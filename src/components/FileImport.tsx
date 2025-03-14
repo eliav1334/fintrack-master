@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useFinance } from "@/contexts/FinanceContext";
 import { FileImportFormat, Transaction } from "@/types";
@@ -13,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
-import { parseFile } from "@/utils/fileParser";
+import { parseFile } from "@/utils/parser";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, ArrowDownCircle, ArrowUpCircle, FileText, Upload } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
