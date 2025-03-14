@@ -1,4 +1,3 @@
-
 import { Transaction, CategoryType, Budget, FileImportFormat } from "@/types";
 
 export interface CategoryMapping {
@@ -58,6 +57,7 @@ export interface FinanceActionCreators {
   addCategoryMapping: (mapping: Omit<CategoryMapping, "id">) => void;
   updateCategoryMapping: (mapping: CategoryMapping) => void;
   deleteCategoryMapping: (description: string) => void;
+  setCategoryMappings: (mappings: CategoryMapping[]) => void;
   deleteAllIncomeTransactions: () => void;
   resetState: () => void;
 }

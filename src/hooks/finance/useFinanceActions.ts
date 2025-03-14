@@ -1,4 +1,3 @@
-
 import { Transaction, CategoryType, Budget, FileImportFormat } from "@/types";
 import { CategoryMapping } from "@/contexts/types";
 import { generateId } from "@/utils/generateId";
@@ -84,7 +83,6 @@ export const useFinanceActions = (dispatch: React.Dispatch<any>) => {
     dispatch({ type: "DELETE_IMPORT_FORMAT", payload: id });
   };
   
-  // New functions for managing category mappings
   const addCategoryMapping = (mapping: Omit<CategoryMapping, "id">) => {
     dispatch({ type: "ADD_CATEGORY_MAPPING", payload: mapping });
   };
@@ -95,6 +93,10 @@ export const useFinanceActions = (dispatch: React.Dispatch<any>) => {
   
   const deleteCategoryMapping = (description: string) => {
     dispatch({ type: "DELETE_CATEGORY_MAPPING", payload: description });
+  };
+
+  const setCategoryMappings = (mappings: CategoryMapping[]) => {
+    dispatch({ type: "SET_CATEGORY_MAPPINGS", payload: mappings });
   };
 
   return {
@@ -114,6 +116,7 @@ export const useFinanceActions = (dispatch: React.Dispatch<any>) => {
     deleteImportFormat,
     addCategoryMapping,
     updateCategoryMapping,
-    deleteCategoryMapping
+    deleteCategoryMapping,
+    setCategoryMappings
   };
 };
