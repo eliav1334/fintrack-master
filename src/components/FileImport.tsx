@@ -476,7 +476,6 @@ const FileImport = () => {
             ...updated.typeIdentifier,
             [subField]: value,
           };
-        }
         return updated;
       });
     } else if (section) {
@@ -875,3 +874,4 @@ const FileImport = () => {
                   </div>
                   <div className="flex items-center space-x-4 gap-2">
                     <div>
+                      <span
