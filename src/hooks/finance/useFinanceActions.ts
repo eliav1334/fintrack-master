@@ -1,9 +1,10 @@
+
 import { Transaction, CategoryType, Budget, FileImportFormat } from "@/types";
 import { CategoryMapping } from "@/contexts/types";
 import { generateId } from "@/utils/generateId";
 
 /**
- * Hook for finance action creators
+ * הוק לניהול פעולות פיננסיות
  */
 export const useFinanceActions = (dispatch: React.Dispatch<any>) => {
   const addTransaction = (transaction: Omit<Transaction, "id">) => {

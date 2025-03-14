@@ -4,7 +4,7 @@ import { Transaction } from "@/types";
 import { format } from "date-fns";
 
 /**
- * Hook to handle monthly income transactions
+ * הוק לניהול עסקאות הכנסה חודשיות
  */
 export const useMonthlyIncomes = () => {
   // חיפוש האם ישנם נתוני localStorage להסרה (לצורך איפוס)
@@ -15,31 +15,31 @@ export const useMonthlyIncomes = () => {
   };
 
   /**
-   * Creates fixed monthly income transactions for the last 7 months
-   * Adds exactly one income transaction per month of 16,000 ₪ on the 1st of each month
+   * יצירת עסקאות הכנסה חודשיות קבועות ל-7 חודשים אחרונים
+   * מוסיף בדיוק עסקת הכנסה אחת לחודש בסך 16,000 ₪ ב-1 לחודש
    */
   const addMonthlyIncomes = (): Transaction[] => {
     const currentDate = new Date();
     
-    // Create array of the last 7 months
+    // יצירת מערך של 7 חודשים אחרונים
     const last7Months = Array.from({ length: 7 }, (_, i) => {
       const date = new Date();
       date.setMonth(date.getMonth() - i);
       return format(date, "yyyy-MM");
     });
     
-    // Prepare new transactions to add
+    // הכנת עסקאות חדשות להוספה
     const newTransactions: Transaction[] = [];
     
-    // For each of the last 7 months, add a monthly income
+    // עבור כל אחד מ-7 החודשים האחרונים, הוסף הכנסה חודשית
     last7Months.forEach(month => {
       const [year, monthNum] = month.split("-");
       
-      // Create date for the 1st day of the month (payday - תמיד ב-1 לחודש)
+      // יצירת תאריך ליום ה-1 בחודש (יום תשלום - תמיד ב-1 לחודש)
       const date = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
       
       const monthlyIncome: Transaction = {
-        id: generateId(`income-${month}`), // Unique ID for each month
+        id: generateId(`income-${month}`), // מזהה ייחודי לכל חודש
         description: "משכורת חודשית קבועה",
         amount: 16000,
         type: "income",
@@ -48,7 +48,7 @@ export const useMonthlyIncomes = () => {
         notes: `הכנסה חודשית קבועה לחודש ${month}`
       };
       
-      // Add to new transactions array
+      // הוספה למערך העסקאות החדשות
       newTransactions.push(monthlyIncome);
     });
     
@@ -56,7 +56,7 @@ export const useMonthlyIncomes = () => {
   };
 
   /**
-   * Checks if a transaction is a monthly income transaction
+   * בדיקה אם עסקה היא עסקת הכנסה חודשית
    */
   const isMonthlyIncome = (tx: Transaction): boolean => {
     return (
@@ -67,7 +67,7 @@ export const useMonthlyIncomes = () => {
   };
 
   /**
-   * Cleans monthly income transactions from the array
+   * ניקוי עסקאות הכנסה חודשיות מהמערך
    */
   const cleanMonthlyIncomes = (transactions: Transaction[]): Transaction[] => {
     return transactions.filter(tx => !isMonthlyIncome(tx));

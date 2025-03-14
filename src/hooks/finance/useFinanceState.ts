@@ -7,7 +7,7 @@ import { Budget, Transaction } from "@/types";
 import { toast } from "sonner";
 
 /**
- * Hook to manage finance state with localStorage persistence
+ * הוק לניהול מצב פיננסי עם שמירה ב-localStorage
  */
 export const useFinanceState = () => {
   const [state, dispatch] = useReducer(financeReducer, initialState);
@@ -29,7 +29,7 @@ export const useFinanceState = () => {
     }, 800);
   }, []);
 
-  // Save data to localStorage whenever it changes
+  // שמירת נתונים ב-localStorage בכל שינוי
   useEffect(() => {
     localStorage.setItem(
       "financeState",

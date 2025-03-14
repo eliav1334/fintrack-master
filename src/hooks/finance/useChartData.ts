@@ -5,7 +5,7 @@ import { startOfMonth, endOfMonth } from "date-fns";
 import { useTransactionFilters } from "./useTransactionFilters";
 
 /**
- * Hook for generating chart data
+ * הוק ליצירת נתוני גרף
  */
 export const useChartData = (
   transactions: Transaction[],

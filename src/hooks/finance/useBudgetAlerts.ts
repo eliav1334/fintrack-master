@@ -19,7 +19,7 @@ export interface BalanceAlert {
 }
 
 /**
- * Hook for generating budget alerts
+ * הוק ליצירת התראות תקציב
  */
 export const useBudgetAlerts = (
   transactions: Transaction[],

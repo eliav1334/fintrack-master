@@ -3,7 +3,7 @@ import { startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { Transaction } from "@/types";
 
 /**
- * Hook for filtering transactions by date
+ * הוק לסינון עסקאות לפי תאריך
  */
 export const useTransactionFilters = () => {
   // קבלת נתוני החודש הנבחר

@@ -3,7 +3,7 @@ import { Transaction, CategoryType } from "@/types";
 import { useTransactionFilters } from "./useTransactionFilters";
 
 /**
- * Hook for calculating financial statistics
+ * הוק לחישוב סטטיסטיקות פיננסיות
  */
 export const useFinanceStats = (
   transactions: Transaction[],

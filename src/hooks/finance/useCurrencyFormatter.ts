@@ -1,6 +1,6 @@
 
 /**
- * Hook for formatting currency values
+ * הוק לפורמט ערכי מטבע
  */
 export const useCurrencyFormatter = () => {
   // פונקציה לפורמט סכומים כמטבע
