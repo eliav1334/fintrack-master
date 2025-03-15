@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,6 +11,7 @@ import { WalletIcon, CreditCard, DollarSign, PiggyBank, Wallet, Home, Car, Phone
 
 interface CategoryFormProps {
   onSubmit: (category: Omit<CategoryType, "id">) => void;
+  initialType?: "income" | "expense";
 }
 
 const CATEGORY_ICONS = [
@@ -37,13 +38,23 @@ const CATEGORY_COLORS = [
   "#fb923c", "#f97316", "#ef4444", "#9ca3af"
 ];
 
-const CategoryForm = ({ onSubmit }: CategoryFormProps) => {
+const CategoryForm = ({ onSubmit, initialType }: CategoryFormProps) => {
   const [newCategory, setNewCategory] = useState<Omit<CategoryType, "id">>({
     name: "",
-    type: "expense",
+    type: initialType || "expense",
     color: "#60a5fa",
     icon: "ארנק"
   });
+  
+  // עדכון ערך ברירת המחדל אם יש שינוי בפרופס
+  useEffect(() => {
+    if (initialType) {
+      setNewCategory(prev => ({
+        ...prev,
+        type: initialType
+      }));
+    }
+  }, [initialType]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +65,7 @@ const CategoryForm = ({ onSubmit }: CategoryFormProps) => {
     
     setNewCategory({
       name: "",
-      type: "expense",
+      type: initialType || "expense",
       color: "#60a5fa",
       icon: "ארנק"
     });

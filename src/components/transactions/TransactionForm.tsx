@@ -112,6 +112,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
           categories={filteredCategories}
           selectedCategoryId={formData.categoryId}
           onChange={(value) => handleSelectChange("categoryId", value)}
+          transactionType={formData.type}
+          description={formData.description}
         />
 
         <div className="space-y-2">

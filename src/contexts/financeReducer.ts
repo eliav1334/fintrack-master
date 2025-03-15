@@ -13,7 +13,7 @@ export const financeReducer = (state: FinanceState, action: FinanceAction): Fina
       if (!transaction.categoryId) {
         // חיפוש קטגוריה לפי תיאור
         const mapping = state.categoryMappings.find(
-          m => transaction.description.includes(m.description)
+          m => transaction.description.toLowerCase().includes(m.description.toLowerCase())
         );
         if (mapping) {
           transaction = { ...transaction, categoryId: mapping.categoryId };
@@ -34,7 +34,7 @@ export const financeReducer = (state: FinanceState, action: FinanceAction): Fina
           existingTransaction.categoryId !== updatedTransaction.categoryId) {
         // בדיקה אם אנחנו צריכים להוסיף מיפוי חדש
         const existingMapping = state.categoryMappings.find(
-          m => m.description === updatedTransaction.description
+          m => m.description.toLowerCase() === updatedTransaction.description.toLowerCase()
         );
         
         if (!existingMapping && updatedTransaction.description) {
@@ -80,7 +80,7 @@ export const financeReducer = (state: FinanceState, action: FinanceAction): Fina
         if (!transaction.categoryId) {
           // חיפוש קטגוריה לפי תיאור
           const mapping = state.categoryMappings.find(
-            m => transaction.description.includes(m.description)
+            m => transaction.description.toLowerCase().includes(m.description.toLowerCase())
           );
           if (mapping) {
             return { ...transaction, categoryId: mapping.categoryId };
@@ -94,9 +94,18 @@ export const financeReducer = (state: FinanceState, action: FinanceAction): Fina
         transactions: [...enhancedTransactions, ...state.transactions],
       };
     case "ADD_CATEGORY":
+      const newCategory = action.payload;
+      
+      // אם יש מיפוי שמחכה לקטגוריה חדשה, עדכן את המיפוי
+      const mappingsWithEmptyCategory = state.categoryMappings.filter(m => !m.categoryId);
+      const updatedMappings = state.categoryMappings.map(mapping => 
+        !mapping.categoryId ? { ...mapping, categoryId: newCategory.id } : mapping
+      );
+      
       return {
         ...state,
-        categories: [...state.categories, action.payload],
+        categories: [...state.categories, newCategory],
+        categoryMappings: mappingsWithEmptyCategory.length > 0 ? updatedMappings : state.categoryMappings
       };
     case "UPDATE_CATEGORY":
       return {
@@ -156,7 +165,7 @@ export const financeReducer = (state: FinanceState, action: FinanceAction): Fina
     case "ADD_CATEGORY_MAPPING":
       // בדיקה אם כבר קיים מיפוי לתיאור זה
       const existingMappingIndex = state.categoryMappings.findIndex(
-        mapping => mapping.description === action.payload.description
+        mapping => mapping.description.toLowerCase() === action.payload.description.toLowerCase()
       );
       
       if (existingMappingIndex >= 0) {
@@ -178,14 +187,14 @@ export const financeReducer = (state: FinanceState, action: FinanceAction): Fina
       return {
         ...state,
         categoryMappings: state.categoryMappings.map(mapping =>
-          mapping.description === action.payload.description ? action.payload : mapping
+          mapping.description.toLowerCase() === action.payload.description.toLowerCase() ? action.payload : mapping
         )
       };
     case "DELETE_CATEGORY_MAPPING":
       return {
         ...state,
         categoryMappings: state.categoryMappings.filter(
-          mapping => mapping.description !== action.payload
+          mapping => mapping.description.toLowerCase() !== action.payload.toLowerCase()
         )
       };
     case "SET_CATEGORY_MAPPINGS":

@@ -1,5 +1,4 @@
 
-
 /* ריסטרוקטורה של ה-CSS כדי לטפל בבעיות תצוגה */
 #root {
   margin: 0;
@@ -73,7 +72,11 @@
 
 /* תמיכה ברשימות נפתחות */
 [data-radix-popper-content-wrapper] {
-  max-height: 300px;
-  overflow-y: auto !important;
+  max-height: none !important;
+  overflow-y: visible !important;
 }
 
+/* שיפור הגלילה באלמנטים של Select */
+[data-radix-select-viewport] {
+  overflow-y: auto !important;
+}
