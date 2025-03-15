@@ -28,10 +28,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { TransactionForm } from "./transactions/TransactionForm";
+import { TransactionForm } from "@/components/transactions/TransactionForm";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import MonthPicker from "./dashboard/MonthPicker";
+import MonthPicker from "@/components/dashboard/MonthPicker";
 import { useLocation, useSearchParams } from "react-router-dom";
 
 const TransactionList = () => {
@@ -46,16 +46,13 @@ const TransactionList = () => {
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
   const [showConfirmDeleteAllIncome, setShowConfirmDeleteAllIncome] = useState<boolean>(false);
   
-  // בדיקה אם הגענו מהדשבורד עם פרמטר של חודש נבחר
   const [searchParams] = useSearchParams();
   const monthParam = searchParams.get('month');
   
-  // אם יש פרמטר חודש ב-URL, נשתמש בו
   useEffect(() => {
     if (monthParam) {
       try {
         const dateFromParam = new Date(monthParam);
-        // בדיקה שהערך הוא תאריך תקין
         if (!isNaN(dateFromParam.getTime())) {
           setSelectedMonth(dateFromParam);
         }
@@ -83,7 +80,6 @@ const TransactionList = () => {
   const filterTransactions = () => {
     let filtered = [...state.transactions];
 
-    // Filter by selected month
     if (selectedMonth) {
       const firstDayOfMonth = startOfMonth(selectedMonth);
       const lastDayOfMonth = endOfMonth(selectedMonth);
@@ -181,7 +177,6 @@ const TransactionList = () => {
   const filteredTransactions = filterTransactions();
   const hasIncomeTransactions = state.transactions.some(tx => tx.type === "income");
   
-  // Filter monthly income transactions for the current selected month
   const monthlyIncomeInCurrentMonth = filteredTransactions.filter(tx => 
     tx.type === "income" && tx.description === "משכורת חודשית קבועה"
   );
