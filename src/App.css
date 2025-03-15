@@ -1,4 +1,5 @@
 
+
 /* ריסטרוקטורה של ה-CSS כדי לטפל בבעיות תצוגה */
 #root {
   margin: 0;
@@ -33,6 +34,27 @@
   border: transparent;
 }
 
+/* התאמות לגלילה אנכית */
+.overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
+  overflow-y: auto !important; /* וידוא שגלילה אנכית מאופשרת */
+}
+
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background-color: rgba(155, 155, 155, 0.5);
+  border-radius: 20px;
+  border: transparent;
+}
+
 /* מסתיר את סרגל הגלילה לחלוטין */
 .hide-scrollbar {
   -ms-overflow-style: none;  /* IE and Edge */
@@ -42,3 +64,16 @@
 .hide-scrollbar::-webkit-scrollbar {
   display: none;  /* Chrome, Safari and Opera */
 }
+
+/* תמיכה בגלילה בחלונות דיאלוג */
+[role="dialog"] .overflow-y-auto {
+  max-height: 300px;
+  overflow-y: auto !important;
+}
+
+/* תמיכה ברשימות נפתחות */
+[data-radix-popper-content-wrapper] {
+  max-height: 300px;
+  overflow-y: auto !important;
+}
+

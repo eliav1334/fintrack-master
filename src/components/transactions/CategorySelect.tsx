@@ -29,8 +29,8 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
         <SelectTrigger>
           <SelectValue placeholder="בחר קטגוריה" />
         </SelectTrigger>
-        <SelectContent className="max-h-[var(--radix-select-content-available-height)]">
-          <ScrollArea className="h-[200px]">
+        <SelectContent className="max-h-[300px]">
+          <ScrollArea className="h-[200px] overflow-y-auto">
             {categories.length > 0 ? (
               categories.map((category) => (
                 <SelectItem key={category.id} value={category.id}>
