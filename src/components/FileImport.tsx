@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useFinance } from "@/contexts/FinanceContext";
 import { FileImportFormat, Transaction } from "@/types";
@@ -897,7 +896,7 @@ const FileImport = () => {
                         <div>
                           <p className="font-medium">{tx.description}</p>
                           <p className="text-sm text-muted-foreground">
-                            {tx.date} • {tx.category || "ללא קטגוריה"}
+                            {tx.date} • {tx.categoryId || "ללא קטגוריה"}
                           </p>
                         </div>
                         <div className={`text-${tx.type === "income" ? "green" : "red"}-600 font-medium`}>
@@ -1212,12 +1211,12 @@ const FileImport = () => {
                       <div>
                         <div className="font-medium">{tx.description}</div>
                         <div className="text-sm text-muted-foreground">
-                          {tx.date} • {tx.category || "ללא קטגוריה"}
+                          {tx.date} • {tx.categoryId || "ללא קטגוריה"}
                           {tx.cardNumber && ` • כרטיס ${tx.cardNumber}`}
                         </div>
-                        {tx.installments && (
+                        {tx.installmentDetails && (
                           <div className="mt-1 text-xs bg-primary/10 text-primary rounded-full px-2 py-0.5 inline-block">
-                            תשלום {tx.installments.installmentNumber} מתוך {tx.installments.totalInstallments}
+                            תשלום {tx.installmentDetails.installmentNumber} מתוך {tx.installmentDetails.totalInstallments}
                           </div>
                         )}
                       </div>
@@ -1243,12 +1242,12 @@ const FileImport = () => {
                           </span>
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          {tx.date} • {tx.category || "ללא קטגוריה"}
+                          {tx.date} • {tx.categoryId || "ללא קטגוריה"}
                           {tx.cardNumber && ` • כרטיס ${tx.cardNumber}`}
                         </div>
-                        {tx.installments && (
+                        {tx.installmentDetails && (
                           <div className="mt-1 text-xs bg-primary/10 text-primary rounded-full px-2 py-0.5 inline-block">
-                            תשלום {tx.installments.installmentNumber} מתוך {tx.installments.totalInstallments}
+                            תשלום {tx.installmentDetails.installmentNumber} מתוך {tx.installmentDetails.totalInstallments}
                           </div>
                         )}
                       </div>
@@ -1281,4 +1280,3 @@ const FileImport = () => {
 };
 
 export default FileImport;
-
