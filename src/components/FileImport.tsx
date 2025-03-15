@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useFinance } from "@/contexts/FinanceContext";
 import { FileImportFormat, Transaction } from "@/types";
@@ -875,6 +876,7 @@ const FileImport = () => {
         <ImportHistory />
       )}
 
+      {/* חלון כפילויות */}
       <Dialog open={showDuplicatesDialog} onOpenChange={setShowDuplicatesDialog}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -885,4 +887,398 @@ const FileImport = () => {
           </DialogHeader>
           
           <div className="py-4">
-            <div className="bg-amber-100 dark:bg-amber-900/30
+            <div className="bg-amber-100 dark:bg-amber-900/30 p-4 rounded-md mb-4">
+              <h4 className="font-medium mb-2">עסקאות כפולות ({duplicateTransactions.length})</h4>
+              <ScrollArea className="h-[200px] rounded border p-2">
+                <div className="space-y-2">
+                  {duplicateTransactions.map((tx, index) => (
+                    <div key={index} className="p-2 border-b last:border-b-0">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="font-medium">{tx.description}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {tx.date} • {tx.category || "ללא קטגוריה"}
+                          </p>
+                        </div>
+                        <div className={`text-${tx.type === "income" ? "green" : "red"}-600 font-medium`}>
+                          {formatCurrency(tx.amount)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          </div>
+          
+          <DialogFooter className="flex justify-between">
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="include-duplicates"
+                checked={includeDuplicates}
+                onCheckedChange={(checked) => 
+                  setIncludeDuplicates(checked as boolean)
+                }
+              />
+              <Label htmlFor="include-duplicates" className="text-sm">
+                כלול גם עסקאות כפולות בייבוא
+              </Label>
+            </div>
+            <div className="space-x-2">
+              <Button variant="outline" onClick={handleContinueWithoutDuplicates}>
+                המשך ללא כפולות
+              </Button>
+              <Button onClick={handleContinueWithDuplicates}>
+                {includeDuplicates ? "המשך עם כפולות" : "בחר כדי לכלול כפולות"}
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* חלון פורמט חדש */}
+      <Dialog open={showNewFormatDialog} onOpenChange={setShowNewFormatDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>הוספת פורמט ייבוא חדש</DialogTitle>
+            <DialogDescription>
+              הגדר את המבנה של קובץ הנתונים שברצונך לייבא.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="format-name">שם הפורמט</Label>
+              <Input
+                id="format-name"
+                name="name"
+                value={newFormat.name}
+                onChange={(e) => handleNewFormatChange(e)}
+                placeholder="לדוגמה: ויזה כאל, אמריקן אקספרס"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label>מיפוי עמודות</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="date-column" className="text-xs">עמודת תאריך</Label>
+                  <Input
+                    id="date-column"
+                    value={newFormat.mapping.date}
+                    onChange={(e) => handleNewFormatChange(e, "mapping", "date")}
+                    placeholder="לדוגמה: תאריך, Date"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="amount-column" className="text-xs">עמודת סכום</Label>
+                  <Input
+                    id="amount-column"
+                    value={newFormat.mapping.amount}
+                    onChange={(e) => handleNewFormatChange(e, "mapping", "amount")}
+                    placeholder="לדוגמה: סכום, Amount"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="description-column" className="text-xs">עמודת תיאור</Label>
+                  <Input
+                    id="description-column"
+                    value={newFormat.mapping.description}
+                    onChange={(e) => handleNewFormatChange(e, "mapping", "description")}
+                    placeholder="לדוגמה: תיאור, פרטים"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="category-column" className="text-xs">עמודת קטגוריה (אופציונלי)</Label>
+                  <Input
+                    id="category-column"
+                    value={newFormat.mapping.category || ""}
+                    onChange={(e) => handleNewFormatChange(e, "mapping", "category")}
+                    placeholder="לדוגמה: קטגוריה, סיווג"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="type-column" className="text-xs">עמודת סוג (אופציונלי)</Label>
+                  <Input
+                    id="type-column"
+                    value={newFormat.mapping.type || ""}
+                    onChange={(e) => handleNewFormatChange(e, "mapping", "type")}
+                    placeholder="לדוגמה: סוג, זכות/חובה"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="card-column" className="text-xs">עמודת כרטיס (אופציונלי)</Label>
+                  <Input
+                    id="card-column"
+                    value={newFormat.mapping.cardNumber || ""}
+                    onChange={(e) => handleNewFormatChange(e, "mapping", "cardNumber")}
+                    placeholder="לדוגמה: כרטיס, מספר כרטיס"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="date-format">פורמט תאריך</Label>
+              <Input
+                id="date-format"
+                name="dateFormat"
+                value={newFormat.dateFormat}
+                onChange={(e) => handleNewFormatChange(e)}
+                placeholder="YYYY-MM-DD, DD/MM/YYYY"
+              />
+              <p className="text-xs text-muted-foreground">
+                הגדר את פורמט התאריך בקובץ. לדוגמה: DD/MM/YYYY, YYYY-MM-DD
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>זיהוי סוג העסקה</Label>
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="type-identifier-column" className="text-xs">עמודה לזיהוי סוג העסקה</Label>
+                  <Input
+                    id="type-identifier-column"
+                    value={newFormat.typeIdentifier.column}
+                    onChange={(e) => handleNewFormatChange(e, "typeIdentifier", "column")}
+                    placeholder="לדוגמה: סוג, חובה/זכות"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="income-values" className="text-xs">
+                    ערכים המייצגים הכנסה (מופרדים בפסיקים)
+                  </Label>
+                  <Textarea
+                    id="income-values"
+                    value={newFormat.typeIdentifier.incomeValues.join(", ")}
+                    onChange={(e) => handleArrayChange(e.target.value, "typeIdentifier", "incomeValues")}
+                    placeholder="לדוגמה: זכות, income, +, credit"
+                    rows={2}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="expense-values" className="text-xs">
+                    ערכים המייצגים הוצאה (מופרדים בפסיקים)
+                  </Label>
+                  <Textarea
+                    id="expense-values"
+                    value={newFormat.typeIdentifier.expenseValues.join(", ")}
+                    onChange={(e) => handleArrayChange(e.target.value, "typeIdentifier", "expenseValues")}
+                    placeholder="לדוגמה: חובה, expense, -, debit"
+                    rows={2}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewFormatDialog(false)}>
+              ביטול
+            </Button>
+            <Button onClick={addNewFormat}>
+              הוסף פורמט
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* חלון סינון כרטיסי אשראי */}
+      <Dialog open={showCardFilterDialog} onOpenChange={setShowCardFilterDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>סינון לפי כרטיסי אשראי</DialogTitle>
+            <DialogDescription>
+              בחר את כרטיסי האשראי שברצונך לכלול בייבוא הנתונים
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <ScrollArea className="h-[200px] rounded border p-4">
+              <div className="space-y-4">
+                {extractedCardNumbers.map(cardNumber => {
+                  // בדיקה אם הכרטיס מותר בהתאם להגבלות
+                  const isAllowed = ALLOWED_CARD_NUMBERS.some(allowed => cardNumber.includes(allowed));
+                  const isBlocked = cardNumber.includes(BLOCKED_CARD_NUMBER);
+                  
+                  return (
+                    <div key={cardNumber} className="flex items-center space-x-3">
+                      <Checkbox
+                        id={`card-${cardNumber}`}
+                        checked={selectedCardNumbers.includes(cardNumber)}
+                        onCheckedChange={(checked) => handleCardFilterChange(cardNumber, checked as boolean)}
+                        disabled={isBlocked || !isAllowed}
+                      />
+                      <div className="flex items-center justify-between flex-1">
+                        <Label
+                          htmlFor={`card-${cardNumber}`}
+                          className={`text-sm ${isBlocked ? 'text-red-500' : !isAllowed ? 'text-gray-400' : ''}`}
+                        >
+                          {cardNumber}
+                        </Label>
+                        {isBlocked && (
+                          <span className="text-xs rounded-full bg-red-100 text-red-800 px-2 py-0.5">
+                            לא מורשה
+                          </span>
+                        )}
+                        {!isBlocked && !isAllowed && (
+                          <span className="text-xs rounded-full bg-gray-100 text-gray-800 px-2 py-0.5">
+                            לא בהגבלות
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+                {extractedCardNumbers.length === 0 && (
+                  <p className="text-center text-muted-foreground text-sm py-4">
+                    לא נמצאו כרטיסי אשראי בקובץ
+                  </p>
+                )}
+              </div>
+            </ScrollArea>
+            
+            <div className="mt-4 text-xs text-muted-foreground">
+              <p>
+                <span className="font-semibold text-green-600">מותר לייבא:</span> כרטיסים המכילים 
+                {ALLOWED_CARD_NUMBERS.map((card, idx) => (
+                  <span key={card} className="mx-1 px-1.5 py-0.5 bg-green-100 text-green-800 rounded">
+                    {card}
+                  </span>
+                ))}
+              </p>
+              <p className="mt-1">
+                <span className="font-semibold text-red-600">אסור לייבא:</span> כרטיסים המכילים 
+                <span className="mx-1 px-1.5 py-0.5 bg-red-100 text-red-800 rounded">
+                  {BLOCKED_CARD_NUMBER}
+                </span>
+              </p>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCardFilterDialog(false)}>
+              ביטול
+            </Button>
+            <Button onClick={applyCardFilter}>
+              החל סינון
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* תצוגה מקדימה של עסקאות שיובאו */}
+      {showPreview && (
+        <Card className="mt-6 finance-card">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>תצוגה מקדימה</CardTitle>
+              <CardDescription>
+                נמצאו {previewData.length} עסקאות חדשות 
+                {duplicateTransactions.length > 0 && includeDuplicates && ` ו-${duplicateTransactions.length} כפולות`}
+              </CardDescription>
+            </div>
+            <div className="flex space-x-2">
+              <Button variant="outline" onClick={cancelImport}>
+                ביטול
+              </Button>
+              <Button onClick={confirmImport}>
+                אשר ייבוא
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {priceAlerts.length > 0 && (
+              <div className="mb-4 p-3 bg-amber-100 dark:bg-amber-900/30 rounded-md">
+                <h4 className="font-medium text-amber-800 dark:text-amber-300 mb-2 flex items-center">
+                  <AlertCircle className="h-4 w-4 ml-1" />
+                  התראות עליית מחיר ({priceAlerts.length})
+                </h4>
+                <ul className="space-y-1 text-sm">
+                  {priceAlerts.map((alert, index) => (
+                    <li key={index} className="text-amber-800 dark:text-amber-300">
+                      • {alert}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            <ScrollArea className="h-[300px] rounded-md border">
+              <div className="p-4">
+                <div className="space-y-4">
+                  {previewData.map((tx, index) => (
+                    <div key={index} className="flex justify-between items-start p-3 border-b last:border-b-0">
+                      <div>
+                        <div className="font-medium">{tx.description}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {tx.date} • {tx.category || "ללא קטגוריה"}
+                          {tx.cardNumber && ` • כרטיס ${tx.cardNumber}`}
+                        </div>
+                        {tx.installments && (
+                          <div className="mt-1 text-xs bg-primary/10 text-primary rounded-full px-2 py-0.5 inline-block">
+                            תשלום {tx.installments.installmentNumber} מתוך {tx.installments.totalInstallments}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center">
+                        {tx.type === "income" ? (
+                          <ArrowUpCircle className="text-green-500 h-4 w-4 ml-2" />
+                        ) : (
+                          <ArrowDownCircle className="text-red-500 h-4 w-4 ml-2" />
+                        )}
+                        <span className={`font-medium ${tx.type === "income" ? "text-green-600" : "text-red-600"}`}>
+                          {formatCurrency(tx.amount)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                  {includeDuplicates && duplicateTransactions.map((tx, index) => (
+                    <div key={`dup-${index}`} className="flex justify-between items-start p-3 border-b last:border-b-0 bg-amber-50 dark:bg-amber-950/20">
+                      <div>
+                        <div className="font-medium flex items-center">
+                          {tx.description}
+                          <span className="mr-2 text-xs bg-amber-200 text-amber-800 dark:bg-amber-800 dark:text-amber-200 rounded-full px-2 py-0.5">
+                            כפול
+                          </span>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {tx.date} • {tx.category || "ללא קטגוריה"}
+                          {tx.cardNumber && ` • כרטיס ${tx.cardNumber}`}
+                        </div>
+                        {tx.installments && (
+                          <div className="mt-1 text-xs bg-primary/10 text-primary rounded-full px-2 py-0.5 inline-block">
+                            תשלום {tx.installments.installmentNumber} מתוך {tx.installments.totalInstallments}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center">
+                        {tx.type === "income" ? (
+                          <ArrowUpCircle className="text-green-500 h-4 w-4 ml-2" />
+                        ) : (
+                          <ArrowDownCircle className="text-red-500 h-4 w-4 ml-2" />
+                        )}
+                        <span className={`font-medium ${tx.type === "income" ? "text-green-600" : "text-red-600"}`}>
+                          {formatCurrency(tx.amount)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {previewData.length === 0 && !includeDuplicates && (
+                    <div className="py-8 text-center text-muted-foreground">
+                      לא נמצאו עסקאות חדשות לייבוא
+                    </div>
+                  )}
+                </div>
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+};
+
+export default FileImport;
+
