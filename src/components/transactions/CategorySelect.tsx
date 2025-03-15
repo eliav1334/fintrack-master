@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/dialog";
 import CategoryForm from "@/components/budgets/CategoryForm";
 import { useFinance } from "@/contexts/FinanceContext";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface CategorySelectProps {
   categories: CategoryType[];
@@ -74,23 +73,19 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
           <SelectTrigger>
             <SelectValue placeholder="בחר קטגוריה" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="select-dropdown-content max-h-[200px]">
             {categories.length > 0 ? (
-              <ScrollArea className="h-[200px]">
-                <div className="p-1">
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      <div className="flex items-center">
-                        <span
-                          className="w-2 h-2 rounded-full ml-2"
-                          style={{ backgroundColor: category.color }}
-                        />
-                        {category.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </div>
-              </ScrollArea>
+              categories.map((category) => (
+                <SelectItem key={category.id} value={category.id}>
+                  <div className="flex items-center">
+                    <span
+                      className="w-2 h-2 rounded-full ml-2"
+                      style={{ backgroundColor: category.color }}
+                    />
+                    {category.name}
+                  </div>
+                </SelectItem>
+              ))
             ) : (
               <SelectItem disabled value="none">
                 אין קטגוריות זמינות לסוג זה

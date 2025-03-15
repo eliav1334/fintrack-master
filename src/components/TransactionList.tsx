@@ -29,10 +29,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { TransactionForm } from "./transactions/TransactionForm";
+import { TransactionForm } from "@/components/transactions/TransactionForm";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import MonthPicker from "./dashboard/MonthPicker";
+import MonthPicker from "@/components/dashboard/MonthPicker";
 import { useLocation, useSearchParams } from "react-router-dom";
 
 const TransactionList = () => {
@@ -276,7 +276,7 @@ const TransactionList = () => {
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         {filteredTransactions.length > 0 ? (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" id="transactions-table-container">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -294,7 +294,7 @@ const TransactionList = () => {
                     (cat) => cat.id === transaction.categoryId
                   );
                   return (
-                    <TableRow key={`tr-${transaction.id}`}>
+                    <TableRow key={transaction.id}>
                       <TableCell>
                         {format(new Date(transaction.date), "dd/MM/yyyy")}
                       </TableCell>

@@ -71,79 +71,45 @@
   overflow-y: auto !important;
 }
 
-/* תמיכה ברשימות נפתחות */
+/* תמיכה ברשימות נפתחות - טיפול כולל */
 [data-radix-popper-content-wrapper] {
   max-height: none !important;
   overflow-y: visible !important;
+  z-index: 9999 !important; /* העלאת ה-z-index למניעת בעיות עם שכבות */
 }
 
-/* שיפור הגלילה באלמנטים של Select */
-[data-radix-select-viewport] {
-  overflow-y: auto !important;
-  max-height: 300px !important;
-}
-
-/* תמיכה בגלילת עכבר לרכיבי בחירה */
+/* טיפול ספציפי לתוכן בחירה */
 [data-radix-select-content] {
+  background-color: white !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
   overflow: visible !important;
-  max-height: none !important;
-  z-index: 999 !important; /* הגדלת ה-z-index למניעת חפיפות */
-}
-
-[data-radix-scroll-area-viewport] {
-  overflow: auto !important;
-  height: auto !important;
-  max-height: 300px !important;
-}
-
-/* תיקון עבור scroll-area */
-[data-radix-scroll-area-viewport] > div {
-  height: 100% !important;
-}
-
-/* סגנונות חדשים לפתרון בעיית הגלילה */
-[data-radix-select-viewport] > div {
   overflow-y: auto !important;
-  max-height: 200px !important;
+}
+
+/* הוספת תמיכת גלילה לקטגוריות */
+.select-dropdown-content {
+  max-height: 200px;
+  overflow-y: auto !important;
   scrollbar-width: thin;
   scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
-  padding-right: 5px;
-}
-
-[data-radix-select-viewport] > div::-webkit-scrollbar {
-  width: 6px;
-}
-
-[data-radix-select-viewport] > div::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-[data-radix-select-viewport] > div::-webkit-scrollbar-thumb {
-  background-color: rgba(155, 155, 155, 0.5);
-  border-radius: 20px;
-}
-
-/* תיקונים נוספים לגלילה של בחירת קטגוריות */
-.radix-scroll-area-content {
-  height: auto !important;
-  display: block !important;
-}
-
-.select-dropdown-content {
   background-color: white;
   border-radius: 0.5rem;
   border: 1px solid rgba(0, 0, 0, 0.1);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  max-height: 200px;
-  overflow-y: auto;
 }
 
-/* תיקון רקע לתפריטים נפתחים */
-[data-radix-select-content],
-[data-radix-dropdown-menu-content] {
-  background-color: white !important;
-  border: 1px solid rgba(0, 0, 0, 0.1) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+.select-dropdown-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.select-dropdown-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.select-dropdown-content::-webkit-scrollbar-thumb {
+  background-color: rgba(155, 155, 155, 0.5);
+  border-radius: 20px;
 }
 
 /* תיקון למצב חשוך */
@@ -151,4 +117,22 @@
 .dark [data-radix-dropdown-menu-content] {
   background-color: #1f2937 !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* תיקון עבור viewport של Select */
+[data-radix-select-viewport] {
+  max-height: 200px !important;
+  overflow-y: auto !important;
+  padding-right: 5px;
+}
+
+/* תיקון עבור TransactionList */
+#transactions-table-container {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* תיקון לבעיית מפתחות בטבלת עסקאות */
+table tbody tr {
+  key: unique !important;
 }
