@@ -88,6 +88,42 @@ const analyzeRecurringTransactions = (
   return alerts;
 };
 
+/**
+ * פונקציה לזיהוי עסקאות כפולות
+ * @param newTransactions העסקאות החדשות מהייבוא
+ * @param existingTransactions העסקאות הקיימות במערכת
+ * @returns מערך של עסקאות כפולות ומערך של עסקאות חדשות בלבד
+ */
+const detectDuplicateTransactions = (
+  newTransactions: Omit<Transaction, "id">[],
+  existingTransactions: Transaction[]
+): {
+  duplicates: Omit<Transaction, "id">[];
+  nonDuplicates: Omit<Transaction, "id">[];
+} => {
+  const duplicates: Omit<Transaction, "id">[] = [];
+  const nonDuplicates: Omit<Transaction, "id">[] = [];
+  
+  // בדיקת כל עסקה חדשה מול העסקאות הקיימות
+  newTransactions.forEach(newTx => {
+    // בודקים אם קיימת עסקה עם אותו תאריך, סכום ותיאור
+    const isDuplicate = existingTransactions.some(existingTx => 
+      existingTx.date === newTx.date && 
+      Math.abs(existingTx.amount - newTx.amount) < 0.01 && // השוואת סכומים עם טווח סבירות קטן
+      existingTx.description === newTx.description &&
+      existingTx.type === newTx.type
+    );
+    
+    if (isDuplicate) {
+      duplicates.push(newTx);
+    } else {
+      nonDuplicates.push(newTx);
+    }
+  });
+  
+  return { duplicates, nonDuplicates };
+};
+
 const FileImport = () => {
   const { state, addTransactions, addImportFormat } = useFinance();
   const { toast } = useToast();
@@ -294,6 +330,10 @@ const FileImport = () => {
     }
   };
 
+  const [duplicateTransactions, setDuplicateTransactions] = useState<Omit<Transaction, "id">[]>([]);
+  const [showDuplicatesDialog, setShowDuplicatesDialog] = useState<boolean>(false);
+  const [includeDuplicates, setIncludeDuplicates] = useState<boolean>(false);
+
   const handleImport = async () => {
     if (!selectedFile) {
       toast({
@@ -337,6 +377,7 @@ const FileImport = () => {
     setImportProgress(10);
     setErrorMessage(null);
     setPriceAlerts([]);
+    setDuplicateTransactions([]);
 
     try {
       setImportProgress(30);
@@ -367,11 +408,31 @@ const FileImport = () => {
       const alerts = analyzeRecurringTransactions(dataWithCreatedAt, state.transactions);
       setPriceAlerts(alerts);
       
-      if (alerts.length > 0) {
-        console.log("Price increase alerts:", alerts);
+      // זיהוי עסקאות כפולות
+      const { duplicates, nonDuplicates } = detectDuplicateTransactions(
+        dataWithCreatedAt,
+        state.transactions
+      );
+      
+      if (duplicates.length > 0) {
+        console.log(`נמצאו ${duplicates.length} עסקאות כפולות`, duplicates);
+        setDuplicateTransactions(duplicates);
+        
+        // שמירת העסקאות הלא כפולות לתצוגה
+        setPreviewData(nonDuplicates);
+        
+        // אם יש עסקאות כפולות, הצג חלון התראה
+        if (duplicates.length > 0) {
+          setShowDuplicatesDialog(true);
+          setImportProgress(100);
+          setIsImporting(false);
+          return;
+        }
+      } else {
+        // אם אין עסקאות כפולות, שמירת כל העסקאות לתצוגה
+        setPreviewData(dataWithCreatedAt);
       }
       
-      setPreviewData(dataWithCreatedAt);
       setShowPreview(true);
       setImportProgress(100);
     } catch (error) {
@@ -389,19 +450,33 @@ const FileImport = () => {
   };
 
   const confirmImport = () => {
-    if (previewData.length === 0) {
+    if (previewData.length === 0 && !includeDuplicates) {
       toast({
         title: "שגיאה",
-        description: "אין נתונים לייבוא",
+        description: "אין נתונים חדשים לייבוא",
         variant: "destructive",
       });
       return;
     }
 
     try {
-      addTransactions(previewData);
+      // הוספת העסקאות החדשות (לא כפולות)
+      if (previewData.length > 0) {
+        addTransactions(previewData);
+      }
       
+      // אם המשתמש בחר לכלול גם כפולות, הוסף אותן
+      if (includeDuplicates && duplicateTransactions.length > 0) {
+        addTransactions(duplicateTransactions);
+      }
+      
+      // יצירת הודעת הצלחה עם פירוט
       let successMessage = `יובאו ${previewData.length} עסקאות בהצלחה`;
+      
+      if (includeDuplicates && duplicateTransactions.length > 0) {
+        successMessage += ` (כולל ${duplicateTransactions.length} עסקאות כפולות)`;
+      }
+      
       if (priceAlerts.length > 0) {
         successMessage += ` (כולל ${priceAlerts.length} תשלומים קבועים עם שינויי מחיר)`;
       }
@@ -431,6 +506,9 @@ const FileImport = () => {
       if (fileInput) {
         fileInput.value = "";
       }
+      
+      setDuplicateTransactions([]);
+      setIncludeDuplicates(false);
       
       setActiveTab("history");
     } catch (error) {
@@ -572,6 +650,23 @@ const FileImport = () => {
       style: "currency",
       currency: "ILS",
     }).format(value);
+  };
+
+  const handleContinueWithDuplicates = () => {
+    setIncludeDuplicates(true);
+    setShowDuplicatesDialog(false);
+    setShowPreview(true);
+    
+    // אם בחרו לכלול כפולות, מוסיפים את שתי הקבוצות לתצוגה המקדימה
+    if (includeDuplicates) {
+      setPreviewData([...previewData, ...duplicateTransactions]);
+    }
+  };
+
+  const handleContinueWithoutDuplicates = () => {
+    setIncludeDuplicates(false);
+    setShowDuplicatesDialog(false);
+    setShowPreview(true);
   };
 
   return (
@@ -780,352 +875,14 @@ const FileImport = () => {
         <ImportHistory />
       )}
 
-      <Dialog open={showCardFilterDialog} onOpenChange={setShowCardFilterDialog}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>סינון לפי כרטיסי אשראי מורשים</DialogTitle>
-            <DialogDescription>
-              מורשה לייבא רק כרטיסים המכילים 1515 או 0691
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            {extractedCardNumbers.length > 0 ? (
-              <div className="space-y-4">
-                <p className="text-sm">מספרי כרטיסי אשראי שזוהו בקובץ:</p>
-                <div className="space-y-2 border rounded-md p-3">
-                  {extractedCardNumbers.map((cardNumber) => {
-                    // בדיקה אם הכרטיס מכיל את המספר החסום
-                    const isBlocked = cardNumber.includes(BLOCKED_CARD_NUMBER);
-                    // בדיקה אם הכרטיס מכיל אחד מהמספרים המותרים
-                    const isAllowed = ALLOWED_CARD_NUMBERS.some(allowed => 
-                      cardNumber.includes(allowed)
-                    );
-                    
-                    return (
-                      <div key={cardNumber} className="flex items-center space-x-2 pl-2 ml-2">
-                        <Checkbox 
-                          id={`card-${cardNumber}`}
-                          checked={selectedCardNumbers.includes(cardNumber) && isAllowed && !isBlocked}
-                          disabled={isBlocked || !isAllowed}
-                          onCheckedChange={(checked) => handleCardFilterChange(cardNumber, checked === true)}
-                        />
-                        <Label 
-                          htmlFor={`card-${cardNumber}`} 
-                          className={`text-sm cursor-pointer ${isBlocked ? 'text-red-500 line-through' : ''} ${!isAllowed && !isBlocked ? 'text-gray-400' : ''}`}>
-                          {cardNumber}
-                          {isBlocked && <span className="mr-2 text-red-500 text-xs">(חסום)</span>}
-                          {!isAllowed && !isBlocked && <span className="mr-2 text-gray-500 text-xs">(לא מורשה)</span>}
-                        </Label>
-                      </div>
-                    );
-                  })}
-                </div>
-                
-                <div className="flex justify-between pt-2">
-                  <p className="text-xs text-amber-500">
-                    שים לב: רק כרטיסים 1515 ו-0691 מורשים לייבוא
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    נבחרו {selectedCardNumbers.length} מתוך {extractedCardNumbers.length} כרטיסים
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="py-6 text-center">
-                <p className="text-gray-500">לא זוהו מספרי כרטיסי אשראי בקובץ שנבחר</p>
-              </div>
-            )}
-          </div>
-          
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSelectedCardNumbers(ALLOWED_CARD_NUMBERS);
-                setCardFilter(ALLOWED_CARD_NUMBERS);
-                setShowCardFilterDialog(false);
-              }}
-            >
-              איפוס לברירת מחדל
-            </Button>
-            <Button onClick={applyCardFilter}>
-              החל סינון
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showPreview} onOpenChange={setShowPreview}>
-        <DialogContent className="sm:max-w-[900px] h-[80vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>תצוגה מקדימה של עסקאות</DialogTitle>
-            <DialogDescription>
-              סקור את העסקאות לפני הייבוא
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="flex-1 overflow-hidden">
-            <ScrollArea className="h-full">
-              <div className="space-y-4 p-1">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <span className="font-medium">סה"כ עסקאות: </span>
-                    <span>{previewData.length}</span>
-                  </div>
-                  <div className="flex items-center space-x-4 gap-2">
-                    <div>
-                      <span className="font-medium ml-2">סה"כ הכנסות:</span>
-                      <span className="text-green-600">
-                        {formatCurrency(
-                          previewData
-                            .filter((tx) => tx.type === "income")
-                            .reduce((sum, tx) => sum + tx.amount, 0)
-                        )}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="font-medium ml-2">סה"כ הוצאות:</span>
-                      <span className="text-red-600">
-                        {formatCurrency(
-                          previewData
-                            .filter((tx) => tx.type === "expense")
-                            .reduce((sum, tx) => sum + tx.amount, 0)
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                
-                {priceAlerts.length > 0 && (
-                  <div className="bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-md p-3 mb-4">
-                    <h4 className="font-medium text-amber-800 dark:text-amber-400 mb-2">
-                      <AlertCircle className="h-4 w-4 inline-block ml-1" />
-                      התראות על שינויי מחיר בתשלומים קבועים ({priceAlerts.length})
-                    </h4>
-                    <ul className="text-sm space-y-1 text-amber-800 dark:text-amber-300 list-disc pr-5">
-                      {priceAlerts.map((alert, idx) => (
-                        <li key={idx}>{alert}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                
-                <div className="border rounded-md">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b bg-muted/50">
-                        <th className="px-4 py-2 text-right font-medium">תאריך</th>
-                        <th className="px-4 py-2 text-right font-medium">תיאור</th>
-                        <th className="px-4 py-2 text-right font-medium">סכום</th>
-                        <th className="px-4 py-2 text-right font-medium">סוג</th>
-                        {previewData.some(tx => tx.cardNumber) && (
-                          <th className="px-4 py-2 text-right font-medium">כרטיס</th>
-                        )}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {previewData.map((tx, index) => (
-                        <tr key={index} className="border-b hover:bg-muted/50">
-                          <td className="px-4 py-2">{tx.date}</td>
-                          <td className="px-4 py-2">{tx.description}</td>
-                          <td className={`px-4 py-2 ${tx.type === "income" ? "text-green-600" : "text-red-600"}`}>
-                            {formatCurrency(tx.amount)}
-                          </td>
-                          <td className="px-4 py-2">
-                            {tx.type === "income" ? (
-                              <span className="flex items-center text-green-600">
-                                <ArrowUpCircle className="h-3 w-3 mr-1" />
-                                הכנסה
-                              </span>
-                            ) : (
-                              <span className="flex items-center text-red-600">
-                                <ArrowDownCircle className="h-3 w-3 mr-1" />
-                                הוצאה
-                              </span>
-                            )}
-                          </td>
-                          {previewData.some(tx => tx.cardNumber) && (
-                            <td className="px-4 py-2 text-xs">
-                              {tx.cardNumber || "-"}
-                            </td>
-                          )}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </ScrollArea>
-          </div>
-          
-          <DialogFooter className="pt-4">
-            <Button variant="outline" onClick={cancelImport}>
-              ביטול
-            </Button>
-            <Button onClick={confirmImport}>
-              אשר ייבוא
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showNewFormatDialog} onOpenChange={setShowNewFormatDialog}>
+      <Dialog open={showDuplicatesDialog} onOpenChange={setShowDuplicatesDialog}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>הוספת פורמט ייבוא חדש</DialogTitle>
+            <DialogTitle>נמצאו עסקאות כפולות</DialogTitle>
             <DialogDescription>
-              הגדר את מבנה הקובץ שברצונך לייבא
+              זיהינו {duplicateTransactions.length} עסקאות שכבר קיימות במערכת. מה ברצונך לעשות?
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-1 gap-2">
-              <Label htmlFor="name">שם הפורמט</Label>
-              <Input
-                id="name"
-                name="name"
-                value={newFormat.name}
-                onChange={(e) => handleNewFormatChange(e)}
-                placeholder="לדוגמה: כרטיס אשראי ויזה"
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 gap-2">
-              <Label>טיפול בתאריכים</Label>
-              <Input
-                name="dateFormat"
-                value={newFormat.dateFormat}
-                onChange={(e) => handleNewFormatChange(e)}
-                placeholder="YYYY-MM-DD או DD/MM/YYYY"
-              />
-              <p className="text-xs text-muted-foreground">
-                פורמט התאריך בקובץ (לדוגמה: YYYY-MM-DD או DD/MM/YYYY)
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-1 gap-2">
-              <Label>מפריד (עבור קבצי CSV)</Label>
-              <Input
-                name="delimiter"
-                value={newFormat.delimiter || ","}
-                onChange={(e) => handleNewFormatChange(e)}
-                placeholder=","
-              />
-              <p className="text-xs text-muted-foreground">
-                התו שמפריד בין העמודות בקובץ CSV (ברירת מחדל: פסיק)
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-1 gap-4">
-              <Label>מיפוי עמודות</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs">עמודת תאריך</Label>
-                  <Input
-                    value={newFormat.mapping.date}
-                    onChange={(e) => handleNewFormatChange(e, "mapping", "date")}
-                    placeholder="שם העמודה בקובץ"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">עמודת סכום</Label>
-                  <Input
-                    value={newFormat.mapping.amount}
-                    onChange={(e) => handleNewFormatChange(e, "mapping", "amount")}
-                    placeholder="שם העמודה בקובץ"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">עמודת תיאור</Label>
-                  <Input
-                    value={newFormat.mapping.description}
-                    onChange={(e) => handleNewFormatChange(e, "mapping", "description")}
-                    placeholder="שם העמודה בקובץ"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">עמודת סוג (אופציונלי)</Label>
-                  <Input
-                    value={newFormat.mapping.type || ""}
-                    onChange={(e) => handleNewFormatChange(e, "mapping", "type")}
-                    placeholder="שם העמודה בקובץ"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">עמודת קטגוריה (אופציונלי)</Label>
-                  <Input
-                    value={newFormat.mapping.category || ""}
-                    onChange={(e) => handleNewFormatChange(e, "mapping", "category")}
-                    placeholder="שם העמודה בקובץ"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">עמודת מספר כרטיס (אופציונלי)</Label>
-                  <Input
-                    value={newFormat.mapping.cardNumber || ""}
-                    onChange={(e) => handleNewFormatChange(e, "mapping", "cardNumber")}
-                    placeholder="שם העמודה בקובץ"
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 gap-2">
-              <Label>זיהוי סוג העסקה</Label>
-              <div className="grid grid-cols-1 gap-3">
-                <div>
-                  <Label className="text-xs">עמודה לזיהוי סוג</Label>
-                  <Input
-                    value={newFormat.typeIdentifier.column}
-                    onChange={(e) => handleNewFormatChange(e, "typeIdentifier", "column")}
-                    placeholder="שם העמודה לזיהוי סוג העסקה"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">ערכים להכנסות (מופרדים בפסיקים)</Label>
-                  <Textarea
-                    value={newFormat.typeIdentifier.incomeValues.join(", ")}
-                    onChange={(e) => handleArrayChange(e.target.value, "typeIdentifier", "incomeValues")}
-                    placeholder="לדוגמה: הכנסה, זיכוי, החזר"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">ערכים להוצאות (מופרדים בפסיקים)</Label>
-                  <Textarea
-                    value={newFormat.typeIdentifier.expenseValues.join(", ")}
-                    onChange={(e) => handleArrayChange(e.target.value, "typeIdentifier", "expenseValues")}
-                    placeholder="לדוגמה: הוצאה, חיוב, תשלום"
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                אם לא מוגדר, יקבע לפי הסכום: חיובי=הכנסה, שלילי=הוצאה
-              </p>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNewFormatDialog(false)}>
-              ביטול
-            </Button>
-            <Button onClick={addNewFormat}>
-              הוסף פורמט
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
-
-export default FileImport;
+          <div className="py-4">
+            <div className="bg-amber-100 dark:bg-amber-900/30
