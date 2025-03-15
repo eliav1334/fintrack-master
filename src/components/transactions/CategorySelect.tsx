@@ -74,8 +74,8 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
           <SelectTrigger>
             <SelectValue placeholder="בחר קטגוריה" />
           </SelectTrigger>
-          <SelectContent className="max-h-[300px] overflow-y-auto">
-            <ScrollArea className="h-[200px]">
+          <SelectContent className="max-h-[300px]">
+            <div className="overflow-y-auto" style={{ maxHeight: "200px", overflowY: "auto" }}>
               {categories.length > 0 ? (
                 categories.map((category) => (
                   <SelectItem key={category.id} value={category.id}>
@@ -93,7 +93,7 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
                   אין קטגוריות זמינות לסוג זה
                 </SelectItem>
               )}
-            </ScrollArea>
+            </div>
           </SelectContent>
         </Select>
       </div>

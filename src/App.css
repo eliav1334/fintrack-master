@@ -79,4 +79,17 @@
 /* שיפור הגלילה באלמנטים של Select */
 [data-radix-select-viewport] {
   overflow-y: auto !important;
+  max-height: 300px !important;
+}
+
+/* תמיכה בגלילת עכבר לרכיבי בחירה */
+[data-radix-select-content] {
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+[data-radix-scroll-area-viewport] {
+  overflow: auto !important;
+  height: auto !important;
+  max-height: 300px !important;
 }
