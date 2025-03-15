@@ -71,10 +71,41 @@
   overflow-y: auto !important;
 }
 
+/* תמיכה ברשימות נפתחות - חדש */
+.category-select-dropdown {
+  max-height: 200px !important;
+  overflow-y: auto !important;
+  z-index: 9999 !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
+  background-color: white !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.category-select-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.category-select-dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.category-select-dropdown::-webkit-scrollbar-thumb {
+  background-color: rgba(155, 155, 155, 0.5);
+  border-radius: 20px;
+}
+
+/* עיצוב מחדש של ה-viewport של הבחירה */
+[data-radix-select-viewport] {
+  max-height: 200px !important;
+  overflow-y: auto !important;
+  padding: 5px !important;
+}
+
 /* תמיכה ברשימות נפתחות - טיפול כולל */
 [data-radix-popper-content-wrapper] {
   max-height: none !important;
-  overflow-y: visible !important;
   z-index: 9999 !important; /* העלאת ה-z-index למניעת בעיות עם שכבות */
 }
 
@@ -135,4 +166,18 @@
 /* תיקון לבעיית מפתחות בטבלת עסקאות */
 table tbody tr {
   key: unique !important;
+}
+
+/* תיקון לסליקט קטגוריות - נרחיב את הנראות */
+[data-radix-select-content] {
+  visibility: visible !important;
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+  transition: none !important;
+}
+
+/* הגדרת גודל מכסימלי לתוכן נפתח */
+.radix-select-content-height-constraint {
+  max-height: 300px !important;
+  overflow-y: auto !important;
 }

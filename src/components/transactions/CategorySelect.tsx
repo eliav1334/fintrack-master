@@ -7,7 +7,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/override-select";
 import { CategoryType } from "@/types";
 import { PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -73,7 +73,7 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
           <SelectTrigger>
             <SelectValue placeholder="בחר קטגוריה" />
           </SelectTrigger>
-          <SelectContent className="select-dropdown-content max-h-[200px]">
+          <SelectContent className="category-select-dropdown">
             {categories.length > 0 ? (
               categories.map((category) => (
                 <SelectItem key={category.id} value={category.id}>
@@ -96,7 +96,7 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
       </div>
 
       <Dialog open={showAddCategory} onOpenChange={setShowAddCategory}>
-        <DialogContent className="max-w-md overflow-y-auto">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>הוספת קטגוריה חדשה</DialogTitle>
             <DialogDescription>
