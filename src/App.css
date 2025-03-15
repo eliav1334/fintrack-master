@@ -93,3 +93,25 @@
   height: auto !important;
   max-height: 300px !important;
 }
+
+/* סגנונות חדשים לפתרון בעיית הגלילה */
+[data-radix-select-viewport] > div {
+  overflow-y: auto !important;
+  max-height: 200px !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
+  padding-right: 5px;
+}
+
+[data-radix-select-viewport] > div::-webkit-scrollbar {
+  width: 6px;
+}
+
+[data-radix-select-viewport] > div::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[data-radix-select-viewport] > div::-webkit-scrollbar-thumb {
+  background-color: rgba(155, 155, 155, 0.5);
+  border-radius: 20px;
+}

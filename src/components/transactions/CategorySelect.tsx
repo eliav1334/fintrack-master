@@ -8,7 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { CategoryType } from "@/types";
 import { PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -74,8 +73,8 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
           <SelectTrigger>
             <SelectValue placeholder="בחר קטגוריה" />
           </SelectTrigger>
-          <SelectContent className="max-h-[300px]">
-            <div className="overflow-y-auto" style={{ maxHeight: "200px", overflowY: "auto" }}>
+          <SelectContent>
+            <div className="max-h-[200px] overflow-y-auto hide-scrollbar">
               {categories.length > 0 ? (
                 categories.map((category) => (
                   <SelectItem key={category.id} value={category.id}>
