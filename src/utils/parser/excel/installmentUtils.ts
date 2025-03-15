@@ -48,7 +48,15 @@ export const detectInstallmentDetails = (
     const calculatedTotalAmount = totalAmount > 0 ? 
       totalAmount : amount * totalInstallments;
     
-    const installmentDetails = {
+    const installmentDetails: {
+      totalAmount: number;
+      currentInstallment: number;
+      totalInstallments: number;
+      installmentNumber: number;
+      originalTransactionDate: string;
+      installmentDate: string;
+      remainingAmount?: number; // הוספת שדה נותר לתשלום כרשות
+    } = {
       totalAmount: calculatedTotalAmount,
       currentInstallment: amount,
       totalInstallments,
