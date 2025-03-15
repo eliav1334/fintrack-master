@@ -1,4 +1,3 @@
-
 export interface Transaction {
   id: string;
   date: string;
@@ -39,6 +38,7 @@ export interface Transaction {
   transactionCode?: string; // קוד עסקה ייחודי מחברת האשראי
   businessIdentifier?: string; // מזהה בית עסק
   businessCategory?: string; // קטגוריית בית עסק
+  sheetName?: string; // שם הגליון ממנו יובאה העסקה
 }
 
 // הוספת TransactionType כטיפוס נפרד

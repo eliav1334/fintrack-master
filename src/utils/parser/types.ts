@@ -6,4 +6,5 @@ export type ParserResult = {
   data?: Omit<Transaction, "id">[];
   error?: string;
   sheets?: string[]; // שמות הגליונות הזמינים
+  sheetInfo?: { [sheetName: string]: number }; // מידע על מספר העסקאות בכל גליון
 };
