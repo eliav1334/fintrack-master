@@ -3,7 +3,7 @@ import { Transaction, FileImportFormat } from "@/types";
 import { ParserResult } from "./types";
 import { detectFileType } from "./utils";
 import { parseCSV } from "./csvParser";
-import { parseExcel } from "./excelParser";
+import { parseExcel } from "./excel";
 
 /**
  * מנתח קובץ באמצעות הפרסר המתאים לפי סוג הקובץ
@@ -34,4 +34,4 @@ export const parseFile = async (
 export * from "./types";
 export * from "./utils";
 export * from "./csvParser";
-export * from "./excelParser";
+export * from "./excel";
