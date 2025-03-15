@@ -95,7 +95,7 @@ const SelectContent = React.forwardRef<
         )}
         style={{
           maxHeight: "300px", // Force maximum height
-          overflowY: "auto !important" // Force overflow 
+          overflowY: "auto" // Fixed: Remove !important as it's not a valid TypeScript value
         }}
       >
         {children}
