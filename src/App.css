@@ -181,3 +181,21 @@ table tbody tr {
   max-height: 300px;
   overflow-y: auto;
 }
+
+/* Ensure dropdowns are always visible */
+[data-state="open"] {
+  display: block;
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Fix for Radix UI select dropdown positioning */
+[data-radix-popper-content] {
+  display: block !important;
+  z-index: 9999 !important; 
+}
+
+/* Ensure proper padding and spacing in dropdowns */
+[data-radix-select-viewport] > * {
+  padding: 8px 12px;
+}

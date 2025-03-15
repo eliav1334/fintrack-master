@@ -17,7 +17,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/override-select";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ArrowDownCircle, ArrowUpCircle, Edit, Search, Trash2, TrashIcon, Calendar } from "lucide-react";
 import {
@@ -270,7 +270,7 @@ const TransactionList = () => {
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         {filteredTransactions.length > 0 ? (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" id="transactions-table-container">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -288,7 +288,7 @@ const TransactionList = () => {
                     (cat) => cat.id === transaction.categoryId
                   );
                   return (
-                    <TableRow key={transaction.id}>
+                    <TableRow key={`tx_${transaction.id}`}>
                       <TableCell>
                         {format(new Date(transaction.date), "dd/MM/yyyy")}
                       </TableCell>
