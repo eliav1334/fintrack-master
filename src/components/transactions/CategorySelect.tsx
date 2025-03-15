@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import CategoryForm from "@/components/budgets/CategoryForm";
 import { useFinance } from "@/contexts/FinanceContext";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface CategorySelectProps {
   categories: CategoryType[];
@@ -74,25 +75,27 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
             <SelectValue placeholder="בחר קטגוריה" />
           </SelectTrigger>
           <SelectContent>
-            <div className="max-h-[200px] overflow-y-auto hide-scrollbar">
-              {categories.length > 0 ? (
-                categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    <div className="flex items-center">
-                      <span
-                        className="w-2 h-2 rounded-full ml-2"
-                        style={{ backgroundColor: category.color }}
-                      />
-                      {category.name}
-                    </div>
-                  </SelectItem>
-                ))
-              ) : (
-                <SelectItem disabled value="none">
-                  אין קטגוריות זמינות לסוג זה
-                </SelectItem>
-              )}
-            </div>
+            {categories.length > 0 ? (
+              <ScrollArea className="h-[200px]">
+                <div className="p-1">
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      <div className="flex items-center">
+                        <span
+                          className="w-2 h-2 rounded-full ml-2"
+                          style={{ backgroundColor: category.color }}
+                        />
+                        {category.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </div>
+              </ScrollArea>
+            ) : (
+              <SelectItem disabled value="none">
+                אין קטגוריות זמינות לסוג זה
+              </SelectItem>
+            )}
           </SelectContent>
         </Select>
       </div>
