@@ -35,30 +35,45 @@ export const parseExcel = async (
           if (!format.sheetSelection || format.sheetSelection.type === "all") {
             // נפרסר את כל הגליונות
             const allData: Omit<Transaction, "id">[] = [];
+            const sheetInfo: { [sheetName: string]: number } = {}; // מספר העסקאות שיובאו מכל גליון
             
             for (const sheetName of availableSheets) {
               const sheetData = await parseExcelSheet(workbook, sheetName, format, cardFilter);
               if (sheetData.success && sheetData.data) {
-                allData.push(...sheetData.data);
+                // הוספת שם הגליון לכל עסקה
+                const transactionsWithSheet = sheetData.data.map(tx => ({
+                  ...tx,
+                  sheetName: sheetName // הוספת שם הגליון לעסקה
+                }));
+                allData.push(...transactionsWithSheet);
+                sheetInfo[sheetName] = sheetData.data.length;
               }
             }
             
             resolve({ 
               success: true, 
               data: allData,
-              sheets: availableSheets 
+              sheets: availableSheets,
+              sheetInfo: sheetInfo // מידע על מספר העסקאות בכל גליון
             });
             return;
           } 
           else if (format.sheetSelection.type === "specific" && format.sheetSelection.names) {
             // נפרסר רק את הגליונות שנבחרו
             const specificData: Omit<Transaction, "id">[] = [];
+            const sheetInfo: { [sheetName: string]: number } = {}; // מספר העסקאות שיובאו מכל גליון
             
             for (const sheetName of format.sheetSelection.names) {
               if (availableSheets.includes(sheetName)) {
                 const sheetData = await parseExcelSheet(workbook, sheetName, format, cardFilter);
                 if (sheetData.success && sheetData.data) {
-                  specificData.push(...sheetData.data);
+                  // הוספת שם הגליון לכל עסקה
+                  const transactionsWithSheet = sheetData.data.map(tx => ({
+                    ...tx,
+                    sheetName: sheetName
+                  }));
+                  specificData.push(...transactionsWithSheet);
+                  sheetInfo[sheetName] = sheetData.data.length;
                 }
               }
             }
@@ -66,7 +81,8 @@ export const parseExcel = async (
             resolve({ 
               success: true, 
               data: specificData,
-              sheets: availableSheets 
+              sheets: availableSheets,
+              sheetInfo: sheetInfo
             });
             return;
           }
@@ -83,6 +99,15 @@ export const parseExcel = async (
         // בחירת הגיליון הראשון כברירת מחדל
         const firstSheetName = workbook.SheetNames[0];
         const sheetResult = await parseExcelSheet(workbook, firstSheetName, format, cardFilter);
+        
+        // הוספת שם הגליון לכל עסק בגליון הראשון
+        if (sheetResult.success && sheetResult.data) {
+          const dataWithSheet = sheetResult.data.map(tx => ({
+            ...tx,
+            sheetName: firstSheetName
+          }));
+          sheetResult.data = dataWithSheet;
+        }
         
         resolve(sheetResult);
       } catch (error) {
