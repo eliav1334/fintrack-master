@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -7,7 +8,12 @@ import { toast } from "sonner";
 import { useFinance } from "@/contexts/FinanceContext";
 import { RotateCw } from "lucide-react";
 
-const ReportsContent = () => {
+interface ReportsContentProps {
+  handleAddTransaction?: () => void;
+  handleNavigateToBudgets?: () => void;
+}
+
+const ReportsContent = ({ handleAddTransaction, handleNavigateToBudgets }: ReportsContentProps) => {
   const [backups, setBackups] = useState<{key: string, date: string}[]>([]);
   const [showBackupDialog, setShowBackupDialog] = useState(false);
   const [selectedBackup, setSelectedBackup] = useState<string>("");
