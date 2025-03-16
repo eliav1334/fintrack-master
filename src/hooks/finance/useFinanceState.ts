@@ -1,5 +1,5 @@
 
-import { useReducer, useEffect } from "react";
+import { useReducer, useEffect, useState } from "react";
 import { financeReducer } from "@/contexts/financeReducer";
 import { initialState } from "@/contexts/defaultValues";
 import { useMonthlyIncomes } from "./useMonthlyIncomes";
@@ -12,6 +12,7 @@ import { toast } from "sonner";
 export const useFinanceState = () => {
   const [state, dispatch] = useReducer(financeReducer, initialState);
   const { addMonthlyIncomes, cleanMonthlyIncomes, resetAllStoredData } = useMonthlyIncomes();
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
   
   // טעינת נתונים מ-localStorage בעת האתחול
   useEffect(() => {
@@ -21,23 +22,79 @@ export const useFinanceState = () => {
     if (savedData) {
       try {
         const parsedData = JSON.parse(savedData);
-        // עדכון ה-state עם הנתונים השמורים
-        if (parsedData.transactions) {
-          dispatch({ type: "ADD_TRANSACTIONS", payload: parsedData.transactions });
+        
+        // בדיקת תקינות הנתונים הנטענים
+        if (!parsedData || typeof parsedData !== 'object') {
+          throw new Error("מבנה הנתונים השמורים אינו תקין");
         }
-        if (parsedData.budgets) {
+        
+        // לוג מפורט של הנתונים הנטענים
+        console.log("נטענו נתונים מהאחסון המקומי:", {
+          transactions: parsedData.transactions?.length || 0,
+          budgets: parsedData.budgets?.length || 0,
+          categoryMappings: parsedData.categoryMappings?.length || 0,
+          fullData: parsedData
+        });
+        
+        // עדכון ה-state עם הנתונים השמורים
+        let dataWasLoaded = false;
+        
+        if (parsedData.transactions && Array.isArray(parsedData.transactions) && parsedData.transactions.length > 0) {
+          dispatch({ type: "ADD_TRANSACTIONS", payload: parsedData.transactions });
+          dataWasLoaded = true;
+        }
+        
+        if (parsedData.budgets && Array.isArray(parsedData.budgets) && parsedData.budgets.length > 0) {
           parsedData.budgets.forEach((budget: Budget) => {
             dispatch({ type: "SET_BUDGET", payload: budget });
           });
-        }
-        if (parsedData.categoryMappings) {
-          dispatch({ type: "SET_CATEGORY_MAPPINGS", payload: parsedData.categoryMappings });
+          dataWasLoaded = true;
         }
         
-        console.log("נטענו נתונים מהאחסון המקומי:", parsedData);
+        if (parsedData.categoryMappings && Array.isArray(parsedData.categoryMappings) && parsedData.categoryMappings.length > 0) {
+          dispatch({ type: "SET_CATEGORY_MAPPINGS", payload: parsedData.categoryMappings });
+          dataWasLoaded = true;
+        }
+        
+        // סימון שהנתונים נטענו בהצלחה
+        setIsDataLoaded(true);
+        
+        // הודעה למשתמש שהנתונים נטענו
+        if (dataWasLoaded) {
+          toast.success("הנתונים נטענו בהצלחה", {
+            description: `נטענו ${parsedData.transactions?.length || 0} עסקאות, ${parsedData.budgets?.length || 0} תקציבים`
+          });
+        } else {
+          // אם אין נתונים מהותיים שנטענו, יצירת הכנסות חודשיות קבועות
+          const monthlyIncomes = addMonthlyIncomes();
+          dispatch({ type: "ADD_TRANSACTIONS", payload: monthlyIncomes });
+          toast.success(`נוספו ${monthlyIncomes.length} עסקאות הכנסה חודשית קבועה`);
+        }
       } catch (error) {
         console.error("שגיאה בטעינת נתונים מהאחסון המקומי:", error);
+        toast.error("שגיאה בטעינת נתונים", {
+          description: "לא ניתן היה לטעון את הנתונים השמורים. מאתחל מחדש."
+        });
+        
+        // שמירת גיבוי של הנתונים הפגומים למקרה שיהיה צורך לשחזרם
+        try {
+          const timestamp = new Date().toISOString();
+          localStorage.setItem(`financeState_backup_${timestamp}`, savedData);
+          console.log(`נשמר גיבוי של הנתונים הפגומים בשם financeState_backup_${timestamp}`);
+        } catch (backupError) {
+          console.error("שגיאה בשמירת גיבוי לנתונים פגומים:", backupError);
+        }
+        
+        // איפוס הנתונים והתחלה מחדש
         resetAllStoredData();
+        
+        // הוספת הכנסות חודשיות קבועות
+        setTimeout(() => {
+          const monthlyIncomes = addMonthlyIncomes();
+          dispatch({ type: "ADD_TRANSACTIONS", payload: monthlyIncomes });
+          toast.success(`נוספו ${monthlyIncomes.length} עסקאות הכנסה חודשית קבועה`);
+          setIsDataLoaded(true);
+        }, 800);
       }
     } else {
       // אם אין נתונים שמורים, יצירת הכנסות חודשיות קבועות
@@ -46,26 +103,48 @@ export const useFinanceState = () => {
         const monthlyIncomes = addMonthlyIncomes();
         dispatch({ type: "ADD_TRANSACTIONS", payload: monthlyIncomes });
         toast.success(`נוספו ${monthlyIncomes.length} עסקאות הכנסה חודשית קבועה`);
+        setIsDataLoaded(true);
       }, 800);
     }
   }, []);
 
   // שמירת נתונים ב-localStorage בכל שינוי
   useEffect(() => {
+    // שמירה רק אם נתונים כבר נטענו כדי למנוע דריסה של נתונים קיימים
+    if (!isDataLoaded) return;
+    
     try {
-      localStorage.setItem(
-        "financeState",
-        JSON.stringify({
-          transactions: state.transactions,
-          budgets: state.budgets,
-          categoryMappings: state.categoryMappings
-        })
-      );
+      const dataToSave = {
+        transactions: state.transactions,
+        budgets: state.budgets,
+        categoryMappings: state.categoryMappings
+      };
+      
+      // יצירת גיבוי תקופתי (פעם ביום)
+      const lastBackupDate = localStorage.getItem("lastBackupDate");
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      
+      if (!lastBackupDate || lastBackupDate !== today) {
+        // שמירת גיבוי יומי
+        localStorage.setItem(`financeState_daily_backup_${today}`, JSON.stringify(dataToSave));
+        localStorage.setItem("lastBackupDate", today);
+        console.log(`נשמר גיבוי יומי: financeState_daily_backup_${today}`);
+      }
+      
+      // שמירת הנתונים הנוכחיים
+      localStorage.setItem("financeState", JSON.stringify(dataToSave));
+      console.log("נתונים נשמרו בהצלחה:", {
+        transactions: state.transactions.length,
+        budgets: state.budgets.length,
+        categoryMappings: state.categoryMappings.length
+      });
     } catch (error) {
       console.error("שגיאה בשמירת נתונים לאחסון מקומי:", error);
-      toast.error("שגיאה בשמירת נתונים");
+      toast.error("שגיאה בשמירת נתונים", {
+        description: "לא ניתן היה לשמור את הנתונים. נסה לרענן את הדף."
+      });
     }
-  }, [state.transactions, state.budgets, state.categoryMappings]);
+  }, [state.transactions, state.budgets, state.categoryMappings, isDataLoaded]);
 
   return { state, dispatch };
 };
