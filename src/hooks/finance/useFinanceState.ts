@@ -36,6 +36,16 @@ export const useFinanceState = () => {
           fullData: parsedData
         });
         
+        // בדיקה ומניעת כפילויות עסקאות
+        if (parsedData.transactions && Array.isArray(parsedData.transactions)) {
+          const uniqueTransactions = removeDuplicateTransactions(parsedData.transactions);
+          parsedData.transactions = uniqueTransactions;
+          
+          if (uniqueTransactions.length < parsedData.transactions.length) {
+            console.log(`נמצאו וסוננו ${parsedData.transactions.length - uniqueTransactions.length} עסקאות כפולות`);
+          }
+        }
+        
         // עדכון ה-state עם הנתונים השמורים
         let dataWasLoaded = false;
         
@@ -145,6 +155,31 @@ export const useFinanceState = () => {
       });
     }
   }, [state.transactions, state.budgets, state.categoryMappings, isDataLoaded]);
+  
+  // פונקציה להסרת עסקאות כפולות
+  const removeDuplicateTransactions = (transactions: Transaction[]): Transaction[] => {
+    const seen = new Map();
+    return transactions.filter(transaction => {
+      // יצירת מזהה ייחודי על בסיס שדות חשובים בעסקה
+      const key = `${transaction.date}_${transaction.amount}_${transaction.description}`;
+      
+      if (seen.has(key)) {
+        // אם כבר ראינו עסקה דומה, נבדוק איזו לשמור
+        const existing = seen.get(key);
+        
+        // אם יש זיהוי קטגוריה לעסקה הנוכחית ולא לקיימת, נעדיף את הנוכחית
+        if (transaction.categoryId && !existing.categoryId) {
+          seen.set(key, transaction);
+          return true;
+        }
+        
+        return false; // נשמור את הראשונה שמצאנו
+      } else {
+        seen.set(key, transaction);
+        return true;
+      }
+    });
+  };
 
   return { state, dispatch };
 };

@@ -11,6 +11,23 @@ export const useMonthlyIncomes = () => {
   const resetAllStoredData = () => {
     // הסרת כל הנתונים השמורים ב-localStorage
     localStorage.removeItem("financeState");
+    
+    // הסרת כל הגיבויים
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (
+        key.startsWith("financeState_backup_") || 
+        key.startsWith("financeState_daily_backup_") ||
+        key.startsWith("financeState_before_restore_")
+      )) {
+        localStorage.removeItem(key);
+        i--; // התאמת האינדקס לאחר הסרת פריט
+      }
+    }
+    
+    // הסרת תאריך הגיבוי האחרון
+    localStorage.removeItem("lastBackupDate");
+    
     return true;
   };
 

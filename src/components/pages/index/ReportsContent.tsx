@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { useFinance } from "@/contexts/FinanceContext";
-import { RotateCw } from "lucide-react";
+import { RotateCw, Trash2 } from "lucide-react";
 
 interface ReportsContentProps {
   handleAddTransaction?: () => void;
@@ -16,11 +16,17 @@ interface ReportsContentProps {
 const ReportsContent = ({ handleAddTransaction, handleNavigateToBudgets }: ReportsContentProps) => {
   const [backups, setBackups] = useState<{key: string, date: string}[]>([]);
   const [showBackupDialog, setShowBackupDialog] = useState(false);
+  const [showResetDialog, setShowResetDialog] = useState(false);
   const [selectedBackup, setSelectedBackup] = useState<string>("");
   const { resetState } = useFinance();
   
   // לבדוק אם יש גיבויים זמינים
   useEffect(() => {
+    loadBackups();
+  }, []);
+  
+  // פונקציה לטעינת גיבויים
+  const loadBackups = () => {
     const availableBackups: {key: string, date: string}[] = [];
     
     // בדיקת כל המפתחות ב-localStorage
@@ -48,7 +54,7 @@ const ReportsContent = ({ handleAddTransaction, handleNavigateToBudgets }: Repor
     // מיון הגיבויים מהחדש לישן
     availableBackups.sort((a, b) => b.key.localeCompare(a.key));
     setBackups(availableBackups);
-  }, []);
+  };
   
   const restoreBackup = () => {
     if (!selectedBackup) return;
@@ -91,6 +97,41 @@ const ReportsContent = ({ handleAddTransaction, handleNavigateToBudgets }: Repor
     }
   };
   
+  // פונקציה לאיפוס מלא של המערכת
+  const resetFullSystem = () => {
+    try {
+      // שמירת גיבוי לפני האיפוס
+      const currentData = localStorage.getItem("financeState");
+      if (currentData) {
+        const timestamp = new Date().toISOString();
+        localStorage.setItem(`financeState_before_reset_${timestamp}`, currentData);
+      }
+      
+      // מחיקת כל הנתונים ב-localStorage
+      localStorage.removeItem("financeState");
+      localStorage.removeItem("transaction_form_data");
+      
+      // איפוס המצב הנוכחי
+      resetState();
+      
+      toast.success("המערכת אופסה בהצלחה", {
+        description: "כל הנתונים נמחקו. האפליקציה תתרענן עם נתונים ראשוניים בלבד."
+      });
+      
+      // רענון הדף לאחר האיפוס
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+      
+      setShowResetDialog(false);
+    } catch (error) {
+      console.error("שגיאה באיפוס המערכת:", error);
+      toast.error("שגיאה באיפוס המערכת", {
+        description: "לא ניתן היה לאפס את המערכת. נסה שוב."
+      });
+    }
+  };
+  
   return (
     <div className="w-full py-6">
       <div className="mx-auto px-4 md:px-6">
@@ -102,9 +143,9 @@ const ReportsContent = ({ handleAddTransaction, handleNavigateToBudgets }: Repor
             </p>
           </div>
           
-          {/* כפתור שחזור גיבויים - מוצג רק אם יש גיבויים זמינים */}
-          {backups.length > 0 && (
-            <div className="mb-6">
+          <div className="flex flex-wrap gap-4 mb-6">
+            {/* כפתור שחזור גיבויים - מוצג רק אם יש גיבויים זמינים */}
+            {backups.length > 0 && (
               <Button 
                 variant="outline" 
                 size="sm"
@@ -114,8 +155,19 @@ const ReportsContent = ({ handleAddTransaction, handleNavigateToBudgets }: Repor
                 <RotateCw className="h-4 w-4" />
                 שחזור מגיבוי ({backups.length})
               </Button>
-            </div>
-          )}
+            )}
+            
+            {/* כפתור איפוס המערכת */}
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowResetDialog(true)}
+              className="flex gap-2 items-center text-destructive hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+              איפוס מערכת
+            </Button>
+          </div>
           
           {/* תוכן הדוחות יבוא כאן */}
           <div className="grid grid-cols-1 gap-4">
@@ -169,6 +221,32 @@ const ReportsContent = ({ handleAddTransaction, handleNavigateToBudgets }: Repor
               disabled={!selectedBackup}
             >
               שחזר גיבוי
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* דיאלוג איפוס מערכת */}
+      <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>איפוס מערכת</DialogTitle>
+            <DialogDescription>
+              פעולה זו תמחק את כל הנתונים במערכת ותחזיר את המערכת למצב הראשוני.
+              <br />
+              <strong>האם אתה בטוח שברצונך להמשיך?</strong>
+            </DialogDescription>
+          </DialogHeader>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowResetDialog(false)}>
+              ביטול
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={resetFullSystem}
+            >
+              אפס מערכת
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,4 +1,3 @@
-
 import { FinanceState, FinanceAction } from "./types";
 import { initialState } from "./defaultValues";
 
@@ -7,6 +6,7 @@ export const financeReducer = (state: FinanceState, action: FinanceAction): Fina
     case "RESET_STATE":
       // איפוס המערכת למצב התחלתי
       return { ...initialState };
+      
     case "ADD_TRANSACTION":
       // עדכון שיוך קטגוריה אוטומטי אם אין קטגוריה
       let transaction = action.payload;
@@ -24,6 +24,7 @@ export const financeReducer = (state: FinanceState, action: FinanceAction): Fina
         ...state,
         transactions: [transaction, ...state.transactions],
       };
+      
     case "UPDATE_TRANSACTION":
       // אם מעדכנים קטגוריה לעסקה, נשמור את המיפוי
       const updatedTransaction = action.payload;
@@ -60,6 +61,7 @@ export const financeReducer = (state: FinanceState, action: FinanceAction): Fina
           transaction.id === action.payload.id ? action.payload : transaction
         ),
       };
+      
     case "DELETE_TRANSACTION":
       return {
         ...state,
@@ -67,6 +69,7 @@ export const financeReducer = (state: FinanceState, action: FinanceAction): Fina
           (transaction) => transaction.id !== action.payload
         ),
       };
+      
     case "DELETE_ALL_INCOME_TRANSACTIONS":
       return {
         ...state,
@@ -74,6 +77,7 @@ export const financeReducer = (state: FinanceState, action: FinanceAction): Fina
           (transaction) => transaction.type !== "income"
         ),
       };
+      
     case "ADD_TRANSACTIONS":
       // עדכון שיוך קטגוריות אוטומטי למספר עסקאות
       const enhancedTransactions = action.payload.map(transaction => {
@@ -93,6 +97,7 @@ export const financeReducer = (state: FinanceState, action: FinanceAction): Fina
         ...state,
         transactions: [...enhancedTransactions, ...state.transactions],
       };
+      
     case "ADD_CATEGORY":
       const newCategory = action.payload;
       
@@ -107,6 +112,7 @@ export const financeReducer = (state: FinanceState, action: FinanceAction): Fina
         categories: [...state.categories, newCategory],
         categoryMappings: mappingsWithEmptyCategory.length > 0 ? updatedMappings : state.categoryMappings
       };
+      
     case "UPDATE_CATEGORY":
       return {
         ...state,
@@ -114,6 +120,7 @@ export const financeReducer = (state: FinanceState, action: FinanceAction): Fina
           category.id === action.payload.id ? action.payload : category
         ),
       };
+      
     case "DELETE_CATEGORY":
       return {
         ...state,
@@ -121,6 +128,7 @@ export const financeReducer = (state: FinanceState, action: FinanceAction): Fina
           (category) => category.id !== action.payload
         ),
       };
+      
     case "SET_BUDGET":
       const existingBudgetIndex = state.budgets.findIndex(
         (budget) => budget.id === action.payload.id
@@ -138,16 +146,19 @@ export const financeReducer = (state: FinanceState, action: FinanceAction): Fina
           budgets: [...state.budgets, action.payload],
         };
       }
+      
     case "DELETE_BUDGET":
       return {
         ...state,
         budgets: state.budgets.filter((budget) => budget.id !== action.payload),
       };
+      
     case "ADD_IMPORT_FORMAT":
       return {
         ...state,
         importFormats: [...state.importFormats, action.payload],
       };
+      
     case "UPDATE_IMPORT_FORMAT":
       return {
         ...state,
@@ -155,6 +166,7 @@ export const financeReducer = (state: FinanceState, action: FinanceAction): Fina
           format.id === action.payload.id ? action.payload : format
         ),
       };
+      
     case "DELETE_IMPORT_FORMAT":
       return {
         ...state,
@@ -162,6 +174,7 @@ export const financeReducer = (state: FinanceState, action: FinanceAction): Fina
           (format) => format.id !== action.payload
         ),
       };
+      
     case "ADD_CATEGORY_MAPPING":
       // בדיקה אם כבר קיים מיפוי לתיאור זה
       const existingMappingIndex = state.categoryMappings.findIndex(
@@ -183,6 +196,7 @@ export const financeReducer = (state: FinanceState, action: FinanceAction): Fina
           categoryMappings: [...state.categoryMappings, action.payload]
         };
       }
+      
     case "UPDATE_CATEGORY_MAPPING":
       return {
         ...state,
@@ -190,6 +204,7 @@ export const financeReducer = (state: FinanceState, action: FinanceAction): Fina
           mapping.description.toLowerCase() === action.payload.description.toLowerCase() ? action.payload : mapping
         )
       };
+      
     case "DELETE_CATEGORY_MAPPING":
       return {
         ...state,
@@ -197,21 +212,25 @@ export const financeReducer = (state: FinanceState, action: FinanceAction): Fina
           mapping => mapping.description.toLowerCase() !== action.payload.toLowerCase()
         )
       };
+      
     case "SET_CATEGORY_MAPPINGS":
       return {
         ...state,
         categoryMappings: action.payload
       };
+      
     case "SET_LOADING":
       return {
         ...state,
         isLoading: action.payload,
       };
+      
     case "SET_ERROR":
       return {
         ...state,
         error: action.payload,
       };
+      
     default:
       return state;
   }
