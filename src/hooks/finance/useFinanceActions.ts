@@ -45,10 +45,23 @@ export const useFinanceActions = (dispatch: React.Dispatch<any>) => {
       id: generateId("cat"),
     };
     dispatch({ type: "ADD_CATEGORY", payload: newCategory });
+    return newCategory; // Return the new category including its generated id
   };
 
   const updateCategory = (category: CategoryType) => {
     dispatch({ type: "UPDATE_CATEGORY", payload: category });
+    
+    // Auto-categorize existing transactions with this category
+    if (category.id) {
+      autoCategorizeTransactions(category.name, category.id);
+    }
+  };
+  
+  const autoCategorizeTransactions = (description: string, categoryId: string) => {
+    dispatch({ 
+      type: "AUTO_CATEGORIZE_TRANSACTIONS", 
+      payload: { description, categoryId } 
+    });
   };
 
   const deleteCategory = (id: string) => {
@@ -118,6 +131,7 @@ export const useFinanceActions = (dispatch: React.Dispatch<any>) => {
     addCategoryMapping,
     updateCategoryMapping,
     deleteCategoryMapping,
-    setCategoryMappings
+    setCategoryMappings,
+    autoCategorizeTransactions
   };
 };

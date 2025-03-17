@@ -37,18 +37,21 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
   description,
 }) => {
   const [showAddCategory, setShowAddCategory] = useState(false);
-  const { addCategory, addCategoryMapping } = useFinance();
+  const { addCategory, addCategoryMapping, state } = useFinance();
 
   const handleAddCategory = (category: Omit<CategoryType, "id">) => {
     // Add the new category
-    addCategory(category);
+    const newCategory = addCategory(category);
 
     // If we have a description, also create a mapping
     if (description && description.trim()) {
       addCategoryMapping({
         description: description.trim(),
-        categoryId: "", // This will be updated by the system with the newly created category ID
+        categoryId: newCategory.id  // Using the newly created category ID
       });
+      
+      // Update the selected category in the parent form
+      onChange(newCategory.id);
     }
 
     setShowAddCategory(false);

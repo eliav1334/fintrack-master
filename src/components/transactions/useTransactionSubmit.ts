@@ -23,7 +23,7 @@ export const useTransactionSubmit = ({
   resetFormData,
   onClose
 }: UseTransactionSubmitParams) => {
-  const { addTransaction, updateTransaction } = useFinance();
+  const { addTransaction, updateTransaction, state } = useFinance();
   const { toast } = useToast();
   const { validateForm } = useTransactionFormValidator();
 
@@ -62,12 +62,24 @@ export const useTransactionSubmit = ({
 
       if (isEditing && initialTransaction) {
         updateTransaction({ ...transactionData, id: initialTransaction.id } as Transaction);
+        
+        // Auto-categorize similar transactions if category has changed
+        if (initialTransaction.categoryId !== formData.categoryId && formData.categoryId && formData.description) {
+          autoCategorizeSimilarTransactions(formData.description, formData.categoryId);
+        }
+        
         toast({
           title: "הצלחה",
           description: "העסקה עודכנה בהצלחה",
         });
       } else {
         addTransaction(transactionData as Omit<Transaction, "id">);
+        
+        // Auto-categorize similar transactions for new transactions with categories
+        if (formData.categoryId && formData.description) {
+          autoCategorizeSimilarTransactions(formData.description, formData.categoryId);
+        }
+        
         toast({
           title: "הצלחה",
           description: "העסקה נוספה בהצלחה",
@@ -87,6 +99,26 @@ export const useTransactionSubmit = ({
         title: "שגיאה",
         description: "אירעה שגיאה. נא לנסות שוב.",
         variant: "destructive",
+      });
+    }
+  };
+  
+  /**
+   * Auto-categorize similar transactions that have the same description
+   */
+  const autoCategorizeSimilarTransactions = (description: string, categoryId: string) => {
+    // Check if there's already a mapping for this description
+    const existingMapping = state.categoryMappings.find(
+      mapping => mapping.description.toLowerCase() === description.toLowerCase()
+    );
+    
+    // If no mapping exists, create one
+    if (!existingMapping) {
+      // This will be processed by the categoryMappingReducer 
+      // which will then auto-update transactions
+      useFinance().addCategoryMapping({
+        description,
+        categoryId
       });
     }
   };

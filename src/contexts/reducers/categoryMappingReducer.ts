@@ -9,30 +9,55 @@ export const categoryMappingReducer = (state: FinanceState, action: FinanceActio
         mapping => mapping.description.toLowerCase() === action.payload.description.toLowerCase()
       );
       
+      const mapping = action.payload;
+      let updatedMappings;
+      
       if (existingMappingIndex >= 0) {
         // עדכון המיפוי הקיים
-        const updatedMappings = [...state.categoryMappings];
-        updatedMappings[existingMappingIndex] = action.payload;
-        return {
-          ...state,
-          categoryMappings: updatedMappings
-        };
+        updatedMappings = [...state.categoryMappings];
+        updatedMappings[existingMappingIndex] = mapping;
       } else {
         // הוספת מיפוי חדש
-        return {
-          ...state,
-          categoryMappings: [...state.categoryMappings, action.payload]
-        };
+        updatedMappings = [...state.categoryMappings, mapping];
       }
-    }
       
-    case "UPDATE_CATEGORY_MAPPING":
+      // עדכון עסקאות קיימות עם תיאור תואם שאין להן קטגוריה
+      const updatedTransactions = state.transactions.map(transaction => {
+        if (transaction.description.toLowerCase().includes(mapping.description.toLowerCase()) && 
+            !transaction.categoryId) {
+          return { ...transaction, categoryId: mapping.categoryId };
+        }
+        return transaction;
+      });
+      
       return {
         ...state,
-        categoryMappings: state.categoryMappings.map(mapping =>
-          mapping.description.toLowerCase() === action.payload.description.toLowerCase() ? action.payload : mapping
-        )
+        categoryMappings: updatedMappings,
+        transactions: updatedTransactions
       };
+    }
+      
+    case "UPDATE_CATEGORY_MAPPING": {
+      const updatedMappings = state.categoryMappings.map(mapping =>
+        mapping.description.toLowerCase() === action.payload.description.toLowerCase() 
+          ? action.payload 
+          : mapping
+      );
+      
+      // עדכון עסקאות קיימות עם התיאור החדש
+      const updatedTransactions = state.transactions.map(transaction => {
+        if (transaction.description.toLowerCase().includes(action.payload.description.toLowerCase())) {
+          return { ...transaction, categoryId: action.payload.categoryId };
+        }
+        return transaction;
+      });
+      
+      return {
+        ...state,
+        categoryMappings: updatedMappings,
+        transactions: updatedTransactions
+      };
+    }
       
     case "DELETE_CATEGORY_MAPPING":
       return {

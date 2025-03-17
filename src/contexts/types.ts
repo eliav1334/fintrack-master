@@ -1,11 +1,12 @@
+
 import { Transaction, CategoryType, Budget, FileImportFormat } from "@/types";
 
-export interface CategoryMapping {
+export type CategoryMapping = {
   description: string;
   categoryId: string;
-}
+};
 
-export interface FinanceState {
+export type FinanceState = {
   transactions: Transaction[];
   categories: CategoryType[];
   budgets: Budget[];
@@ -13,12 +14,13 @@ export interface FinanceState {
   error: string | null;
   importFormats: FileImportFormat[];
   categoryMappings: CategoryMapping[];
-}
+};
 
 export type FinanceAction =
   | { type: "ADD_TRANSACTION"; payload: Transaction }
   | { type: "UPDATE_TRANSACTION"; payload: Transaction }
   | { type: "DELETE_TRANSACTION"; payload: string }
+  | { type: "DELETE_ALL_INCOME_TRANSACTIONS" }
   | { type: "ADD_TRANSACTIONS"; payload: Transaction[] }
   | { type: "ADD_CATEGORY"; payload: CategoryType }
   | { type: "UPDATE_CATEGORY"; payload: CategoryType }
@@ -34,19 +36,15 @@ export type FinanceAction =
   | { type: "UPDATE_CATEGORY_MAPPING"; payload: CategoryMapping }
   | { type: "DELETE_CATEGORY_MAPPING"; payload: string }
   | { type: "SET_CATEGORY_MAPPINGS"; payload: CategoryMapping[] }
-  | { type: "DELETE_ALL_INCOME_TRANSACTIONS" }
+  | { type: "AUTO_CATEGORIZE_TRANSACTIONS"; payload: { description: string, categoryId: string } }
   | { type: "RESET_STATE" };
-
-export interface FinanceContextType extends FinanceActionCreators {
-  state: FinanceState;
-}
 
 export interface FinanceActionCreators {
   addTransaction: (transaction: Omit<Transaction, "id">) => void;
   updateTransaction: (transaction: Transaction) => void;
   deleteTransaction: (id: string) => void;
   addTransactions: (transactions: Omit<Transaction, "id">[]) => void;
-  addCategory: (category: Omit<CategoryType, "id">) => void;
+  addCategory: (category: Omit<CategoryType, "id">) => CategoryType;
   updateCategory: (category: CategoryType) => void;
   deleteCategory: (id: string) => void;
   setBudget: (budget: Omit<Budget, "id">) => void;
@@ -54,10 +52,15 @@ export interface FinanceActionCreators {
   addImportFormat: (format: Omit<FileImportFormat, "id">) => void;
   updateImportFormat: (format: FileImportFormat) => void;
   deleteImportFormat: (id: string) => void;
+  deleteAllIncomeTransactions: () => void;
+  resetState: () => void;
   addCategoryMapping: (mapping: Omit<CategoryMapping, "id">) => void;
   updateCategoryMapping: (mapping: CategoryMapping) => void;
   deleteCategoryMapping: (description: string) => void;
   setCategoryMappings: (mappings: CategoryMapping[]) => void;
-  deleteAllIncomeTransactions: () => void;
-  resetState: () => void;
+  autoCategorizeTransactions: (description: string, categoryId: string) => void;
+}
+
+export interface FinanceContextType extends FinanceActionCreators {
+  state: FinanceState;
 }

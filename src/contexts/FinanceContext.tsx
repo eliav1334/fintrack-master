@@ -21,7 +21,7 @@ const FinanceContext = createContext<FinanceContextType>({
   updateTransaction: () => {},
   deleteTransaction: () => {},
   addTransactions: () => {},
-  addCategory: () => {},
+  addCategory: () => ({ id: "", name: "", type: "expense", color: "", icon: "" }),
   updateCategory: () => {},
   deleteCategory: () => {},
   setBudget: () => {},
@@ -35,6 +35,7 @@ const FinanceContext = createContext<FinanceContextType>({
   setCategoryMappings: () => {},
   deleteAllIncomeTransactions: () => {},
   resetState: () => {},
+  autoCategorizeTransactions: () => {},
 });
 
 // Create a provider component

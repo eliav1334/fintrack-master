@@ -96,6 +96,24 @@ export const transactionReducer = (state: FinanceState, action: FinanceAction): 
         transactions: [...enhancedTransactions, ...state.transactions],
       };
     }
+
+    case "AUTO_CATEGORIZE_TRANSACTIONS": {
+      // עדכון שיוך קטגוריה אוטומטי לכל העסקאות עם תיאור מסוים
+      const { description, categoryId } = action.payload;
+      
+      const updatedTransactions = state.transactions.map(transaction => {
+        if (transaction.description.toLowerCase().includes(description.toLowerCase()) && 
+            !transaction.categoryId) {
+          return { ...transaction, categoryId };
+        }
+        return transaction;
+      });
+      
+      return {
+        ...state,
+        transactions: updatedTransactions,
+      };
+    }
       
     default:
       return state;
