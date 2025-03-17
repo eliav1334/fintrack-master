@@ -47,12 +47,13 @@ export const useTransactionSubmit = ({
       
       if (formData.isInstallment) {
         transactionData.installmentDetails = {
+          installmentNumber: formData.installmentDetails.installmentNumber || 1,
+          totalInstallments: formData.installmentDetails.totalInstallments,
           totalAmount: formData.installmentDetails.totalAmount,
-          currentInstallment: formData.installmentDetails.currentInstallment,
-          totalInstallments: formData.installmentDetails.totalInstallments
+          currentInstallment: formData.installmentDetails.currentInstallment
         };
       } else if (formData.isElectricityBill) {
-        transactionData.isElectricityBill = true;
+        transactionData.isElectricityBill = formData.isElectricityBill;
         transactionData.mainMeterReading = formData.mainMeterReading;
         transactionData.secondaryMeterReading = formData.secondaryMeterReading;
         transactionData.electricityRate = formData.electricityRate;

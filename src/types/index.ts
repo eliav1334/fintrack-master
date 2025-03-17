@@ -15,6 +15,21 @@ export interface Transaction {
   businessCategory?: string;
   businessIdentifier?: string;
   originalAmount?: number;
+  isElectricityBill?: boolean;
+  mainMeterReading?: {
+    current: number;
+    previous: number;
+    date: string;
+  };
+  secondaryMeterReading?: {
+    current: number;
+    previous: number;
+    date: string;
+  };
+  electricityRate?: number;
+  vatRate?: number;
+  sheetName?: string;
+  createdAt?: string;
 }
 
 export interface CategoryType {
@@ -30,7 +45,18 @@ export interface Budget {
   categoryId: string;
   amount: number;
   startDate: string;
-  endDate: string;
+  endDate?: string;
+  period?: "daily" | "weekly" | "monthly" | "yearly";
+}
+
+export interface InstallmentDetails {
+  installmentNumber: number;
+  totalInstallments: number;
+  originalTransactionDate?: string;
+  totalAmount?: number;
+  currentInstallment?: number;
+  remainingAmount?: number;
+  installmentDate?: string;
 }
 
 export interface FinanceState {
@@ -149,19 +175,12 @@ export interface FileImportFormat {
     column: string;
     incomeValues: string[];
     expenseValues: string[];
-    creditCardLogic?: boolean; // הוספת שדה זה לטיפוס
+    creditCardLogic?: boolean;
   };
   installmentIdentifier?: {
     pattern: string;
     installmentPattern?: string;
     totalInstallmentsPattern?: string;
   };
-  creditCardFormat?: boolean; // הוספת שדה זה לטיפוס
-}
-
-export interface InstallmentDetails {
-  totalInstallments: number;
-  installmentNumber: number;
-  currentInstallment?: number;
-  originalTransactionDate?: string;
+  creditCardFormat?: boolean;
 }

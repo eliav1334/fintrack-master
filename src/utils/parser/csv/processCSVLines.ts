@@ -99,7 +99,8 @@ export const processCSVLines = (
         description: values[descriptionIndex],
         type,
         categoryId: categoryIndex >= 0 ? values[categoryIndex] || "" : "",
-        notes: "יובא מקובץ"
+        notes: "יובא מקובץ",
+        createdAt: new Date().toISOString()
       };
 
       // יצירת מזהה ייחודי לבדיקת כפילויות
@@ -124,7 +125,10 @@ export const processCSVLines = (
         originalTransactionDateValue: originalTransactionDateIndex !== -1 ? values[originalTransactionDateIndex] : undefined,
         chargeDateValue: chargeDateIndex !== -1 ? values[chargeDateIndex] : undefined,
         currentAmount: amount,
-        installmentIdentifier: format.installmentIdentifier,
+        installmentIdentifier: format.installmentIdentifier ? {
+          enabled: true,
+          pattern: [format.installmentIdentifier.pattern]
+        } : undefined,
         defaultDate: values[dateIndex]
       });
       

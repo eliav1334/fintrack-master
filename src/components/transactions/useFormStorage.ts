@@ -38,10 +38,21 @@ export const useFormStorage = (initialTransaction?: Transaction) => {
         electricityRate: initialTransaction.electricityRate || 0.60,
         vatRate: initialTransaction.vatRate || 17,
         isInstallment: initialTransaction.isInstallment || false,
-        installmentDetails: initialTransaction.installmentDetails || {
+        installmentDetails: initialTransaction.installmentDetails ? {
+          totalAmount: initialTransaction.installmentDetails.totalAmount || 0,
+          currentInstallment: initialTransaction.installmentDetails.currentInstallment || 1,
+          totalInstallments: initialTransaction.installmentDetails.totalInstallments || 1,
+          installmentNumber: initialTransaction.installmentDetails.installmentNumber,
+          originalTransactionDate: initialTransaction.installmentDetails.originalTransactionDate,
+          installmentDate: initialTransaction.date,
+          remainingAmount: 0
+        } : {
           totalAmount: 0,
           currentInstallment: 1,
           totalInstallments: 1,
+          installmentNumber: 1,
+          installmentDate: format(new Date(), "yyyy-MM-dd"),
+          remainingAmount: 0
         },
       };
     }
@@ -82,6 +93,9 @@ export const useFormStorage = (initialTransaction?: Transaction) => {
         totalAmount: 0,
         currentInstallment: 1,
         totalInstallments: 1,
+        installmentNumber: 1,
+        installmentDate: format(new Date(), "yyyy-MM-dd"),
+        remainingAmount: 0
       },
     };
   };
@@ -124,6 +138,9 @@ export const useFormStorage = (initialTransaction?: Transaction) => {
         totalAmount: 0,
         currentInstallment: 1,
         totalInstallments: 1,
+        installmentNumber: 1,
+        installmentDate: format(new Date(), "yyyy-MM-dd"),
+        remainingAmount: 0
       },
     };
     

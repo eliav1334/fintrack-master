@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Transaction } from "@/types";
+import { Transaction, CategoryType } from "@/types";
 import { TransactionTypeRadio } from "./TransactionTypeRadio";
 import { TransactionFormField } from "./TransactionFormField";
 import { CategorySelect } from "./CategorySelect";
@@ -109,7 +109,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         />
 
         <CategorySelect
-          categories={filteredCategories}
+          categories={filteredCategories as CategoryType[]}
           selectedCategoryId={formData.categoryId}
           onChange={(value) => handleSelectChange("categoryId", value)}
           transactionType={formData.type}

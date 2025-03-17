@@ -16,7 +16,7 @@ const BudgetForm = ({ expenseCategories, onSubmit }: BudgetFormProps) => {
   const [newBudget, setNewBudget] = useState({
     categoryId: "",
     amount: "",
-    period: "monthly" as "daily" | "weekly" | "monthly" | "yearly" // הוספת טיפוס מפורש
+    period: "monthly" as "daily" | "weekly" | "monthly" | "yearly"
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -27,8 +27,8 @@ const BudgetForm = ({ expenseCategories, onSubmit }: BudgetFormProps) => {
     const budget: Omit<Budget, "id"> = {
       categoryId: newBudget.categoryId,
       amount: parseFloat(newBudget.amount),
-      period: newBudget.period,
       startDate: new Date().toISOString(),
+      period: newBudget.period
     };
     
     onSubmit(budget);
