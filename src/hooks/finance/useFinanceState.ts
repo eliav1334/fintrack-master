@@ -1,6 +1,6 @@
 
 import { useReducer, useEffect, useState } from "react";
-import { financeReducer } from "@/contexts/financeReducer";
+import { financeReducer } from "@/contexts/reducers";
 import { initialState } from "@/contexts/defaultValues";
 import { useMonthlyIncomes } from "./useMonthlyIncomes";
 import { Budget, Transaction } from "@/types";
