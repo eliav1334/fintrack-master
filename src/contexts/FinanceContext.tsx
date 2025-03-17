@@ -1,33 +1,55 @@
 
-import React, { createContext, useContext } from "react";
-import { FinanceContextType } from "./types";
+import { createContext, useContext } from "react";
+import { FinanceState, FinanceContextType, FinanceActionCreators } from "./types";
 import { useFinanceState } from "@/hooks/finance/useFinanceState";
 import { useFinanceActions } from "@/hooks/finance/useFinanceActions";
+// Import from the new location
+import { financeReducer } from './reducers';
 
-const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
+// Create a context with a default value
+const FinanceContext = createContext<FinanceContextType>({
+  state: {
+    transactions: [],
+    categories: [],
+    budgets: [],
+    isLoading: false,
+    error: null,
+    importFormats: [],
+    categoryMappings: [],
+  },
+  addTransaction: () => {},
+  updateTransaction: () => {},
+  deleteTransaction: () => {},
+  addTransactions: () => {},
+  addCategory: () => {},
+  updateCategory: () => {},
+  deleteCategory: () => {},
+  setBudget: () => {},
+  deleteBudget: () => {},
+  addImportFormat: () => {},
+  updateImportFormat: () => {},
+  deleteImportFormat: () => {},
+  addCategoryMapping: () => {},
+  updateCategoryMapping: () => {},
+  deleteCategoryMapping: () => {},
+  setCategoryMappings: () => {},
+  deleteAllIncomeTransactions: () => {},
+  resetState: () => {},
+});
 
-export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+// Create a provider component
+export const FinanceProvider = ({ children }: { children: React.ReactNode }) => {
   const { state, dispatch } = useFinanceState();
-  const actions = useFinanceActions(dispatch);
+  const actions: FinanceActionCreators = useFinanceActions(dispatch);
 
   return (
-    <FinanceContext.Provider
-      value={{
-        state,
-        ...actions
-      }}
-    >
+    <FinanceContext.Provider value={{ state, ...actions }}>
       {children}
     </FinanceContext.Provider>
   );
 };
 
-export const useFinance = (): FinanceContextType => {
-  const context = useContext(FinanceContext);
-  if (!context) {
-    throw new Error("useFinance חייב להיות בתוך FinanceProvider");
-  }
-  return context;
+// Create a custom hook to use the context
+export const useFinance = () => {
+  return useContext(FinanceContext);
 };
