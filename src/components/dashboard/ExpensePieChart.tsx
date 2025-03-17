@@ -83,9 +83,14 @@ const ExpensePieChart = ({ data, formatCurrency, title, totalAmount, changePerce
                 <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
               <Label
-                content={({ viewBox }) => {
-                  if (!viewBox) return null;
+                content={(props) => {
+                  // Correctly handle the ViewBox type by accessing props directly
+                  if (!props.viewBox) return null;
+                  
+                  // TypeScript cast to access the properties
+                  const viewBox = props.viewBox as { cx: number; cy: number; innerRadius: number; outerRadius: number };
                   const { cx, cy } = viewBox;
+                  
                   return (
                     <g>
                       <text
