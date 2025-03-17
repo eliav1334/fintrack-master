@@ -12,11 +12,11 @@ interface ChartCardProps {
 const ChartCard = ({ title, description, children, className }: ChartCardProps) => {
   return (
     <Card className={`finance-card ${className || ""}`}>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg">{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
-      <CardContent className="h-80">
+      <CardContent className="min-h-72">
         {children}
       </CardContent>
     </Card>

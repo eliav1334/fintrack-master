@@ -15,7 +15,7 @@ export const useFinanceDashboard = (selectedDate: Date) => {
   const { formatCurrency } = useCurrencyFormatter();
   const { getMonthTransactions } = useTransactionFilters();
   const { calculateStats } = useFinanceStats(state.transactions, selectedDate);
-  const { getCashFlowData, getCategoryData } = useChartData(state.transactions, state.categories, selectedDate);
+  const { getCashFlowData, getCategoryData, getIncomeData } = useChartData(state.transactions, state.categories, selectedDate);
   
   // סדר הפרמטרים תואם להגדרת useBudgetAlerts
   const { checkBudgetAlerts, checkBalanceAlert } = useBudgetAlerts(
@@ -31,6 +31,7 @@ export const useFinanceDashboard = (selectedDate: Date) => {
   // מחשב נתוני גרפים
   const timeData = useMemo(() => getCashFlowData(), [getCashFlowData]);
   const categoryData = useMemo(() => getCategoryData(), [getCategoryData]);
+  const incomeData = useMemo(() => getIncomeData(), [getIncomeData]);
 
   // מחשב התראות תקציב
   const budgetAlerts = useMemo(() => checkBudgetAlerts(), [checkBudgetAlerts]);
@@ -40,6 +41,7 @@ export const useFinanceDashboard = (selectedDate: Date) => {
     stats,
     timeData,
     categoryData,
+    incomeData,
     budgetAlerts,
     balanceAlert,
     formatCurrency

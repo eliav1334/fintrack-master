@@ -53,6 +53,7 @@ const Dashboard = () => {
         timeData={timeData}
         categoryData={categoryData}
         formatCurrency={formatCurrency}
+        stats={stats}
       />
 
       {/* כרטיס התראות תקציב */}
