@@ -30,6 +30,7 @@ export const extractTransactionsFromSheet = (
   
   // ניתוח שורות
   const transactions: Omit<Transaction, "id">[] = [];
+  const processedIds = new Set<string>(); // סט למעקב אחר עסקאות שכבר עובדו
   
   for (let i = 0; i < jsonData.length; i++) {
     const row = jsonData[i];
@@ -133,15 +134,24 @@ export const extractTransactionsFromSheet = (
     } else if (indices.typeIndex >= 0 && format.typeIdentifier) {
       // שימוש במזהה הסוג אם הוגדר בפורמט
       const typeValue = String(row[indices.typeIndex] || '').toLowerCase();
-      if (format.typeIdentifier.incomeValues.some(v => typeValue.includes(v.toLowerCase()))) {
+      const typeIdentifier = {
+        ...format.typeIdentifier,
+        creditCardLogic: isCreditCardFormat
+      };
+      
+      if (typeIdentifier.incomeValues.some(v => typeValue.includes(v.toLowerCase()))) {
         type = "income";
         amount = Math.abs(amount);
-      } else if (format.typeIdentifier.expenseValues.some(v => typeValue.includes(v.toLowerCase()))) {
+      } else if (typeIdentifier.expenseValues.some(v => typeValue.includes(v.toLowerCase()))) {
         type = "expense";
         amount = Math.abs(amount);
       } else {
         // התנהגות ברירת מחדל: חיובי = הכנסה, שלילי = הוצאה
-        type = amount >= 0 ? "income" : "expense";
+        if (typeIdentifier.creditCardLogic) {
+          type = amount >= 0 ? "expense" : "income";
+        } else {
+          type = amount >= 0 ? "income" : "expense";
+        }
         amount = Math.abs(amount);
       }
     } else {
@@ -193,6 +203,14 @@ export const extractTransactionsFromSheet = (
     if (installmentDetails && installmentDetails.totalInstallments > 1 && installmentDetails.installmentNumber > 0) {
       notes += ` | תשלום ${installmentDetails.installmentNumber} מתוך ${installmentDetails.totalInstallments}`;
     }
+
+    // יצירת מזהה ייחודי לבדיקת כפילויות
+    const uniqueId = `${dateStr}_${amount}_${truncatedDescription}`;
+    if (processedIds.has(uniqueId)) {
+      // אם כבר ראינו עסקה זהה, נדלג עליה
+      continue;
+    }
+    processedIds.add(uniqueId);
 
     // יצירת העסקה
     const transaction: Omit<Transaction, "id"> = {

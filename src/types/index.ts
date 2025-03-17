@@ -1,63 +1,120 @@
+export type TransactionType = "income" | "expense";
+
 export interface Transaction {
   id: string;
   date: string;
   amount: number;
   description: string;
-  type: "income" | "expense";
+  type: TransactionType;
   categoryId: string;
   notes?: string;
   cardNumber?: string;
-  createdAt?: string; // זמן יצירת/ייבוא העסקה
-  // שדות לחישוב חשמל
-  isElectricityBill?: boolean;
-  mainMeterReading?: {
-    current: number;
-    previous: number;
-    date: string;
-  };
-  secondaryMeterReading?: {
-    current: number;
-    previous: number;
-    date: string;
-  };
-  electricityRate?: number;
-  vatRate?: number;
-  // שדות לתשלומים
   isInstallment?: boolean;
-  installmentDetails?: {
-    totalAmount: number;
-    currentInstallment: number;
-    totalInstallments: number;
-    installmentNumber?: number; // מספר התשלום הנוכחי
-    installmentDate?: string; // תאריך חיוב התשלום
-    originalTransactionDate?: string; // תאריך העסקה המקורית
-    remainingAmount?: number; // סכום שנותר לתשלום
-  };
-  // שדות נוספים לכרטיסי אשראי
-  originalAmount?: number; // סכום מקורי לפני פיצול לתשלומים
-  transactionCode?: string; // קוד עסקה ייחודי מחברת האשראי
-  businessIdentifier?: string; // מזהה בית עסק
-  businessCategory?: string; // קטגוריית בית עסק
-  sheetName?: string; // שם הגליון ממנו יובאה העסקה
+  installmentDetails?: InstallmentDetails;
+  transactionCode?: string;
+  businessCategory?: string;
+  businessIdentifier?: string;
+  originalAmount?: number;
 }
-
-// הוספת TransactionType כטיפוס נפרד
-export type TransactionType = "income" | "expense";
 
 export interface CategoryType {
   id: string;
   name: string;
-  type: "income" | "expense";
+  type: TransactionType;
   color: string;
-  icon?: string;
+  icon: string;
 }
 
 export interface Budget {
   id: string;
   categoryId: string;
   amount: number;
-  period: "daily" | "weekly" | "monthly" | "yearly";
   startDate: string;
+  endDate: string;
+}
+
+export interface FinanceState {
+  transactions: Transaction[];
+  categories: CategoryType[];
+  budgets: Budget[];
+  importFormats: FileImportFormat[];
+  categoryMappings: CategoryMapping[];
+  isLoading: boolean;
+  error: string | null;
+}
+
+export type FinanceAction =
+  | { type: "ADD_TRANSACTION"; payload: Transaction }
+  | { type: "UPDATE_TRANSACTION"; payload: Transaction }
+  | { type: "DELETE_TRANSACTION"; payload: string }
+  | { type: "ADD_TRANSACTIONS"; payload: Transaction[] }
+  | { type: "ADD_CATEGORY"; payload: CategoryType }
+  | { type: "UPDATE_CATEGORY"; payload: CategoryType }
+  | { type: "DELETE_CATEGORY"; payload: string }
+  | { type: "SET_BUDGET"; payload: Budget }
+  | { type: "DELETE_BUDGET"; payload: string }
+  | { type: "SET_LOADING"; payload: boolean }
+  | { type: "SET_ERROR"; payload: string | null }
+  | { type: "ADD_IMPORT_FORMAT"; payload: FileImportFormat }
+  | { type: "UPDATE_IMPORT_FORMAT"; payload: FileImportFormat }
+  | { type: "DELETE_IMPORT_FORMAT"; payload: string }
+  | { type: "ADD_CATEGORY_MAPPING"; payload: CategoryMapping }
+  | { type: "UPDATE_CATEGORY_MAPPING"; payload: CategoryMapping }
+  | { type: "DELETE_CATEGORY_MAPPING"; payload: string }
+  | { type: "SET_CATEGORY_MAPPINGS"; payload: CategoryMapping[] }
+  | { type: "DELETE_ALL_INCOME_TRANSACTIONS" }
+  | { type: "RESET_STATE" };
+
+export interface FinanceContextType {
+  state: FinanceState;
+  addTransaction: (transaction: Transaction) => void;
+  updateTransaction: (transaction: Transaction) => void;
+  deleteTransaction: (id: string) => void;
+  addTransactions: (transactions: Transaction[]) => void;
+  addCategory: (category: CategoryType) => void;
+  updateCategory: (category: CategoryType) => void;
+  deleteCategory: (id: string) => void;
+  setBudget: (budget: Budget) => void;
+  deleteBudget: (id: string) => void;
+  setLoading: (isLoading: boolean) => void;
+  setError: (error: string | null) => void;
+  addImportFormat: (format: FileImportFormat) => void;
+  updateImportFormat: (format: FileImportFormat) => void;
+  deleteImportFormat: (id: string) => void;
+  addCategoryMapping: (mapping: CategoryMapping) => void;
+  updateCategoryMapping: (mapping: CategoryMapping) => void;
+  deleteCategoryMapping: (description: string) => void;
+  setCategoryMappings: (mappings: CategoryMapping[]) => void;
+  deleteAllIncomeTransactions: () => void;
+  resetState: () => void;
+}
+
+export interface FinanceActionCreators {
+  addTransaction: (transaction: Transaction) => void;
+  updateTransaction: (transaction: Transaction) => void;
+  deleteTransaction: (id: string) => void;
+  addTransactions: (transactions: Transaction[]) => void;
+  addCategory: (category: CategoryType) => void;
+  updateCategory: (category: CategoryType) => void;
+  deleteCategory: (id: string) => void;
+  setBudget: (budget: Budget) => void;
+  deleteBudget: (id: string) => void;
+  setLoading: (isLoading: boolean) => void;
+  setError: (error: string | null) => void;
+  addImportFormat: (format: FileImportFormat) => void;
+  updateImportFormat: (format: FileImportFormat) => void;
+  deleteImportFormat: (id: string) => void;
+  addCategoryMapping: (mapping: CategoryMapping) => void;
+  updateCategoryMapping: (mapping: CategoryMapping) => void;
+  deleteCategoryMapping: (description: string) => void;
+  setCategoryMappings: (mappings: CategoryMapping[]) => void;
+  deleteAllIncomeTransactions: () => void;
+  resetState: () => void;
+}
+
+export interface CategoryMapping {
+  description: string;
+  categoryId: string;
 }
 
 export interface FileImportFormat {
@@ -70,40 +127,41 @@ export interface FileImportFormat {
     type?: string;
     category?: string;
     cardNumber?: string;
-    // שדות נוספים למיפוי קבצי כרטיסי אשראי
-    totalAmount?: string; // סכום עסקה כולל
-    installmentAmount?: string; // סכום תשלום בודד
-    installmentNumber?: string; // מספר תשלום נוכחי
-    totalInstallments?: string; // סך תשלומים
-    businessCategory?: string; // קטגוריית בית עסק
-    originalTransactionDate?: string; // תאריך עסקה מקורי
-    chargeDate?: string; // תאריך חיוב
-    transactionCode?: string; // קוד עסקה
-    businessIdentifier?: string; // מזהה בית עסק
-    currencyCode?: string; // קוד מטבע
+    totalAmount?: string;
+    installmentNumber?: string;
+    totalInstallments?: string;
+    originalTransactionDate?: string;
+    chargeDate?: string;
+    transactionCode?: string;
+    businessCategory?: string;
+    businessIdentifier?: string;
   };
-  dateFormat: string;
+  dateFormat?: string;
   delimiter?: string;
-  typeIdentifier: {
+  skipEmptyRows?: boolean;
+  headerRowIndex?: number;
+  sheetSupport?: boolean;
+  sheetSelection?: {
+    type: "all" | "specific" | "select";
+    names?: string[];
+  };
+  typeIdentifier?: {
     column: string;
     incomeValues: string[];
     expenseValues: string[];
+    creditCardLogic?: boolean; // הוספת שדה זה לטיפוס
   };
-  skipEmptyRows?: boolean;
-  headerRowIndex?: number;
-  // שדות חדשים לתמיכה בגליונות מרובים
-  sheetSupport?: boolean; // האם יש תמיכה בגליונות מרובים
-  sheetSelection?: {
-    type: "all" | "specific" | "named"; // סוג בחירת גליונות
-    names?: string[]; // שמות גליונות ספציפיים
-    skipEmpty?: boolean; // דלג על גליונות ריקים
-  };
-  // זיהוי תשלומים
   installmentIdentifier?: {
-    enabled: boolean;
-    pattern: string[]; // תבניות טקסט לזיהוי תשלומים
-    totalField?: string; // שדה סכום כולל
-    numberField?: string; // שדה מספר תשלום
-    countField?: string; // שדה מספר תשלומים כולל
+    pattern: string;
+    installmentPattern?: string;
+    totalInstallmentsPattern?: string;
   };
+  creditCardFormat?: boolean; // הוספת שדה זה לטיפוס
+}
+
+export interface InstallmentDetails {
+  totalInstallments: number;
+  installmentNumber: number;
+  currentInstallment?: number;
+  originalTransactionDate?: string;
 }

@@ -6,7 +6,8 @@ export const systemStateReducer = (state: FinanceState, action: FinanceAction): 
   switch (action.type) {
     case "RESET_STATE":
       // איפוס המערכת למצב התחלתי
-      return { ...initialState };
+      // כאן חשוב להחזיר את האובייקט החדש לגמרי ולא להשתמש במצב הקיים
+      return { ...JSON.parse(JSON.stringify(initialState)) };
       
     case "SET_LOADING":
       return {

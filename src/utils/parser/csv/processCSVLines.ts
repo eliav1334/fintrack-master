@@ -48,6 +48,8 @@ export const processCSVLines = (
 
     // ניתוח שורות
     const data: Omit<Transaction, "id">[] = [];
+    const processedIds = new Set<string>(); // סט למעקב אחר עסקאות שכבר עובדו
+
     for (let i = 1; i < lines.length; i++) {
       const values = lines[i].split(format.delimiter || ",").map((value) => value.trim());
       if (values.length !== headers.length) continue;
@@ -67,14 +69,15 @@ export const processCSVLines = (
       // קביעת סוג העסקה בהתאם לסוג הקובץ
       const isCreditCardFile = format.name.includes("אשראי") || format.creditCardFormat === true;
       
-      let typeIdentifier = format.typeIdentifier;
-      if (isCreditCardFile && typeIdentifier) {
-        typeIdentifier = {
-          ...typeIdentifier,
+      let typeIdentifierConfig = format.typeIdentifier;
+      if (isCreditCardFile && typeIdentifierConfig) {
+        typeIdentifierConfig = {
+          ...typeIdentifierConfig,
           creditCardLogic: true
         };
       } else if (isCreditCardFile) {
-        typeIdentifier = {
+        typeIdentifierConfig = {
+          column: "type",
           incomeValues: ["זיכוי", "החזר"],
           expenseValues: ["חיוב", "רכישה"],
           creditCardLogic: true
@@ -85,7 +88,7 @@ export const processCSVLines = (
       const { type, amount: adjustedAmount } = detectTransactionType(
         amount, 
         typeIndex >= 0 ? values[typeIndex] : undefined, 
-        typeIdentifier
+        typeIdentifierConfig
       );
       amount = adjustedAmount;
 
@@ -98,6 +101,14 @@ export const processCSVLines = (
         categoryId: categoryIndex >= 0 ? values[categoryIndex] || "" : "",
         notes: "יובא מקובץ"
       };
+
+      // יצירת מזהה ייחודי לבדיקת כפילויות
+      const uniqueId = `${transaction.date}_${transaction.amount}_${transaction.description}`;
+      if (processedIds.has(uniqueId)) {
+        // אם כבר ראינו עסקה זהה, נדלג עליה
+        continue;
+      }
+      processedIds.add(uniqueId);
 
       // הוספת מספר כרטיס לעסקה אם קיים
       if (cardNumberIndex !== -1 && values[cardNumberIndex]) {
