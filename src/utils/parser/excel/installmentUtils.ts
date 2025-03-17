@@ -26,7 +26,7 @@ export const detectInstallmentDetails = (
   if (totalInstallmentsValue) {
     const totalInstallmentsStr = String(totalInstallmentsValue).replace(/[^\d]/g, '');
     totalInstallments = parseInt(totalInstallmentsStr) || 0;
-  } else if (format.installmentIdentifier?.enabled) {
+  } else if (format.installmentIdentifier) {
     // ניסיון לזהות תשלומים מהתיאור
     
     // חיפוש תבניות כמו "תשלום 2 מ-6" או "2/6"
