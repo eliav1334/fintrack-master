@@ -119,14 +119,17 @@ export const extractTransactionsFromSheet = (
     );
     
     // קביעת סוג העסקה (הכנסה/הוצאה)
-    let type: "income" | "expense" = "expense";
+    let type: "income" | "expense";
     
-    if (format.name === "כרטיס אשראי ישראלי" || format.name.includes("אשראי")) {
-      // אם סכום שלילי בכרטיס אשראי, זה עשוי להיות החזר/זיכוי
-      if (amount < 0) {
-        type = "income";
-        amount = Math.abs(amount);
-      }
+    // בדיקה אם מדובר בפורמט של כרטיס אשראי
+    const isCreditCardFormat = format.name === "כרטיס אשראי ישראלי" || 
+                              format.name.includes("אשראי") || 
+                              format.creditCardFormat === true;
+    
+    if (isCreditCardFormat) {
+      // בכרטיסי אשראי, חיוב (סכום חיובי) הוא הוצאה, זיכוי (סכום שלילי) הוא הכנסה
+      type = amount >= 0 ? "expense" : "income";
+      amount = Math.abs(amount);
     } else if (indices.typeIndex >= 0 && format.typeIdentifier) {
       // שימוש במזהה הסוג אם הוגדר בפורמט
       const typeValue = String(row[indices.typeIndex] || '').toLowerCase();
@@ -155,7 +158,7 @@ export const extractTransactionsFromSheet = (
     // יצירת הערות לעסקה
     let notes = "";
     
-    if (format.name === "כרטיס אשראי ישראלי" || format.name.includes("אשראי")) {
+    if (isCreditCardFormat) {
       notes = "יובא מכרטיס אשראי";
     } else {
       notes = `יובא מקובץ אקסל - גליון: ${sheetName || "ראשי"}`;

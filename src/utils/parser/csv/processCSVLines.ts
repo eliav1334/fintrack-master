@@ -64,11 +64,28 @@ export const processCSVLines = (
 
       let amount = parseFloat(values[amountIndex]?.replace(/[^\d.-]/g, "") || "0");
       
-      // קביעת סוג העסקה
+      // קביעת סוג העסקה בהתאם לסוג הקובץ
+      const isCreditCardFile = format.name.includes("אשראי") || format.creditCardFormat === true;
+      
+      let typeIdentifier = format.typeIdentifier;
+      if (isCreditCardFile && typeIdentifier) {
+        typeIdentifier = {
+          ...typeIdentifier,
+          creditCardLogic: true
+        };
+      } else if (isCreditCardFile) {
+        typeIdentifier = {
+          incomeValues: ["זיכוי", "החזר"],
+          expenseValues: ["חיוב", "רכישה"],
+          creditCardLogic: true
+        };
+      }
+      
+      // שימוש בפונקציה המשופרת לזיהוי סוג העסקה
       const { type, amount: adjustedAmount } = detectTransactionType(
         amount, 
         typeIndex >= 0 ? values[typeIndex] : undefined, 
-        format.typeIdentifier
+        typeIdentifier
       );
       amount = adjustedAmount;
 

@@ -23,7 +23,12 @@ export const detectTransactionType = (
       amount = Math.abs(amount);
     } else {
       // התנהגות ברירת מחדל: חיובי = הכנסה, שלילי = הוצאה
-      type = amount >= 0 ? "income" : "expense";
+      // בכרטיסי אשראי, ההיגיון הפוך - חיובי הוא הוצאה, שלילי הוא הכנסה/זיכוי
+      if (typeIdentifier.creditCardLogic) {
+        type = amount >= 0 ? "expense" : "income";
+      } else {
+        type = amount >= 0 ? "income" : "expense";
+      }
       amount = Math.abs(amount);
     }
   } else {
