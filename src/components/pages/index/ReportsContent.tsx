@@ -6,7 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { useFinance } from "@/contexts/FinanceContext";
-import { RotateCw, Trash2 } from "lucide-react";
+import { RotateCw, Trash2, RefreshCw, AlertTriangle } from "lucide-react";
+import { useMonthlyIncomes } from "@/hooks/finance/useMonthlyIncomes";
 
 interface ReportsContentProps {
   handleAddTransaction?: () => void;
@@ -17,8 +18,10 @@ const ReportsContent = ({ handleAddTransaction, handleNavigateToBudgets }: Repor
   const [backups, setBackups] = useState<{key: string, date: string}[]>([]);
   const [showBackupDialog, setShowBackupDialog] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [selectedBackup, setSelectedBackup] = useState<string>("");
-  const { resetState } = useFinance();
+  const { resetState, state } = useFinance();
+  const { resetAllStoredData } = useMonthlyIncomes();
   
   // לבדוק אם יש גיבויים זמינים
   useEffect(() => {
@@ -100,20 +103,22 @@ const ReportsContent = ({ handleAddTransaction, handleNavigateToBudgets }: Repor
   // פונקציה לאיפוס מלא של המערכת
   const resetFullSystem = () => {
     try {
-      // שמירת גיבוי לפני האיפוס
-      const currentData = localStorage.getItem("financeState");
-      if (currentData) {
-        const timestamp = new Date().toISOString();
-        localStorage.setItem(`financeState_before_reset_${timestamp}`, currentData);
+      setIsResetting(true);
+      
+      // מציג הודעת טעינה
+      toast.loading("מאפס את המערכת...");
+      
+      // שלב 1: מחיקת כל הנתונים ב-localStorage
+      const resetSuccess = resetAllStoredData();
+      
+      if (!resetSuccess) {
+        throw new Error("שגיאה באיפוס נתוני LocalStorage");
       }
       
-      // מחיקת כל הנתונים ב-localStorage
-      localStorage.removeItem("financeState");
-      localStorage.removeItem("transaction_form_data");
-      
-      // איפוס המצב הנוכחי
+      // שלב 2: איפוס ה-state במערכת
       resetState();
       
+      // שלב 3: הודעה למשתמש
       toast.success("המערכת אופסה בהצלחה", {
         description: "כל הנתונים נמחקו. האפליקציה תתרענן עם נתונים ראשוניים בלבד."
       });
@@ -127,9 +132,20 @@ const ReportsContent = ({ handleAddTransaction, handleNavigateToBudgets }: Repor
     } catch (error) {
       console.error("שגיאה באיפוס המערכת:", error);
       toast.error("שגיאה באיפוס המערכת", {
-        description: "לא ניתן היה לאפס את המערכת. נסה שוב."
+        description: "לא ניתן היה לאפס את המערכת. נסה שוב או פנה לתמיכה טכנית."
       });
+    } finally {
+      setIsResetting(false);
+      toast.dismiss();
     }
+  };
+  
+  // סטטיסטיקה על המערכת
+  const systemStats = {
+    transactions: state.transactions.length,
+    budgets: state.budgets.length,
+    categories: state.categories.length,
+    mappings: state.categoryMappings.length,
   };
   
   return (
@@ -141,6 +157,30 @@ const ReportsContent = ({ handleAddTransaction, handleNavigateToBudgets }: Repor
             <p className="text-muted-foreground">
               צפה וייצא דוחות פיננסיים
             </p>
+          </div>
+          
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6 mb-6">
+            <h3 className="text-lg font-semibold leading-none tracking-tight mb-4">
+              סטטיסטיקות מערכת
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="flex flex-col items-center p-4 bg-gray-50 rounded-lg">
+                <span className="text-2xl font-bold">{systemStats.transactions}</span>
+                <span className="text-sm text-muted-foreground">עסקאות</span>
+              </div>
+              <div className="flex flex-col items-center p-4 bg-gray-50 rounded-lg">
+                <span className="text-2xl font-bold">{systemStats.budgets}</span>
+                <span className="text-sm text-muted-foreground">תקציבים</span>
+              </div>
+              <div className="flex flex-col items-center p-4 bg-gray-50 rounded-lg">
+                <span className="text-2xl font-bold">{systemStats.categories}</span>
+                <span className="text-sm text-muted-foreground">קטגוריות</span>
+              </div>
+              <div className="flex flex-col items-center p-4 bg-gray-50 rounded-lg">
+                <span className="text-2xl font-bold">{systemStats.mappings}</span>
+                <span className="text-sm text-muted-foreground">מיפויי קטגוריות</span>
+              </div>
+            </div>
           </div>
           
           <div className="flex flex-wrap gap-4 mb-6">
@@ -163,9 +203,23 @@ const ReportsContent = ({ handleAddTransaction, handleNavigateToBudgets }: Repor
               size="sm"
               onClick={() => setShowResetDialog(true)}
               className="flex gap-2 items-center text-destructive hover:text-destructive"
+              disabled={isResetting}
             >
               <Trash2 className="h-4 w-4" />
               איפוס מערכת
+            </Button>
+            
+            {/* כפתור ניקוי כפילויות */}
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                toast.info("הפונקציה תתווסף בקרוב");
+              }}
+              className="flex gap-2 items-center"
+            >
+              <RefreshCw className="h-4 w-4" />
+              ניקוי כפילויות
             </Button>
           </div>
           
@@ -230,23 +284,29 @@ const ReportsContent = ({ handleAddTransaction, handleNavigateToBudgets }: Repor
       <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>איפוס מערכת</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              איפוס מערכת
+            </DialogTitle>
             <DialogDescription>
               פעולה זו תמחק את כל הנתונים במערכת ותחזיר את המערכת למצב הראשוני.
+              <br />
+              <strong>כל העסקאות, התקציבים והמיפויים יימחקו.</strong>
               <br />
               <strong>האם אתה בטוח שברצונך להמשיך?</strong>
             </DialogDescription>
           </DialogHeader>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowResetDialog(false)}>
+            <Button variant="outline" onClick={() => setShowResetDialog(false)} disabled={isResetting}>
               ביטול
             </Button>
             <Button 
               variant="destructive"
               onClick={resetFullSystem}
+              disabled={isResetting}
             >
-              אפס מערכת
+              {isResetting ? "מאפס..." : "אפס מערכת"}
             </Button>
           </DialogFooter>
         </DialogContent>

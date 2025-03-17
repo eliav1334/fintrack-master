@@ -16,6 +16,13 @@ export const useFinanceState = () => {
   
   // טעינת נתונים מ-localStorage בעת האתחול
   useEffect(() => {
+    // בדיקה אם זו פעולת איפוס
+    if (state.transactions.length === 0 && state.budgets.length === 0 && 
+        state.categoryMappings.length === 0 && state.categories.length > 0) {
+      console.log("זוהה מצב איפוס מערכת, מנקה את localStorage");
+      localStorage.removeItem("financeState");
+    }
+    
     // ניסיון לטעון נתונים שמורים
     const savedData = localStorage.getItem("financeState");
     
@@ -42,7 +49,11 @@ export const useFinanceState = () => {
           parsedData.transactions = uniqueTransactions;
           
           if (uniqueTransactions.length < parsedData.transactions.length) {
-            console.log(`נמצאו וסוננו ${parsedData.transactions.length - uniqueTransactions.length} עסקאות כפולות`);
+            const removed = parsedData.transactions.length - uniqueTransactions.length;
+            console.log(`נמצאו וסוננו ${removed} עסקאות כפולות`);
+            if (removed > 0) {
+              toast.info(`סוננו ${removed} עסקאות כפולות בטעינת הנתונים`);
+            }
           }
         }
         

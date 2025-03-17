@@ -7,7 +7,7 @@ export const systemStateReducer = (state: FinanceState, action: FinanceAction): 
     case "RESET_STATE":
       // איפוס המערכת למצב התחלתי
       // כאן חשוב להחזיר את האובייקט החדש לגמרי ולא להשתמש במצב הקיים
-      return { ...JSON.parse(JSON.stringify(initialState)) };
+      return JSON.parse(JSON.stringify(initialState));
       
     case "SET_LOADING":
       return {
@@ -19,6 +19,23 @@ export const systemStateReducer = (state: FinanceState, action: FinanceAction): 
       return {
         ...state,
         error: action.payload,
+      };
+      
+    case "AUTO_CATEGORIZE_TRANSACTIONS":
+      // טיפול בבקשה לקטגוריזציה אוטומטית של עסקאות
+      const { description, categoryId } = action.payload;
+      const updatedTransactions = state.transactions.map(transaction => {
+        // בודק אם התיאור של העסקה מכיל את התיאור שמבקשים לקטגרז
+        if (transaction.description.toLowerCase().includes(description.toLowerCase()) && 
+            !transaction.categoryId) {
+          return { ...transaction, categoryId };
+        }
+        return transaction;
+      });
+      
+      return {
+        ...state,
+        transactions: updatedTransactions
       };
       
     default:

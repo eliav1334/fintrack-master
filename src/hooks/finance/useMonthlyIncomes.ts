@@ -1,7 +1,7 @@
-
 import { generateId } from "@/utils/generateId";
 import { Transaction } from "@/types";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 /**
  * הוק לניהול עסקאות הכנסה חודשיות
@@ -9,26 +9,64 @@ import { format } from "date-fns";
 export const useMonthlyIncomes = () => {
   // חיפוש האם ישנם נתוני localStorage להסרה (לצורך איפוס)
   const resetAllStoredData = () => {
-    // הסרת כל הנתונים השמורים ב-localStorage
-    localStorage.removeItem("financeState");
-    
-    // הסרת כל הגיבויים
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && (
-        key.startsWith("financeState_backup_") || 
-        key.startsWith("financeState_daily_backup_") ||
-        key.startsWith("financeState_before_restore_")
-      )) {
-        localStorage.removeItem(key);
-        i--; // התאמת האינדקס לאחר הסרת פריט
+    try {
+      console.log("מתחיל תהליך איפוס נתונים מלא...");
+      
+      // שמירת גיבוי לפני ניקוי מלא
+      const currentData = localStorage.getItem("financeState");
+      if (currentData) {
+        const timestamp = new Date().toISOString();
+        localStorage.setItem(`financeState_before_reset_${timestamp}`, currentData);
+        console.log(`גיבוי נשמר לפני מחיקה: financeState_before_reset_${timestamp}`);
       }
+      
+      // מחיקת הנתונים העיקריים
+      localStorage.removeItem("financeState");
+      
+      // מחיקת נתוני טפסים זמניים
+      localStorage.removeItem("transaction_form_data");
+      localStorage.removeItem("budget_form_data");
+      localStorage.removeItem("category_form_data");
+      localStorage.removeItem("import_settings");
+      
+      // מחיקת הגדרות שמורות
+      localStorage.removeItem("lastSelectedMonth");
+      localStorage.removeItem("lastSelectedYear");
+      localStorage.removeItem("lastViewMode");
+      localStorage.removeItem("lastTabIndex");
+      localStorage.removeItem("lastImportFormat");
+      
+      // הסרת כל הגיבויים האוטומטיים (אופציונלי - אפשר להשאיר גיבויים קודמים)
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (
+          key.startsWith("financeState_daily_backup_") ||
+          key.startsWith("financeState_backup_")
+        )) {
+          keysToRemove.push(key);
+        }
+      }
+      
+      // מחיקת המפתחות שנאספו (מחוץ ללולאה כדי למנוע בעיות באינדקסים)
+      keysToRemove.forEach(key => {
+        localStorage.removeItem(key);
+        console.log(`נמחק גיבוי: ${key}`);
+      });
+      
+      // הסרת תאריך הגיבוי האחרון
+      localStorage.removeItem("lastBackupDate");
+      
+      console.log("איפוס נתונים הושלם בהצלחה");
+      
+      return true;
+    } catch (error) {
+      console.error("שגיאה באיפוס הנתונים:", error);
+      toast.error("שגיאה באיפוס הנתונים", {
+        description: "לא ניתן היה לאפס את הנתונים. נסה שוב."
+      });
+      return false;
     }
-    
-    // הסרת תאריך הגיבוי האחרון
-    localStorage.removeItem("lastBackupDate");
-    
-    return true;
   };
 
   /**

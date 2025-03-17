@@ -9,6 +9,11 @@ import { categoryMappingReducer } from "./categoryMappingReducer";
 import { systemStateReducer } from "./systemStateReducer";
 
 export const financeReducer = (state: FinanceState, action: FinanceAction): FinanceState => {
+  // לוג דיבאג לבדיקת הפעולות שמבוצעות
+  if (action.type === "RESET_STATE") {
+    console.log("מבצע איפוס מערכת מלא");
+  }
+
   switch (action.type) {
     case "RESET_STATE":
       return systemStateReducer(state, action);
@@ -42,6 +47,7 @@ export const financeReducer = (state: FinanceState, action: FinanceAction): Fina
 
     case "SET_LOADING":
     case "SET_ERROR":
+    case "AUTO_CATEGORIZE_TRANSACTIONS":
       return systemStateReducer(state, action);
 
     default:
