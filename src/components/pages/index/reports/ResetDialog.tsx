@@ -1,0 +1,54 @@
+
+import React from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle } from "lucide-react";
+
+interface ResetDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onReset: () => void;
+  isResetting: boolean;
+}
+
+const ResetDialog: React.FC<ResetDialogProps> = ({
+  open,
+  onOpenChange,
+  onReset,
+  isResetting
+}) => {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+            איפוס מערכת
+          </DialogTitle>
+          <DialogDescription>
+            פעולה זו תמחק את כל הנתונים במערכת ותחזיר את המערכת למצב הראשוני.
+            <br />
+            <strong>כל העסקאות, התקציבים והמיפויים יימחקו.</strong>
+            <br />
+            <strong>האם אתה בטוח שברצונך להמשיך?</strong>
+          </DialogDescription>
+        </DialogHeader>
+        
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isResetting}>
+            ביטול
+          </Button>
+          <Button 
+            variant="destructive"
+            onClick={onReset}
+            disabled={isResetting}
+          >
+            {isResetting ? "מאפס..." : "אפס מערכת"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default ResetDialog;
