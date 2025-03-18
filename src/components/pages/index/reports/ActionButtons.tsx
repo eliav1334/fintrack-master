@@ -34,14 +34,14 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
       
       {/* כפתור איפוס המערכת */}
       <Button 
-        variant="outline" 
+        variant="destructive" 
         size="sm"
         onClick={onShowResetDialog}
-        className="flex gap-2 items-center text-destructive hover:text-destructive"
+        className="flex gap-2 items-center"
         disabled={isResetting}
       >
         <Trash2 className="h-4 w-4" />
-        איפוס מערכת
+        איפוס מערכת מלא
       </Button>
       
       {/* כפתור ניקוי כפילויות */}

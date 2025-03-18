@@ -19,12 +19,20 @@ export const useFinanceState = () => {
   useEffect(() => {
     // בדיקה אם זו פעולת איפוס
     const isResetMode = localStorage.getItem("reset_in_progress") === "true";
+    const shouldSkipAutoIncomes = localStorage.getItem("skip_auto_incomes") === "true";
+    
     if (isResetMode) {
       console.log("זוהה מצב איפוס מערכת מכוון, דילוג על טעינת נתונים");
       localStorage.removeItem("reset_in_progress");
       setIsDataLoaded(true);
       setSkipAutoIncomes(true);
       return;
+    }
+    
+    if (shouldSkipAutoIncomes) {
+      console.log("זוהה מצב דילוג על הכנסות אוטומטיות");
+      localStorage.removeItem("skip_auto_incomes");
+      setSkipAutoIncomes(true);
     }
     
     if (state.transactions.length === 0 && state.budgets.length === 0 && 

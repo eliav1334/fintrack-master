@@ -8,6 +8,7 @@ export const systemStateReducer = (state: FinanceState, action: FinanceAction): 
       // איפוס המערכת למצב התחלתי
       // שמירת סימון באחסון המקומי שאנחנו במצב איפוס
       localStorage.setItem("reset_in_progress", "true");
+      localStorage.setItem("skip_auto_incomes", "true");
       console.log("מבצע איפוס מערכת מלא");
       
       // כאן חשוב להחזיר את האובייקט החדש לגמרי ולא להשתמש במצב הקיים

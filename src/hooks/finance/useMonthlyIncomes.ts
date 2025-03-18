@@ -56,6 +56,10 @@ export const useMonthlyIncomes = () => {
         console.log(`נמחק: ${key}`);
       });
       
+      // הגדרה מפורשת לדילוג על הוספת הכנסות אוטומטיות
+      localStorage.setItem("skip_auto_incomes", "true");
+      localStorage.setItem("reset_in_progress", "true");
+      
       // הסרת תאריך הגיבוי האחרון
       localStorage.removeItem("lastBackupDate");
       
@@ -76,6 +80,13 @@ export const useMonthlyIncomes = () => {
    * מוסיף בדיוק עסקת הכנסה אחת לחודש בסך 16,000 ₪ ב-1 לחודש
    */
   const addMonthlyIncomes = (): Transaction[] => {
+    // בדיקה אם יש סימון לדלג על הוספת הכנסות אוטומטיות
+    if (localStorage.getItem("skip_auto_incomes") === "true") {
+      console.log("מדלג על הוספת הכנסות חודשיות קבועות לפי סימון");
+      localStorage.removeItem("skip_auto_incomes");
+      return [];
+    }
+    
     const currentDate = new Date();
     
     // יצירת מערך של 7 חודשים אחרונים

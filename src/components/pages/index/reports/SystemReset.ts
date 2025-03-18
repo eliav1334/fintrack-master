@@ -18,6 +18,9 @@ export const useSystemReset = () => {
       // מציג הודעת טעינה
       toast.loading("מאפס את המערכת...");
       
+      // וידוא שאנחנו מסמנים לדלג על הוספת הכנסות אוטומטיות
+      localStorage.setItem("skip_auto_incomes", "true");
+      
       // שלב 1: מחיקת כל הנתונים ב-localStorage
       const resetSuccess = resetAllStoredData();
       
