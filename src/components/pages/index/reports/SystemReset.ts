@@ -2,13 +2,15 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { useFinance } from "@/contexts/FinanceContext";
-import { useSystemReset } from "@/hooks/finance/storage/useSystemReset";
+// Rename the imported hook to avoid naming conflict
+import { useSystemReset as useSystemResetHook } from "@/hooks/finance/storage/useSystemReset";
 
 export const useSystemReset = () => {
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const { resetState, deleteAllIncomeTransactions } = useFinance();
-  const { resetAllStoredData } = useSystemReset();
+  // Use the renamed import
+  const { resetAllStoredData } = useSystemResetHook();
 
   // פונקציה לאיפוס מלא של המערכת
   const resetFullSystem = () => {
