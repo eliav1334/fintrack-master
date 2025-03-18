@@ -20,6 +20,13 @@ export const useFinanceState = () => {
     // בדיקה אם זו פעולת איפוס
     const isResetMode = localStorage.getItem("reset_in_progress") === "true";
     const shouldSkipAutoIncomes = localStorage.getItem("skip_auto_incomes") === "true";
+    const permanentlySkipAutoIncomes = localStorage.getItem("permanent_skip_auto_incomes") === "true";
+    
+    // אם יש הגדרה קבועה לדלג על הכנסות אוטומטיות, נשמור אותה
+    if (permanentlySkipAutoIncomes) {
+      console.log("זוהתה הגדרה קבועה לדילוג על הכנסות אוטומטיות");
+      setSkipAutoIncomes(true);
+    }
     
     if (isResetMode) {
       console.log("זוהה מצב איפוס מערכת מכוון, דילוג על טעינת נתונים");
@@ -129,12 +136,17 @@ export const useFinanceState = () => {
 
   // טיפול בהוספת הכנסות חודשיות בהתבסס על מצב הטעינה
   useEffect(() => {
-    if (isDataLoaded && !skipAutoIncomes && state.transactions.length === 0) {
+    // בודק אם יש הגדרת איפוס קבוע
+    const permanentlySkipAutoIncomes = localStorage.getItem("permanent_skip_auto_incomes") === "true";
+    
+    if (isDataLoaded && !skipAutoIncomes && state.transactions.length === 0 && !permanentlySkipAutoIncomes) {
       console.log("מוסיף הכנסות חודשיות קבועות");
       setTimeout(() => {
         const monthlyIncomes = addMonthlyIncomes();
         dispatch({ type: "ADD_TRANSACTIONS", payload: monthlyIncomes });
-        toast.success(`נוספו ${monthlyIncomes.length} עסקאות הכנסה חודשית קבועה`);
+        if (monthlyIncomes.length > 0) {
+          toast.success(`נוספו ${monthlyIncomes.length} עסקאות הכנסה חודשית קבועה`);
+        }
       }, 800);
     }
   }, [isDataLoaded, skipAutoIncomes]);

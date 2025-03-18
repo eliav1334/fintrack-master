@@ -56,9 +56,10 @@ export const useMonthlyIncomes = () => {
         console.log(`נמחק: ${key}`);
       });
       
-      // הגדרה מפורשת לדילוג על הוספת הכנסות אוטומטיות
+      // הגדרה מפורשת לדילוג על הוספת הכנסות אוטומטיות, כולל הגדרה קבועה
       localStorage.setItem("skip_auto_incomes", "true");
       localStorage.setItem("reset_in_progress", "true");
+      localStorage.setItem("permanent_skip_auto_incomes", "true");
       
       // הסרת תאריך הגיבוי האחרון
       localStorage.removeItem("lastBackupDate");
@@ -81,7 +82,8 @@ export const useMonthlyIncomes = () => {
    */
   const addMonthlyIncomes = (): Transaction[] => {
     // בדיקה אם יש סימון לדלג על הוספת הכנסות אוטומטיות
-    if (localStorage.getItem("skip_auto_incomes") === "true") {
+    if (localStorage.getItem("skip_auto_incomes") === "true" || 
+        localStorage.getItem("permanent_skip_auto_incomes") === "true") {
       console.log("מדלג על הוספת הכנסות חודשיות קבועות לפי סימון");
       localStorage.removeItem("skip_auto_incomes");
       return [];
