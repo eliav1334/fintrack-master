@@ -15,7 +15,7 @@ export const systemStateReducer = (state: FinanceState, action: FinanceAction): 
       const itemsToKeep = ["permanent_skip_auto_incomes", "reset_in_progress", "skip_auto_incomes"];
       
       // שמירת המצב הנוכחי של פריטים שרוצים לשמור
-      const preservedItems = {};
+      const preservedItems: Record<string, string | null> = {};
       itemsToKeep.forEach(key => {
         preservedItems[key] = localStorage.getItem(key);
       });

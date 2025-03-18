@@ -2,13 +2,13 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { useFinance } from "@/contexts/FinanceContext";
-import { useMonthlyIncomes } from "@/hooks/finance/useMonthlyIncomes";
+import { useSystemReset } from "@/hooks/finance/storage/useSystemReset";
 
 export const useSystemReset = () => {
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const { resetState, deleteAllIncomeTransactions } = useFinance();
-  const { resetAllStoredData } = useMonthlyIncomes();
+  const { resetAllStoredData } = useSystemReset();
 
   // פונקציה לאיפוס מלא של המערכת
   const resetFullSystem = () => {

@@ -4,15 +4,17 @@ import { toast } from "sonner";
 import { FinanceAction } from "@/contexts/types";
 import { Transaction, Budget } from "@/types";
 import { useLocalStorage } from "./useLocalStorage";
-import { useMonthlyIncomes } from "../useMonthlyIncomes";
+import { useSystemReset } from "./useSystemReset";
+import { useIncomeFilters } from "../income/useIncomeFilters";
 
 /**
  * הוק לטעינת נתונים מאחסון מקומי
  */
 export const useDataLoading = (dispatch: React.Dispatch<FinanceAction>) => {
   const [isDataLoaded, setIsDataLoaded] = useState(false);
-  const { resetAllStoredData } = useMonthlyIncomes();
+  const { resetAllStoredData } = useSystemReset();
   const { loadDataFromLocalStorage, removeDuplicateTransactions } = useLocalStorage();
+  const { cleanMonthlyIncomes } = useIncomeFilters();
 
   // טעינת נתונים מ-localStorage בעת האתחול
   useEffect(() => {
@@ -59,9 +61,7 @@ export const useDataLoading = (dispatch: React.Dispatch<FinanceAction>) => {
         if (savedData.transactions && Array.isArray(savedData.transactions)) {
           const uniqueTransactions = removeDuplicateTransactions(savedData.transactions);
           // סינון כל עסקאות ההכנסה האוטומטיות
-          const filteredTransactions = uniqueTransactions.filter(tx => 
-            !(tx.type === "income" && tx.description === "משכורת חודשית קבועה")
-          );
+          const filteredTransactions = cleanMonthlyIncomes(uniqueTransactions);
           
           savedData.transactions = filteredTransactions;
           
@@ -117,7 +117,7 @@ export const useDataLoading = (dispatch: React.Dispatch<FinanceAction>) => {
       console.log("אין נתונים שמורים");
       setIsDataLoaded(true);
     }
-  }, [dispatch, resetAllStoredData, removeDuplicateTransactions, loadDataFromLocalStorage]);
+  }, [dispatch, resetAllStoredData, removeDuplicateTransactions, loadDataFromLocalStorage, cleanMonthlyIncomes]);
 
   return { isDataLoaded };
 };
