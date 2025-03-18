@@ -10,7 +10,7 @@ export const useSystemReset = () => {
   const [isResetting, setIsResetting] = useState(false);
   const { resetState, deleteAllIncomeTransactions } = useFinance();
   // Use the renamed import
-  const { resetAllStoredData } = useSystemResetHook();
+  const { resetAllStoredData, enableDataImport } = useSystemResetHook();
 
   // פונקציה לאיפוס מלא של המערכת
   const resetFullSystem = () => {
@@ -24,6 +24,7 @@ export const useSystemReset = () => {
       localStorage.setItem("skip_auto_incomes", "true");
       localStorage.setItem("permanent_skip_auto_incomes", "true");
       localStorage.setItem("reset_in_progress", "true");
+      localStorage.setItem("data_import_blocked", "true");
       
       // שלב 1: מחיקת כל הנתונים ב-localStorage
       const resetSuccess = resetAllStoredData();
@@ -64,6 +65,7 @@ export const useSystemReset = () => {
     showResetDialog,
     setShowResetDialog,
     isResetting,
-    resetFullSystem
+    resetFullSystem,
+    enableDataImport
   };
 };

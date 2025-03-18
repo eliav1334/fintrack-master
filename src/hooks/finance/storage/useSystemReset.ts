@@ -1,78 +1,102 @@
 
+import { useCallback } from "react";
 import { toast } from "sonner";
 
 /**
- * הוק לניהול איפוס מערכת
+ * Hook for system reset functionality
  */
 export const useSystemReset = () => {
   /**
-   * איפוס כל הנתונים השמורים במערכת
+   * Resets all stored data in localStorage
    */
-  const resetAllStoredData = () => {
+  const resetAllStoredData = useCallback(() => {
     try {
-      console.log("מתחיל תהליך איפוס נתונים מלא...");
-      
-      // שמירת גיבוי לפני ניקוי מלא (רק אם המשתמש רוצה)
-      const shouldBackup = localStorage.getItem("backup_before_reset") === "true";
-      if (shouldBackup) {
-        const currentData = localStorage.getItem("financeState");
-        if (currentData) {
-          const timestamp = new Date().toISOString();
-          localStorage.setItem(`financeState_before_reset_${timestamp}`, currentData);
-          console.log(`גיבוי נשמר לפני מחיקה: financeState_before_reset_${timestamp}`);
-        }
-      }
+      console.log("מבצע איפוס מלא של נתוני LocalStorage");
       
       // מוודא שיש דילוג על הוספת הכנסות אוטומטיות
       localStorage.setItem("skip_auto_incomes", "true");
       localStorage.setItem("permanent_skip_auto_incomes", "true");
       
-      // מחיקת כל הנתונים בלוקאל סטורג' מלבד סימון הדילוג הקבוע
-      const itemsToKeep = ["permanent_skip_auto_incomes"];
+      // סימון שאיפוס בתהליך (למניעת טעינת נתונים חדשים)
+      localStorage.setItem("reset_in_progress", "true");
+      localStorage.setItem("data_import_blocked", "true");
       
-      // שמירת המצב הנוכחי של פריטים שרוצים לשמור
-      const preservedItems: Record<string, string | null> = {};
-      itemsToKeep.forEach(key => {
-        preservedItems[key] = localStorage.getItem(key);
-      });
+      // הגדרת מגבלת ייבוא קבצים
+      const currentTime = new Date().getTime();
+      localStorage.setItem("last_import_reset", currentTime.toString());
       
-      // ניקוי מלא של LocalStorage
-      localStorage.clear();
+      // מחיקה של כל המפתחות הרלוונטיים מהאחסון המקומי
+      const keysToKeep = ["skip_auto_incomes", "permanent_skip_auto_incomes", "reset_in_progress", "data_import_blocked", "last_import_reset"];
       
-      // שחזור הפריטים שרצינו לשמור
-      Object.entries(preservedItems).forEach(([key, value]) => {
-        if (value) {
-          localStorage.setItem(key, value);
+      // מחיקת מפתחות ספציפיים
+      localStorage.removeItem("financeState");
+      
+      // מחיקת כל הגיבויים
+      Object.keys(localStorage).forEach(key => {
+        if (!keysToKeep.includes(key) && 
+            (key.startsWith("financeState_") || 
+             key === "lastAutoIncomeDate" || 
+             key.includes("transaction") || 
+             key.includes("budget") ||
+             key.includes("import"))) {
+          localStorage.removeItem(key);
         }
       });
       
-      // מסמן שאנחנו במצב איפוס
-      localStorage.setItem("reset_in_progress", "true");
-      
-      console.log("איפוס נתונים הושלם בהצלחה");
-      
+      console.log("איפוס LocalStorage הושלם בהצלחה");
       return true;
     } catch (error) {
-      console.error("שגיאה באיפוס הנתונים:", error);
-      toast.error("שגיאה באיפוס הנתונים", {
-        description: "לא ניתן היה לאפס את הנתונים. נסה שוב."
-      });
+      console.error("שגיאה באיפוס LocalStorage:", error);
+      toast.error("שגיאה באיפוס נתונים מקומיים");
       return false;
     }
-  };
+  }, []);
 
   /**
-   * הפעלת התכונה של הוספת הכנסות אוטומטיות (רק לשימוש אדמין)
+   * מאפשר הכנסות אוטומטיות (מבטל את הדילוג)
    */
-  const enableAutoIncomes = () => {
-    localStorage.removeItem("permanent_skip_auto_incomes");
+  const enableAutoIncomes = useCallback(() => {
     localStorage.removeItem("skip_auto_incomes");
-    localStorage.setItem("enable_auto_incomes", "true");
-    return true;
-  };
+    localStorage.removeItem("permanent_skip_auto_incomes");
+    toast.success("הכנסות אוטומטיות הופעלו מחדש");
+  }, []);
+  
+  /**
+   * בודק אם יש הגבלת ייבוא נתונים
+   */
+  const isImportBlocked = useCallback(() => {
+    // בדיקה אם יש חסימת ייבוא גורפת
+    const isBlocked = localStorage.getItem("data_import_blocked") === "true";
+    
+    // בדיקה אם חלף מספיק זמן מאז האיפוס האחרון (24 שעות)
+    const lastResetTimestamp = localStorage.getItem("last_import_reset");
+    if (lastResetTimestamp) {
+      const lastReset = parseInt(lastResetTimestamp);
+      const currentTime = new Date().getTime();
+      const hoursSinceReset = (currentTime - lastReset) / (1000 * 60 * 60);
+      
+      // אם עברו יותר מ-24 שעות מאז האיפוס, מסירים את החסימה
+      if (hoursSinceReset > 24) {
+        localStorage.removeItem("data_import_blocked");
+        return false;
+      }
+    }
+    
+    return isBlocked;
+  }, []);
+  
+  /**
+   * מאפשר ייבוא נתונים (מסיר חסימה)
+   */
+  const enableDataImport = useCallback(() => {
+    localStorage.removeItem("data_import_blocked");
+    toast.success("ייבוא נתונים הופעל מחדש");
+  }, []);
 
   return {
     resetAllStoredData,
-    enableAutoIncomes
+    enableAutoIncomes,
+    isImportBlocked,
+    enableDataImport
   };
 };

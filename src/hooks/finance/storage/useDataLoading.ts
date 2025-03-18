@@ -12,7 +12,7 @@ import { useIncomeFilters } from "../income/useIncomeFilters";
  */
 export const useDataLoading = (dispatch: React.Dispatch<FinanceAction>) => {
   const [isDataLoaded, setIsDataLoaded] = useState(false);
-  const { resetAllStoredData } = useSystemReset();
+  const { resetAllStoredData, isImportBlocked } = useSystemReset();
   const { loadDataFromLocalStorage, removeDuplicateTransactions } = useLocalStorage();
   const { cleanMonthlyIncomes } = useIncomeFilters();
 
@@ -30,11 +30,18 @@ export const useDataLoading = (dispatch: React.Dispatch<FinanceAction>) => {
       
       // מחיקת כל הנתונים מהמטמון
       Object.keys(localStorage).forEach(key => {
-        if (key !== "permanent_skip_auto_incomes") {
+        if (key !== "permanent_skip_auto_incomes" && key !== "data_import_blocked") {
           localStorage.removeItem(key);
         }
       });
       
+      setIsDataLoaded(true);
+      return;
+    }
+    
+    // בדיקה אם יש חסימת ייבוא נתונים
+    if (isImportBlocked()) {
+      console.log("ייבוא נתונים חסום, טוען רק נתונים בסיסיים");
       setIsDataLoaded(true);
       return;
     }
@@ -56,6 +63,15 @@ export const useDataLoading = (dispatch: React.Dispatch<FinanceAction>) => {
           categoryMappings: savedData.categoryMappings?.length || 0,
           fullData: savedData
         });
+        
+        // בדיקה אם יש יותר מדי עסקאות (מעל 10,000)
+        if (savedData.transactions && Array.isArray(savedData.transactions) && savedData.transactions.length > 10000) {
+          console.warn("יותר מדי עסקאות - חוסם ייבוא נוסף:", savedData.transactions.length);
+          localStorage.setItem("data_import_blocked", "true");
+          toast.warning("יש יותר מדי עסקאות במערכת", {
+            description: "ייבוא נתונים נוספים חסום עד לניקוי המערכת"
+          });
+        }
         
         // בדיקה ומניעת כפילויות עסקאות
         if (savedData.transactions && Array.isArray(savedData.transactions)) {
@@ -117,7 +133,7 @@ export const useDataLoading = (dispatch: React.Dispatch<FinanceAction>) => {
       console.log("אין נתונים שמורים");
       setIsDataLoaded(true);
     }
-  }, [dispatch, resetAllStoredData, removeDuplicateTransactions, loadDataFromLocalStorage, cleanMonthlyIncomes]);
+  }, [dispatch, resetAllStoredData, removeDuplicateTransactions, loadDataFromLocalStorage, cleanMonthlyIncomes, isImportBlocked]);
 
   return { isDataLoaded };
 };

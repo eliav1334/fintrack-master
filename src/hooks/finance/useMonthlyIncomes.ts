@@ -9,7 +9,7 @@ import { useIncomeFilters } from "./income/useIncomeFilters";
  * משלב את כל הפונקציונליות הקשורה לניהול הכנסות
  */
 export const useMonthlyIncomes = () => {
-  const { resetAllStoredData, enableAutoIncomes } = useSystemReset();
+  const { resetAllStoredData, enableAutoIncomes, isImportBlocked, enableDataImport } = useSystemReset();
   const { addMonthlyIncomes } = useIncomeTransactions();
   const { isMonthlyIncome, cleanMonthlyIncomes } = useIncomeFilters();
 
@@ -18,6 +18,8 @@ export const useMonthlyIncomes = () => {
     cleanMonthlyIncomes,
     isMonthlyIncome,
     resetAllStoredData,
-    enableAutoIncomes
+    enableAutoIncomes,
+    isImportBlocked,
+    enableDataImport
   };
 };

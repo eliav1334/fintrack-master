@@ -4,6 +4,7 @@ import { ParserResult } from "./types";
 import { detectFileType } from "./utils";
 import { parseCSV } from "./csv";
 import { parseExcel } from "./excel";
+import { useSystemReset } from "@/hooks/finance/storage/useSystemReset";
 
 /**
  * מנתח קובץ באמצעות הפרסר המתאים לפי סוג הקובץ
@@ -14,6 +15,47 @@ export const parseFile = async (
   cardFilter?: string[]
 ): Promise<ParserResult> => {
   console.log("Parsing file:", file.name, "type:", file.type, "card filter:", cardFilter);
+  
+  // בדיקה אם ייבוא נתונים חסום
+  if (localStorage.getItem("data_import_blocked") === "true") {
+    console.warn("ייבוא נתונים חסום - המערכת באיפוס או שיש יותר מדי נתונים");
+    return {
+      success: false,
+      error: "ייבוא נתונים חסום. המערכת עברה איפוס לאחרונה או שיש יותר מדי נתונים. נסה שוב מאוחר יותר.",
+    };
+  }
+  
+  // בדיקת גודל הקובץ - הגבלה ל-5MB
+  const maxFileSize = 5 * 1024 * 1024; // 5MB
+  if (file.size > maxFileSize) {
+    console.warn("הקובץ גדול מדי:", file.size, "מקסימום:", maxFileSize);
+    return {
+      success: false,
+      error: "הקובץ גדול מדי. הגודל המקסימלי המותר הוא 5MB.",
+    };
+  }
+  
+  // בדיקת מגבלת ייבוא על פי מספר עסקאות קיימות
+  const currentData = localStorage.getItem("financeState");
+  if (currentData) {
+    try {
+      const parsedData = JSON.parse(currentData);
+      const transactionsCount = parsedData.transactions?.length || 0;
+      
+      // אם יש יותר מ-10,000 עסקאות, חוסמים ייבוא נוסף
+      if (transactionsCount > 10000) {
+        console.warn("יותר מדי עסקאות במערכת:", transactionsCount);
+        localStorage.setItem("data_import_blocked", "true");
+        return {
+          success: false,
+          error: "יש יותר מדי עסקאות במערכת. אנא מחק חלק מהעסקאות או אפס את המערכת לפני ייבוא נוסף.",
+        };
+      }
+    } catch (error) {
+      console.error("שגיאה בבדיקת מספר העסקאות:", error);
+    }
+  }
+  
   const fileType = detectFileType(file);
   console.log("Detected file type:", fileType);
   
