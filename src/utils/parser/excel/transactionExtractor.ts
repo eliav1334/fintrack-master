@@ -1,8 +1,11 @@
 
 import { Transaction, FileImportFormat } from "@/types";
-import { findColumnIndices } from './headerDetection';
 import { formatExcelDate } from './dateUtils';
 import { detectInstallmentDetails } from './installmentUtils';
+import { extractColumnIndices, extractRowValues } from './columnExtractor';
+import { determineTransactionType } from './transactionTypeHandler';
+import { parseAmount, parseTotalAmount } from './amountParser';
+import { generateTransactionNotes, formatOriginalTransactionDate } from './notesGenerator';
 
 /**
  * מיצוי עסקאות מנתוני גליון אקסל
@@ -15,18 +18,7 @@ export const extractTransactionsFromSheet = (
   sheetName?: string
 ): Omit<Transaction, "id">[] => {
   // קבלת אינדקסים של עמודות
-  const indices = findColumnIndices(headers, format);
-  
-  // בדיקת עמודות חובה
-  if (indices.dateIndex === -1 || indices.amountIndex === -1 || indices.descriptionIndex === -1) {
-    console.error("Missing required columns in sheet", sheetName, ". Headers:", headers);
-    const foundCols = [];
-    if (indices.dateIndex !== -1) foundCols.push("תאריך");
-    if (indices.amountIndex !== -1) foundCols.push("סכום");
-    if (indices.descriptionIndex !== -1) foundCols.push("תיאור");
-    
-    throw new Error(`לא זוהו כל העמודות הנדרשות בגליון ${sheetName}. נמצאו: ${foundCols.join(", ")}`);
-  }
+  const indices = extractColumnIndices(headers, format, sheetName);
   
   // ניתוח שורות
   const transactions: Omit<Transaction, "id">[] = [];
@@ -44,31 +36,17 @@ export const extractTransactionsFromSheet = (
     }
     
     // חילוץ ערכים מהשורה
-    let dateValue = row[indices.dateIndex];
-    let amountValue = row[indices.amountIndex];
-    let descriptionValue = row[indices.descriptionIndex];
-    let cardNumberValue = indices.cardNumberIndex !== -1 ? row[indices.cardNumberIndex] : null;
-    let transactionDateValue = indices.transactionDateIndex !== -1 ? row[indices.transactionDateIndex] : null;
-    
-    // שדות תשלומים
-    let totalAmountValue = indices.totalAmountIndex !== -1 ? row[indices.totalAmountIndex] : null;
-    let installmentNumberValue = indices.installmentNumberIndex !== -1 ? row[indices.installmentNumberIndex] : null;
-    let totalInstallmentsValue = indices.totalInstallmentsIndex !== -1 ? row[indices.totalInstallmentsIndex] : null;
-    
-    // שדות נוספים
-    let businessCategoryValue = indices.businessCategoryIndex !== -1 ? row[indices.businessCategoryIndex] : null;
-    let businessIdentifierValue = indices.businessIdentifierIndex !== -1 ? row[indices.businessIdentifierIndex] : null;
-    let transactionCodeValue = indices.transactionCodeIndex !== -1 ? row[indices.transactionCodeIndex] : null;
+    const values = extractRowValues(row, indices);
     
     // דילוג על שורות שאינן מכילות נתוני עסקאות חיוניים
-    if (!dateValue && !amountValue && !descriptionValue) {
+    if (!values.dateValue && !values.amountValue && !values.descriptionValue) {
       continue;
     }
 
     // סינון לפי מספר כרטיס אשראי
-    if (cardFilter?.length && indices.cardNumberIndex !== -1 && cardNumberValue) {
+    if (cardFilter?.length && indices.cardNumberIndex !== -1 && values.cardNumberValue) {
       // המרה למחרוזת במקרה שמדובר במספר או ערך אחר
-      const cardNumberStr = String(cardNumberValue);
+      const cardNumberStr = String(values.cardNumberValue);
       
       // בדיקה אם מספר הכרטיס מוכל בפילטר שהוגדר
       if (!cardFilter.some(filter => cardNumberStr.includes(filter))) {
@@ -78,87 +56,36 @@ export const extractTransactionsFromSheet = (
     }
     
     // טיפול בתאריך - עדיפות לתאריך העסקה אם קיים
-    const dateStr = formatExcelDate(dateValue, format);
+    const dateStr = formatExcelDate(values.dateValue, format);
     
     // מיפוי תאריך העסקה המקורי
-    const originalTransactionDateStr = transactionDateValue ? 
-      formatExcelDate(transactionDateValue, format) : "";
+    const originalTransactionDateStr = values.transactionDateValue ? 
+      formatExcelDate(values.transactionDateValue, format) : "";
     
-    // טיפול בסכום
-    let amount: number;
-    
-    if (typeof amountValue === 'number') {
-      amount = amountValue;
-    } else {
-      // ניקוי הסכום מתווים מיוחדים
-      const amountStr = String(amountValue || '0').replace(/[^\d.-]/g, '');
-      amount = parseFloat(amountStr) || 0;
-    }
-    
-    // טיפול בסכום המקורי של העסקה (לפני תשלומים)
-    let totalAmount: number = 0;
-    if (totalAmountValue) {
-      if (typeof totalAmountValue === 'number') {
-        totalAmount = totalAmountValue;
-      } else {
-        const totalAmountStr = String(totalAmountValue || '0').replace(/[^\d.-]/g, '');
-        totalAmount = parseFloat(totalAmountStr) || 0;
-      }
-    }
+    // פרסור סכומים
+    const amount = parseAmount(values.amountValue);
+    const totalAmount = parseTotalAmount(values.totalAmountValue);
     
     // זיהוי תשלומים
-    const description = String(descriptionValue || '');
+    const description = String(values.descriptionValue || '');
     const installmentDetails = detectInstallmentDetails(
       description, 
       amount,
       totalAmount,
-      installmentNumberValue,
-      totalInstallmentsValue,
+      values.installmentNumberValue,
+      values.totalInstallmentsValue,
       dateStr,
       originalTransactionDateStr,
       format
     );
     
     // קביעת סוג העסקה (הכנסה/הוצאה)
-    let type: "income" | "expense";
-    
-    // בדיקה אם מדובר בפורמט של כרטיס אשראי
+    const typeValue = indices.typeIndex >= 0 ? row[indices.typeIndex] : undefined;
     const isCreditCardFormat = format.name === "כרטיס אשראי ישראלי" || 
                               format.name.includes("אשראי") || 
                               format.creditCardFormat === true;
     
-    if (isCreditCardFormat) {
-      // בכרטיסי אשראי, חיוב (סכום חיובי) הוא הוצאה, זיכוי (סכום שלילי) הוא הכנסה
-      type = amount >= 0 ? "expense" : "income";
-      amount = Math.abs(amount);
-    } else if (indices.typeIndex >= 0 && format.typeIdentifier) {
-      // שימוש במזהה הסוג אם הוגדר בפורמט
-      const typeValue = String(row[indices.typeIndex] || '').toLowerCase();
-      const typeIdentifier = {
-        ...format.typeIdentifier,
-        creditCardLogic: isCreditCardFormat
-      };
-      
-      if (typeIdentifier.incomeValues.some(v => typeValue.includes(v.toLowerCase()))) {
-        type = "income";
-        amount = Math.abs(amount);
-      } else if (typeIdentifier.expenseValues.some(v => typeValue.includes(v.toLowerCase()))) {
-        type = "expense";
-        amount = Math.abs(amount);
-      } else {
-        // התנהגות ברירת מחדל: חיובי = הכנסה, שלילי = הוצאה
-        if (typeIdentifier.creditCardLogic) {
-          type = amount >= 0 ? "expense" : "income";
-        } else {
-          type = amount >= 0 ? "income" : "expense";
-        }
-        amount = Math.abs(amount);
-      }
-    } else {
-      // התנהגות ברירת מחדל על בסיס סימן הסכום
-      type = amount >= 0 ? "income" : "expense";
-      amount = Math.abs(amount);
-    }
+    const { type, amount: finalAmount } = determineTransactionType(amount, format, typeValue, indices);
     
     // קיצור תיאורים ארוכים מדי
     const truncatedDescription = description.length > 100 
@@ -166,46 +93,19 @@ export const extractTransactionsFromSheet = (
       : description;
 
     // יצירת הערות לעסקה
-    let notes = "";
+    const formattedOriginalDate = indices.transactionDateIndex !== -1 && values.transactionDateValue && 
+                                 values.dateValue !== values.transactionDateValue ? 
+                                 formatOriginalTransactionDate(values.transactionDateValue) : "";
     
-    if (isCreditCardFormat) {
-      notes = "יובא מכרטיס אשראי";
-    } else {
-      notes = `יובא מקובץ אקסל - גליון: ${sheetName || "ראשי"}`;
-    }
-    
-    // הוספת מידע לגבי תאריך העסקה להערות
-    if (indices.transactionDateIndex !== -1 && transactionDateValue && dateValue !== transactionDateValue) {
-      let formattedTransactionDate = "";
-      
-      if (typeof transactionDateValue === 'string') {
-        // ניסיון לפרסר את תאריך העסקה
-        const dateMatch = transactionDateValue.match(/(\d{1,2})[-.\/](\d{1,2})[-.\/](\d{2,4})/);
-        if (dateMatch) {
-          const day = dateMatch[1].padStart(2, '0');
-          const month = dateMatch[2].padStart(2, '0');
-          let year = dateMatch[3];
-          if (year.length === 2) year = '20' + year;
-          formattedTransactionDate = `${day}/${month}/${year}`;
-        } else {
-          formattedTransactionDate = transactionDateValue;
-        }
-      } else if (transactionDateValue instanceof Date) {
-        formattedTransactionDate = transactionDateValue.toLocaleDateString('he-IL');
-      }
-      
-      if (formattedTransactionDate) {
-        notes += ` | תאריך עסקה: ${formattedTransactionDate}`;
-      }
-    }
-    
-    // הוספת מידע על תשלומים אם קיים
-    if (installmentDetails && installmentDetails.totalInstallments > 1 && installmentDetails.installmentNumber > 0) {
-      notes += ` | תשלום ${installmentDetails.installmentNumber} מתוך ${installmentDetails.totalInstallments}`;
-    }
+    const notes = generateTransactionNotes(
+      isCreditCardFormat,
+      sheetName,
+      formattedOriginalDate,
+      installmentDetails
+    );
 
     // יצירת מזהה ייחודי לבדיקת כפילויות
-    const uniqueId = `${dateStr}_${amount}_${truncatedDescription}`;
+    const uniqueId = `${dateStr}_${finalAmount}_${truncatedDescription}`;
     if (processedIds.has(uniqueId)) {
       // אם כבר ראינו עסקה זהה, נדלג עליה
       continue;
@@ -215,7 +115,7 @@ export const extractTransactionsFromSheet = (
     // יצירת העסקה
     const transaction: Omit<Transaction, "id"> = {
       date: dateStr,
-      amount,
+      amount: finalAmount,
       description: truncatedDescription,
       type,
       categoryId: indices.categoryIndex >= 0 ? String(row[indices.categoryIndex] || '') : "",
@@ -223,8 +123,8 @@ export const extractTransactionsFromSheet = (
     };
 
     // הוספת מספר כרטיס לעסקה אם קיים
-    if (indices.cardNumberIndex !== -1 && cardNumberValue) {
-      transaction.cardNumber = String(cardNumberValue);
+    if (indices.cardNumberIndex !== -1 && values.cardNumberValue) {
+      transaction.cardNumber = String(values.cardNumberValue);
     }
     
     // הוספת פרטי תשלומים אם קיימים
@@ -234,19 +134,19 @@ export const extractTransactionsFromSheet = (
     }
     
     // הוספת מידע נוסף אם קיים
-    if (indices.transactionCodeIndex !== -1 && transactionCodeValue) {
-      transaction.transactionCode = String(transactionCodeValue);
+    if (indices.transactionCodeIndex !== -1 && values.transactionCodeValue) {
+      transaction.transactionCode = String(values.transactionCodeValue);
     }
     
-    if (indices.businessCategoryIndex !== -1 && businessCategoryValue) {
-      transaction.businessCategory = String(businessCategoryValue);
+    if (indices.businessCategoryIndex !== -1 && values.businessCategoryValue) {
+      transaction.businessCategory = String(values.businessCategoryValue);
     }
     
-    if (indices.businessIdentifierIndex !== -1 && businessIdentifierValue) {
-      transaction.businessIdentifier = String(businessIdentifierValue);
+    if (indices.businessIdentifierIndex !== -1 && values.businessIdentifierValue) {
+      transaction.businessIdentifier = String(values.businessIdentifierValue);
     }
     
-    if (totalAmount > 0 && totalAmount !== amount) {
+    if (totalAmount > 0 && totalAmount !== finalAmount) {
       transaction.originalAmount = totalAmount;
     }
 
