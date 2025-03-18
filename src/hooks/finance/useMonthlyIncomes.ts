@@ -1,3 +1,4 @@
+
 import { generateId } from "@/utils/generateId";
 import { Transaction } from "@/types";
 import { format } from "date-fns";
@@ -36,22 +37,23 @@ export const useMonthlyIncomes = () => {
       localStorage.removeItem("lastTabIndex");
       localStorage.removeItem("lastImportFormat");
       
-      // הסרת כל הגיבויים האוטומטיים (אופציונלי - אפשר להשאיר גיבויים קודמים)
+      // הסרת כל הגיבויים האוטומטיים
       const keysToRemove = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && (
-          key.startsWith("financeState_daily_backup_") ||
-          key.startsWith("financeState_backup_")
-        )) {
-          keysToRemove.push(key);
+        if (key) {
+          if (key.startsWith("financeState_") || 
+              key.includes("backup") || 
+              key.includes("finance")) {
+            keysToRemove.push(key);
+          }
         }
       }
       
       // מחיקת המפתחות שנאספו (מחוץ ללולאה כדי למנוע בעיות באינדקסים)
       keysToRemove.forEach(key => {
         localStorage.removeItem(key);
-        console.log(`נמחק גיבוי: ${key}`);
+        console.log(`נמחק: ${key}`);
       });
       
       // הסרת תאריך הגיבוי האחרון

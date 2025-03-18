@@ -13,10 +13,20 @@ export const useFinanceState = () => {
   const [state, dispatch] = useReducer(financeReducer, initialState);
   const { addMonthlyIncomes, cleanMonthlyIncomes, resetAllStoredData } = useMonthlyIncomes();
   const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [skipAutoIncomes, setSkipAutoIncomes] = useState(false);
   
   // טעינת נתונים מ-localStorage בעת האתחול
   useEffect(() => {
     // בדיקה אם זו פעולת איפוס
+    const isResetMode = localStorage.getItem("reset_in_progress") === "true";
+    if (isResetMode) {
+      console.log("זוהה מצב איפוס מערכת מכוון, דילוג על טעינת נתונים");
+      localStorage.removeItem("reset_in_progress");
+      setIsDataLoaded(true);
+      setSkipAutoIncomes(true);
+      return;
+    }
+    
     if (state.transactions.length === 0 && state.budgets.length === 0 && 
         state.categoryMappings.length === 0 && state.categories.length > 0) {
       console.log("זוהה מצב איפוס מערכת, מנקה את localStorage");
@@ -46,14 +56,19 @@ export const useFinanceState = () => {
         // בדיקה ומניעת כפילויות עסקאות
         if (parsedData.transactions && Array.isArray(parsedData.transactions)) {
           const uniqueTransactions = removeDuplicateTransactions(parsedData.transactions);
-          parsedData.transactions = uniqueTransactions;
+          // סינון כל עסקאות ההכנסה האוטומטיות
+          const filteredTransactions = uniqueTransactions.filter(tx => 
+            !(tx.type === "income" && tx.description === "משכורת חודשית קבועה")
+          );
           
-          if (uniqueTransactions.length < parsedData.transactions.length) {
-            const removed = parsedData.transactions.length - uniqueTransactions.length;
-            console.log(`נמצאו וסוננו ${removed} עסקאות כפולות`);
-            if (removed > 0) {
-              toast.info(`סוננו ${removed} עסקאות כפולות בטעינת הנתונים`);
-            }
+          parsedData.transactions = filteredTransactions;
+          
+          const removedDuplicates = parsedData.transactions.length - uniqueTransactions.length;
+          const removedAutoIncomes = uniqueTransactions.length - filteredTransactions.length;
+          
+          if (removedDuplicates > 0 || removedAutoIncomes > 0) {
+            console.log(`נמצאו וסוננו ${removedDuplicates} עסקאות כפולות ו-${removedAutoIncomes} עסקאות הכנסה אוטומטיות`);
+            toast.info(`סוננו ${removedDuplicates} עסקאות כפולות ו-${removedAutoIncomes} עסקאות הכנסה אוטומטיות`);
           }
         }
         
@@ -80,16 +95,13 @@ export const useFinanceState = () => {
         // סימון שהנתונים נטענו בהצלחה
         setIsDataLoaded(true);
         
-        // הודעה למשתמש שהנתונים נטענו
+        // הודעה למשתמש שהנתונים נטענו רק אם אכן נטענו נתונים
         if (dataWasLoaded) {
           toast.success("הנתונים נטענו בהצלחה", {
             description: `נטענו ${parsedData.transactions?.length || 0} עסקאות, ${parsedData.budgets?.length || 0} תקציבים`
           });
-        } else {
-          // אם אין נתונים מהותיים שנטענו, יצירת הכנסות חודשיות קבועות
-          const monthlyIncomes = addMonthlyIncomes();
-          dispatch({ type: "ADD_TRANSACTIONS", payload: monthlyIncomes });
-          toast.success(`נוספו ${monthlyIncomes.length} עסקאות הכנסה חודשית קבועה`);
+          // מכיוון שנטענו נתונים, נדלג על הוספה אוטומטית של הכנסות חודשיות
+          setSkipAutoIncomes(true);
         }
       } catch (error) {
         console.error("שגיאה בטעינת נתונים מהאחסון המקומי:", error);
@@ -97,37 +109,27 @@ export const useFinanceState = () => {
           description: "לא ניתן היה לטעון את הנתונים השמורים. מאתחל מחדש."
         });
         
-        // שמירת גיבוי של הנתונים הפגומים למקרה שיהיה צורך לשחזרם
-        try {
-          const timestamp = new Date().toISOString();
-          localStorage.setItem(`financeState_backup_${timestamp}`, savedData);
-          console.log(`נשמר גיבוי של הנתונים הפגומים בשם financeState_backup_${timestamp}`);
-        } catch (backupError) {
-          console.error("שגיאה בשמירת גיבוי לנתונים פגומים:", backupError);
-        }
-        
         // איפוס הנתונים והתחלה מחדש
         resetAllStoredData();
-        
-        // הוספת הכנסות חודשיות קבועות
-        setTimeout(() => {
-          const monthlyIncomes = addMonthlyIncomes();
-          dispatch({ type: "ADD_TRANSACTIONS", payload: monthlyIncomes });
-          toast.success(`נוספו ${monthlyIncomes.length} עסקאות הכנסה חודשית קבועה`);
-          setIsDataLoaded(true);
-        }, 800);
+        setIsDataLoaded(true);
       }
     } else {
-      // אם אין נתונים שמורים, יצירת הכנסות חודשיות קבועות
-      console.log("אין נתונים שמורים, מוסיף הכנסות חודשיות קבועות");
+      console.log("אין נתונים שמורים");
+      setIsDataLoaded(true);
+    }
+  }, []);
+
+  // טיפול בהוספת הכנסות חודשיות בהתבסס על מצב הטעינה
+  useEffect(() => {
+    if (isDataLoaded && !skipAutoIncomes && state.transactions.length === 0) {
+      console.log("מוסיף הכנסות חודשיות קבועות");
       setTimeout(() => {
         const monthlyIncomes = addMonthlyIncomes();
         dispatch({ type: "ADD_TRANSACTIONS", payload: monthlyIncomes });
         toast.success(`נוספו ${monthlyIncomes.length} עסקאות הכנסה חודשית קבועה`);
-        setIsDataLoaded(true);
       }, 800);
     }
-  }, []);
+  }, [isDataLoaded, skipAutoIncomes]);
 
   // שמירת נתונים ב-localStorage בכל שינוי
   useEffect(() => {

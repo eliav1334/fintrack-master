@@ -6,8 +6,18 @@ export const systemStateReducer = (state: FinanceState, action: FinanceAction): 
   switch (action.type) {
     case "RESET_STATE":
       // איפוס המערכת למצב התחלתי
+      // שמירת סימון באחסון המקומי שאנחנו במצב איפוס
+      localStorage.setItem("reset_in_progress", "true");
+      console.log("מבצע איפוס מערכת מלא");
+      
       // כאן חשוב להחזיר את האובייקט החדש לגמרי ולא להשתמש במצב הקיים
-      return JSON.parse(JSON.stringify(initialState));
+      // יצירת עותק חדש לחלוטין של ה-initialState
+      const resetState = JSON.parse(JSON.stringify(initialState));
+      
+      // וידוא שאין עסקאות במצב ההתחלתי לאחר איפוס
+      resetState.transactions = [];
+      
+      return resetState;
       
     case "SET_LOADING":
       return {

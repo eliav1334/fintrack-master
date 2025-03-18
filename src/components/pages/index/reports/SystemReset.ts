@@ -7,7 +7,7 @@ import { useMonthlyIncomes } from "@/hooks/finance/useMonthlyIncomes";
 export const useSystemReset = () => {
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
-  const { resetState } = useFinance();
+  const { resetState, deleteAllIncomeTransactions } = useFinance();
   const { resetAllStoredData } = useMonthlyIncomes();
 
   // פונקציה לאיפוס מלא של המערכת
@@ -25,15 +25,18 @@ export const useSystemReset = () => {
         throw new Error("שגיאה באיפוס נתוני LocalStorage");
       }
       
-      // שלב 2: איפוס ה-state במערכת
+      // שלב 2: מחיקת כל עסקאות ההכנסה האוטומטיות
+      deleteAllIncomeTransactions();
+      
+      // שלב 3: איפוס ה-state במערכת
       resetState();
       
-      // שלב 3: הודעה למשתמש
+      // שלב 4: הודעה למשתמש
       toast.success("המערכת אופסה בהצלחה", {
-        description: "כל הנתונים נמחקו. האפליקציה תתרענן עם נתונים ראשוניים בלבד."
+        description: "כל הנתונים נמחקו. האפליקציה תתרענן כדי להשלים את האיפוס."
       });
       
-      // רענון הדף לאחר האיפוס
+      // רענון הדף לאחר האיפוס להבטחת איפוס מלא
       setTimeout(() => {
         window.location.reload();
       }, 1500);
