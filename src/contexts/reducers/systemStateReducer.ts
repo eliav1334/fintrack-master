@@ -10,6 +10,31 @@ export const systemStateReducer = (state: FinanceState, action: FinanceAction): 
       localStorage.setItem("reset_in_progress", "true");
       localStorage.setItem("skip_auto_incomes", "true");
       localStorage.setItem("permanent_skip_auto_incomes", "true");
+      
+      // מחיקת הנתונים מ-localStorage
+      const itemsToKeep = ["permanent_skip_auto_incomes", "reset_in_progress", "skip_auto_incomes"];
+      
+      // שמירת המצב הנוכחי של פריטים שרוצים לשמור
+      const preservedItems = {};
+      itemsToKeep.forEach(key => {
+        preservedItems[key] = localStorage.getItem(key);
+      });
+      
+      // ניקוי כל הנתונים מ-localStorage
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && !itemsToKeep.includes(key)) {
+          localStorage.removeItem(key);
+        }
+      }
+      
+      // שחזור הפריטים שרצינו לשמור
+      Object.entries(preservedItems).forEach(([key, value]) => {
+        if (value) {
+          localStorage.setItem(key, value);
+        }
+      });
+      
       console.log("מבצע איפוס מערכת מלא");
       
       // כאן חשוב להחזיר את האובייקט החדש לגמרי ולא להשתמש במצב הקיים

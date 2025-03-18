@@ -13,56 +13,42 @@ export const useMonthlyIncomes = () => {
     try {
       console.log("מתחיל תהליך איפוס נתונים מלא...");
       
-      // שמירת גיבוי לפני ניקוי מלא
-      const currentData = localStorage.getItem("financeState");
-      if (currentData) {
-        const timestamp = new Date().toISOString();
-        localStorage.setItem(`financeState_before_reset_${timestamp}`, currentData);
-        console.log(`גיבוי נשמר לפני מחיקה: financeState_before_reset_${timestamp}`);
-      }
-      
-      // מחיקת הנתונים העיקריים
-      localStorage.removeItem("financeState");
-      
-      // מחיקת נתוני טפסים זמניים
-      localStorage.removeItem("transaction_form_data");
-      localStorage.removeItem("budget_form_data");
-      localStorage.removeItem("category_form_data");
-      localStorage.removeItem("import_settings");
-      
-      // מחיקת הגדרות שמורות
-      localStorage.removeItem("lastSelectedMonth");
-      localStorage.removeItem("lastSelectedYear");
-      localStorage.removeItem("lastViewMode");
-      localStorage.removeItem("lastTabIndex");
-      localStorage.removeItem("lastImportFormat");
-      
-      // הסרת כל הגיבויים האוטומטיים
-      const keysToRemove = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key) {
-          if (key.startsWith("financeState_") || 
-              key.includes("backup") || 
-              key.includes("finance")) {
-            keysToRemove.push(key);
-          }
+      // שמירת גיבוי לפני ניקוי מלא (רק אם המשתמש רוצה)
+      const shouldBackup = localStorage.getItem("backup_before_reset") === "true";
+      if (shouldBackup) {
+        const currentData = localStorage.getItem("financeState");
+        if (currentData) {
+          const timestamp = new Date().toISOString();
+          localStorage.setItem(`financeState_before_reset_${timestamp}`, currentData);
+          console.log(`גיבוי נשמר לפני מחיקה: financeState_before_reset_${timestamp}`);
         }
       }
       
-      // מחיקת המפתחות שנאספו (מחוץ ללולאה כדי למנוע בעיות באינדקסים)
-      keysToRemove.forEach(key => {
-        localStorage.removeItem(key);
-        console.log(`נמחק: ${key}`);
-      });
-      
-      // הגדרה מפורשת לדילוג על הוספת הכנסות אוטומטיות, כולל הגדרה קבועה
+      // מוודא שיש דילוג על הוספת הכנסות אוטומטיות
       localStorage.setItem("skip_auto_incomes", "true");
-      localStorage.setItem("reset_in_progress", "true");
       localStorage.setItem("permanent_skip_auto_incomes", "true");
       
-      // הסרת תאריך הגיבוי האחרון
-      localStorage.removeItem("lastBackupDate");
+      // מחיקת כל הנתונים בלוקאל סטורג' מלבד סימון הדילוג הקבוע
+      const itemsToKeep = ["permanent_skip_auto_incomes"];
+      
+      // שמירת המצב הנוכחי של פריטים שרוצים לשמור
+      const preservedItems = {};
+      itemsToKeep.forEach(key => {
+        preservedItems[key] = localStorage.getItem(key);
+      });
+      
+      // ניקוי מלא של LocalStorage
+      localStorage.clear();
+      
+      // שחזור הפריטים שרצינו לשמור
+      Object.entries(preservedItems).forEach(([key, value]) => {
+        if (value) {
+          localStorage.setItem(key, value);
+        }
+      });
+      
+      // מסמן שאנחנו במצב איפוס
+      localStorage.setItem("reset_in_progress", "true");
       
       console.log("איפוס נתונים הושלם בהצלחה");
       
@@ -83,7 +69,8 @@ export const useMonthlyIncomes = () => {
   const addMonthlyIncomes = (): Transaction[] => {
     // בדיקה אם יש סימון לדלג על הוספת הכנסות אוטומטיות
     if (localStorage.getItem("skip_auto_incomes") === "true" || 
-        localStorage.getItem("permanent_skip_auto_incomes") === "true") {
+        localStorage.getItem("permanent_skip_auto_incomes") === "true" ||
+        localStorage.getItem("reset_in_progress") === "true") {
       console.log("מדלג על הוספת הכנסות חודשיות קבועות לפי סימון");
       localStorage.removeItem("skip_auto_incomes");
       return [];
@@ -143,10 +130,21 @@ export const useMonthlyIncomes = () => {
     return transactions.filter(tx => !isMonthlyIncome(tx));
   };
 
+  /**
+   * הפעלת התכונה של הוספת הכנסות אוטומטיות (רק לשימוש אדמין)
+   */
+  const enableAutoIncomes = () => {
+    localStorage.removeItem("permanent_skip_auto_incomes");
+    localStorage.removeItem("skip_auto_incomes");
+    localStorage.setItem("enable_auto_incomes", "true");
+    return true;
+  };
+
   return {
     addMonthlyIncomes,
     cleanMonthlyIncomes,
     isMonthlyIncome,
-    resetAllStoredData
+    resetAllStoredData,
+    enableAutoIncomes
   };
 };

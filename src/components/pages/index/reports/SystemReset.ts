@@ -21,6 +21,7 @@ export const useSystemReset = () => {
       // וידוא שאנחנו מסמנים לדלג על הוספת הכנסות אוטומטיות, כולל סימון קבוע
       localStorage.setItem("skip_auto_incomes", "true");
       localStorage.setItem("permanent_skip_auto_incomes", "true");
+      localStorage.setItem("reset_in_progress", "true");
       
       // שלב 1: מחיקת כל הנתונים ב-localStorage
       const resetSuccess = resetAllStoredData();
@@ -37,7 +38,7 @@ export const useSystemReset = () => {
       
       // שלב 4: הודעה למשתמש
       toast.success("המערכת אופסה בהצלחה", {
-        description: "כל הנתונים נמחקו. האפליקציה תתרענן כדי להשלים את האיפוס."
+        description: "כל הנתונים נמחקו מהמטמון והמערכת. המערכת תתרענן כדי להשלים את האיפוס."
       });
       
       // רענון הדף לאחר האיפוס להבטחת איפוס מלא

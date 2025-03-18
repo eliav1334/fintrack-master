@@ -22,6 +22,17 @@ export const useDataLoading = (dispatch: React.Dispatch<FinanceAction>) => {
     if (isResetMode) {
       console.log("זוהה מצב איפוס מערכת מכוון, דילוג על טעינת נתונים");
       localStorage.removeItem("reset_in_progress");
+      
+      // מוודא שהדגל להדילוג על הכנסות אוטומטיות מוגדר
+      localStorage.setItem("permanent_skip_auto_incomes", "true");
+      
+      // מחיקת כל הנתונים מהמטמון
+      Object.keys(localStorage).forEach(key => {
+        if (key !== "permanent_skip_auto_incomes") {
+          localStorage.removeItem(key);
+        }
+      });
+      
       setIsDataLoaded(true);
       return;
     }
