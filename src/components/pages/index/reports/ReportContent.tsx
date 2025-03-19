@@ -6,6 +6,7 @@ import BackupDialog from "./BackupDialog";
 import ResetDialog from "./ResetDialog";
 import ImportBlockInfo from "./ImportBlockInfo";
 import { useSystemReset } from "./SystemReset";
+import { useBackupManager } from "./BackupManager";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function ReportContent() {
@@ -17,6 +18,16 @@ export default function ReportContent() {
     enableDataImport,
     isImportBlocked
   } = useSystemReset();
+  
+  // Adding the backup manager hook
+  const {
+    backups,
+    showBackupDialog,
+    setShowBackupDialog,
+    selectedBackup,
+    setSelectedBackup,
+    restoreBackup
+  } = useBackupManager();
 
   return (
     <div className="space-y-4">
@@ -35,7 +46,12 @@ export default function ReportContent() {
           />
           
           <SystemStats />
-          <ActionButtons onResetClick={() => setShowResetDialog(true)} />
+          <ActionButtons 
+            backupsCount={backups.length}
+            onShowBackupDialog={() => setShowBackupDialog(true)} 
+            onShowResetDialog={() => setShowResetDialog(true)}
+            isResetting={isResetting}
+          />
         </CardContent>
       </Card>
 
@@ -49,7 +65,14 @@ export default function ReportContent() {
         isImportBlocked={isImportBlocked}
       />
       
-      <BackupDialog />
+      <BackupDialog 
+        open={showBackupDialog}
+        onOpenChange={setShowBackupDialog}
+        backups={backups}
+        selectedBackup={selectedBackup}
+        onBackupChange={setSelectedBackup}
+        onRestore={restoreBackup}
+      />
     </div>
   );
 }
