@@ -31,8 +31,8 @@ export const useDataPersistence = (state: FinanceState, isDataLoaded: boolean) =
     }
     
     try {
-      // בדיקה אם יש יותר מדי עסקאות (מעל 25,000)
-      if (state.transactions.length > 25000) {
+      // בדיקה אם יש יותר מדי עסקאות (מעל 50,000)
+      if (state.transactions.length > 50000) {
         console.warn("יותר מדי עסקאות - חוסם ייבוא נוסף:", state.transactions.length);
         
         // רק אם אין דריסת חסימה, מפעילים את החסימה
@@ -70,8 +70,10 @@ export const useDataPersistence = (state: FinanceState, isDataLoaded: boolean) =
       if (error instanceof Error && error.name === "QuotaExceededError") {
         console.error("חריגת מכסת אחסון - חוסם ייבוא נוסף", error);
         localStorage.setItem("data_import_blocked", "true");
+        
+        // מבקש מהמשתמש לנקות חלק מהנתונים אך לא חוסם באופן מוחלט
         toast.error("חריגת מכסת אחסון", {
-          description: "אין מספיק מקום לשמור את כל הנתונים. אנא אפס את המערכת או מחק נתונים מיותרים."
+          description: "אין מספיק מקום לשמור את כל הנתונים. מומלץ למחוק חלק מהנתונים או ליצור גיבוי ולאפס."
         });
       } else {
         toast.error("שגיאה בשמירת נתונים", {

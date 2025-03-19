@@ -26,11 +26,14 @@ export const useSystemReset = () => {
       
       // סימון שאיפוס בתהליך (למניעת טעינת נתונים חדשים)
       localStorage.setItem("reset_in_progress", "true");
-      localStorage.setItem("data_import_blocked", "true");
       
-      // הגדרת מגבלת ייבוא קבצים
+      // במקום לחסום ייבוא נתונים באופן מיידי, נגדיר את מגבלת הזמן קצרה יותר
       const currentTime = new Date().getTime();
       localStorage.setItem("last_import_reset", currentTime.toString());
+      // חסימת ייבוא רק אם המשתמש לא ביקש אחרת
+      if (options.blockImport !== false) {
+        localStorage.setItem("data_import_blocked", "true");
+      }
       
       // מחיקה של מפתחות ספציפיים תוך שמירת גיבויים
       const keysToKeep = [
@@ -103,8 +106,8 @@ export const useSystemReset = () => {
       const currentTime = new Date().getTime();
       const hoursSinceOverride = (currentTime - overrideTime) / (1000 * 60 * 60);
       
-      // אם עברו פחות מ-24 שעות מאז הדריסה, מתעלמים מהחסימה
-      if (hoursSinceOverride < 24) {
+      // אם עברו פחות מ-48 שעות מאז הדריסה, מתעלמים מהחסימה
+      if (hoursSinceOverride < 48) {
         return false;
       }
     }
@@ -112,15 +115,15 @@ export const useSystemReset = () => {
     // בדיקה אם יש חסימת ייבוא גורפת
     const isBlocked = localStorage.getItem("data_import_blocked") === "true";
     
-    // בדיקה אם חלף מספיק זמן מאז האיפוס האחרון (8 שעות במקום 24)
+    // בדיקה אם חלף מספיק זמן מאז האיפוס האחרון (4 שעות במקום 8)
     const lastResetTimestamp = localStorage.getItem("last_import_reset");
     if (lastResetTimestamp) {
       const lastReset = parseInt(lastResetTimestamp);
       const currentTime = new Date().getTime();
       const hoursSinceReset = (currentTime - lastReset) / (1000 * 60 * 60);
       
-      // אם עברו יותר מ-8 שעות מאז האיפוס, מסירים את החסימה
-      if (hoursSinceReset > 8) {
+      // אם עברו יותר מ-4 שעות מאז האיפוס, מסירים את החסימה
+      if (hoursSinceReset > 4) {
         localStorage.removeItem("data_import_blocked");
         return false;
       }
@@ -133,8 +136,8 @@ export const useSystemReset = () => {
         const parsedData = JSON.parse(currentData);
         const transactionsCount = parsedData.transactions?.length || 0;
         
-        // מעלים את הסף ל-25,000 עסקאות במקום 10,000
-        if (transactionsCount > 25000) {
+        // מעלים את הסף ל-50,000 עסקאות במקום 25,000
+        if (transactionsCount > 50000) {
           localStorage.setItem("data_import_blocked", "true");
           return true;
         }
@@ -153,11 +156,11 @@ export const useSystemReset = () => {
     localStorage.removeItem("data_import_blocked");
     localStorage.removeItem("reset_in_progress");
     
-    // רישום דריסת החסימה לטווח של 24 שעות
+    // רישום דריסת החסימה לטווח של 48 שעות במקום 24
     const currentTime = new Date().getTime();
     localStorage.setItem("import_override_time", currentTime.toString());
     
-    toast.success("ייבוא נתונים הופעל מחדש לטווח של 24 שעות");
+    toast.success("ייבוא נתונים הופעל מחדש לטווח של 48 שעות");
     setImportBlocked(false);
   }, []);
 

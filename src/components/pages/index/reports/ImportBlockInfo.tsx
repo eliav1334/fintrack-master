@@ -21,8 +21,8 @@ const ImportBlockInfo: React.FC<ImportBlockInfoProps> = ({
       <AlertTitle>ייבוא נתונים חסום</AlertTitle>
       <AlertDescription className="flex flex-col gap-2">
         <p>
-          המערכת עברה איפוס לאחרונה או שיש יותר מדי נתונים (מעל 10,000 עסקאות).
-          ניתן לאפשר ייבוא נתונים מחדש בלחיצה על הכפתור למטה.
+          המערכת עברה איפוס לאחרונה או שיש יותר מדי נתונים (מעל 50,000 עסקאות).
+          ניתן לאפשר ייבוא נתונים מחדש בלחיצה על הכפתור למטה. האישור יישאר בתוקף למשך 48 שעות.
         </p>
         <div className="flex justify-end mt-2">
           <Button 

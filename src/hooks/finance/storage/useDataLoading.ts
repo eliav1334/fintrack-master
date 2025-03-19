@@ -28,23 +28,14 @@ export const useDataLoading = (dispatch: React.Dispatch<FinanceAction>) => {
       // מוודא שהדגל להדילוג על הכנסות אוטומטיות מוגדר
       localStorage.setItem("permanent_skip_auto_incomes", "true");
       
-      // מחיקת כל הנתונים מהמטמון
-      Object.keys(localStorage).forEach(key => {
-        if (key !== "permanent_skip_auto_incomes" && key !== "data_import_blocked") {
-          localStorage.removeItem(key);
-        }
-      });
+      // הסרת חסימת ייבוא אוטומטית
+      localStorage.removeItem("data_import_blocked");
       
       setIsDataLoaded(true);
       return;
     }
     
-    // בדיקה אם יש חסימת ייבוא נתונים
-    if (isImportBlocked()) {
-      console.log("ייבוא נתונים חסום, טוען רק נתונים בסיסיים");
-      setIsDataLoaded(true);
-      return;
-    }
+    // מתעלמים מחסימת ייבוא בזמן טעינה ראשונית, כי אנחנו רק קוראים ולא כותבים נתונים חדשים
     
     // ניסיון לטעון נתונים שמורים
     const savedData = loadDataFromLocalStorage("financeState");
@@ -63,12 +54,12 @@ export const useDataLoading = (dispatch: React.Dispatch<FinanceAction>) => {
           categoryMappings: savedData.categoryMappings?.length || 0
         });
         
-        // בדיקה אם יש יותר מדי עסקאות (מעל 10,000)
-        if (savedData.transactions && Array.isArray(savedData.transactions) && savedData.transactions.length > 10000) {
-          console.warn("יותר מדי עסקאות - חוסם ייבוא נוסף:", savedData.transactions.length);
-          localStorage.setItem("data_import_blocked", "true");
+        // בדיקה אם יש יותר מדי עסקאות (מעל 50,000)
+        if (savedData.transactions && Array.isArray(savedData.transactions) && savedData.transactions.length > 50000) {
+          console.warn("יותר מדי עסקאות - אך עדיין טוען את הנתונים:", savedData.transactions.length);
+          // לא חוסמים באופן אוטומטי, רק מציגים התראה
           toast.warning("יש יותר מדי עסקאות במערכת", {
-            description: "ייבוא נתונים נוספים חסום עד לניקוי המערכת"
+            description: "מומלץ לאפס את המערכת או למחוק עסקאות ישנות בהקדם"
           });
         }
         

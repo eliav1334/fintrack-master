@@ -33,7 +33,7 @@ export const useSystemReset = () => {
   const handleEnableDataImport = () => {
     try {
       enableDataImport();
-      toast.success("ייבוא נתונים הופעל מחדש");
+      toast.success("ייבוא נתונים הופעל מחדש ל-48 שעות");
       setIsImportBlocked(false);
     } catch (error) {
       console.error("שגיאה בהפעלת ייבוא נתונים:", error);
@@ -53,10 +53,16 @@ export const useSystemReset = () => {
       localStorage.setItem("skip_auto_incomes", "true");
       localStorage.setItem("permanent_skip_auto_incomes", "true");
       localStorage.setItem("reset_in_progress", "true");
-      localStorage.setItem("data_import_blocked", "true");
+      
+      // שינוי: לא מגדירים חסימת ייבוא באופן אוטומטי
+      // נותנים למשתמש לבחור אם לחסום ייבוא או לא
       
       // שלב 1: מחיקת נתונים ב-localStorage עם שמירת גיבויים
-      const resetSuccess = resetAllStoredData({ keepBackups: true });
+      // ללא חסימת ייבוא אוטומטית
+      const resetSuccess = resetAllStoredData({ 
+        keepBackups: true,
+        blockImport: false
+      });
       
       if (!resetSuccess) {
         throw new Error("שגיאה באיפוס נתוני LocalStorage");
