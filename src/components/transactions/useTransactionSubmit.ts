@@ -73,6 +73,18 @@ export const useTransactionSubmit = ({
           description: "העסקה עודכנה בהצלחה",
         });
       } else {
+        // בדוק אם העסקה כבר קיימת לפני הוספה
+        const isDuplicate = checkForDuplicateTransaction(transactionData);
+        
+        if (isDuplicate) {
+          toast({
+            title: "שגיאה",
+            description: "עסקה דומה כבר קיימת במערכת",
+            variant: "destructive",
+          });
+          return;
+        }
+        
         addTransaction(transactionData as Omit<Transaction, "id">);
         
         // Auto-categorize similar transactions for new transactions with categories
@@ -101,6 +113,17 @@ export const useTransactionSubmit = ({
         variant: "destructive",
       });
     }
+  };
+  
+  /**
+   * בדיקה אם עסקה דומה כבר קיימת במערכת
+   */
+  const checkForDuplicateTransaction = (transaction: Partial<Transaction>): boolean => {
+    return state.transactions.some(tx => 
+      tx.date === transaction.date && 
+      Math.abs(tx.amount - (transaction.amount || 0)) < 0.01 && // השוואת סכומים עם סבילות קטנה לשגיאות עיגול
+      tx.description === transaction.description
+    );
   };
   
   /**

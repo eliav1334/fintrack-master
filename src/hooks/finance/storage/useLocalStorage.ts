@@ -55,30 +55,62 @@ export const useLocalStorage = () => {
   };
 
   /**
-   * הסרת כפילויות בעסקאות
+   * הסרת כפילויות בעסקאות - גרסה משופרת
    */
   const removeDuplicateTransactions = (transactions: Transaction[]): Transaction[] => {
+    if (!transactions || !Array.isArray(transactions)) {
+      console.warn("נתוני עסקאות לא תקינים לסינון כפילויות:", transactions);
+      return [];
+    }
+    
+    console.log(`בודק כפילויות בין ${transactions.length} עסקאות`);
     const seen = new Map();
-    return transactions.filter(transaction => {
-      // יצירת מזהה ייחודי על בסיס שדות חשובים בעסקה
-      const key = `${transaction.date}_${transaction.amount}_${transaction.description}`;
+    const duplicateIds = new Set<string>(); // מעקב אחר עסקאות כפולות
+    
+    // יצירת מפתחות ראשוניים לכל העסקאות
+    transactions.forEach(transaction => {
+      // יצירת מזהה ייחודי מורכב מהשדות החשובים
+      const simpleKey = `${transaction.date}_${transaction.amount}_${transaction.description}`;
       
-      if (seen.has(key)) {
-        // אם כבר ראינו עסקה דומה, נבדוק איזו לשמור
-        const existing = seen.get(key);
-        
-        // אם יש זיהוי קטגוריה לעסקה הנוכחית ולא לקיימת, נעדיף את הנוכחית
-        if (transaction.categoryId && !existing.categoryId) {
-          seen.set(key, transaction);
-          return true;
-        }
-        
-        return false; // נשמור את הראשונה שמצאנו
+      // יצירת מזהה מורחב עם פרטים נוספים אם קיימים
+      let complexKey = simpleKey;
+      
+      if (transaction.transactionCode) {
+        complexKey += `_${transaction.transactionCode}`;
+      }
+      
+      if (transaction.cardNumber) {
+        complexKey += `_${transaction.cardNumber}`;
+      }
+      
+      if (transaction.isInstallment && transaction.installmentDetails) {
+        complexKey += `_${transaction.installmentDetails.installmentNumber}_${transaction.installmentDetails.totalInstallments}`;
+      }
+      
+      // שמירת המזהים למפה
+      if (!seen.has(simpleKey)) {
+        seen.set(simpleKey, transaction);
       } else {
-        seen.set(key, transaction);
-        return true;
+        duplicateIds.add(transaction.id);
+      }
+      
+      if (simpleKey !== complexKey && !seen.has(complexKey)) {
+        seen.set(complexKey, transaction);
+      } else if (simpleKey !== complexKey) {
+        duplicateIds.add(transaction.id);
       }
     });
+    
+    // סינון העסקאות הכפולות
+    const uniqueTransactions = transactions.filter(transaction => !duplicateIds.has(transaction.id));
+    
+    // לוג מספר העסקאות שהוסרו
+    const removedCount = transactions.length - uniqueTransactions.length;
+    if (removedCount > 0) {
+      console.log(`הוסרו ${removedCount} עסקאות כפולות`);
+    }
+    
+    return uniqueTransactions;
   };
 
   return {

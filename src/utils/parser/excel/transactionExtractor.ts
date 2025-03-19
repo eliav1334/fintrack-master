@@ -24,6 +24,8 @@ export const extractTransactionsFromSheet = (
   const transactions: Omit<Transaction, "id">[] = [];
   const processedIds = new Set<string>(); // סט למעקב אחר עסקאות שכבר עובדו
   
+  console.log(`Processing Excel sheet with ${jsonData.length} rows for format: ${format.name}`);
+  
   for (let i = 0; i < jsonData.length; i++) {
     const row = jsonData[i];
     if (!row || !Array.isArray(row) || row.length < Math.max(indices.dateIndex, indices.amountIndex, indices.descriptionIndex) + 1) {
@@ -104,13 +106,34 @@ export const extractTransactionsFromSheet = (
       installmentDetails
     );
 
-    // יצירת מזהה ייחודי לבדיקת כפילויות
-    const uniqueId = `${dateStr}_${finalAmount}_${truncatedDescription}`;
-    if (processedIds.has(uniqueId)) {
-      // אם כבר ראינו עסקה זהה, נדלג עליה
+    // יצירת מזהה ייחודי מורחב לבדיקת כפילויות
+    // כולל מספר יותר שדות לזיהוי ייחודי
+    let uniqueId = `${dateStr}_${finalAmount}_${truncatedDescription}`;
+    
+    // הוספת נתונים נוספים למזהה אם קיימים
+    if (values.transactionCodeValue) {
+      uniqueId += `_${values.transactionCodeValue}`;
+    }
+    
+    if (values.cardNumberValue) {
+      uniqueId += `_${values.cardNumberValue}`;
+    }
+    
+    if (installmentDetails) {
+      uniqueId += `_${installmentDetails.installmentNumber}_${installmentDetails.totalInstallments}`;
+    }
+    
+    // בדיקה כפולה - גם לפי מזהה ייחודי וגם לפי שילוב של תאריך + סכום + תיאור
+    const simpleId = `${dateStr}_${finalAmount}_${truncatedDescription}`;
+    
+    if (processedIds.has(uniqueId) || processedIds.has(simpleId)) {
+      console.log(`Skipping duplicate transaction: ${truncatedDescription} (${dateStr}, ${finalAmount})`);
       continue;
     }
+    
+    // שמירת המזהים לצורך בדיקת כפילויות
     processedIds.add(uniqueId);
+    processedIds.add(simpleId);
 
     // יצירת העסקה
     const transaction: Omit<Transaction, "id"> = {
@@ -153,5 +176,6 @@ export const extractTransactionsFromSheet = (
     transactions.push(transaction);
   }
   
+  console.log(`Extracted ${transactions.length} unique transactions from Excel sheet`);
   return transactions;
 };

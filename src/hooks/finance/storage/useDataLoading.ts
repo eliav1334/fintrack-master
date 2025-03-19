@@ -60,8 +60,7 @@ export const useDataLoading = (dispatch: React.Dispatch<FinanceAction>) => {
         console.log("נטענו נתונים מהאחסון המקומי:", {
           transactions: savedData.transactions?.length || 0,
           budgets: savedData.budgets?.length || 0,
-          categoryMappings: savedData.categoryMappings?.length || 0,
-          fullData: savedData
+          categoryMappings: savedData.categoryMappings?.length || 0
         });
         
         // בדיקה אם יש יותר מדי עסקאות (מעל 10,000)
@@ -75,13 +74,15 @@ export const useDataLoading = (dispatch: React.Dispatch<FinanceAction>) => {
         
         // בדיקה ומניעת כפילויות עסקאות
         if (savedData.transactions && Array.isArray(savedData.transactions)) {
+          const originalCount = savedData.transactions.length;
+          // סינון כפילויות
           const uniqueTransactions = removeDuplicateTransactions(savedData.transactions);
           // סינון כל עסקאות ההכנסה האוטומטיות
           const filteredTransactions = cleanMonthlyIncomes(uniqueTransactions);
           
           savedData.transactions = filteredTransactions;
           
-          const removedDuplicates = savedData.transactions.length - uniqueTransactions.length;
+          const removedDuplicates = originalCount - uniqueTransactions.length;
           const removedAutoIncomes = uniqueTransactions.length - filteredTransactions.length;
           
           if (removedDuplicates > 0 || removedAutoIncomes > 0) {
@@ -94,6 +95,7 @@ export const useDataLoading = (dispatch: React.Dispatch<FinanceAction>) => {
         let dataWasLoaded = false;
         
         if (savedData.transactions && Array.isArray(savedData.transactions) && savedData.transactions.length > 0) {
+          // טעינה של עסקאות ייחודיות בלבד
           dispatch({ type: "ADD_TRANSACTIONS", payload: savedData.transactions });
           dataWasLoaded = true;
         }

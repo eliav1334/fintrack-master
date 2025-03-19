@@ -14,6 +14,8 @@ export const processCSVLines = (
   cardFilter?: string[]
 ): ParserResult => {
   try {
+    console.log(`Processing CSV with ${lines.length} lines for format: ${format.name}`);
+    
     // אימות קיום עמודות נדרשות
     const requiredColumns = ["amount", "date", "description"];
     const mapping = format.mapping;
@@ -103,18 +105,31 @@ export const processCSVLines = (
         createdAt: new Date().toISOString()
       };
 
-      // יצירת מזהה ייחודי לבדיקת כפילויות
-      const uniqueId = `${transaction.date}_${transaction.amount}_${transaction.description}`;
-      if (processedIds.has(uniqueId)) {
-        // אם כבר ראינו עסקה זהה, נדלג עליה
-        continue;
+      // יצירת מזהה ייחודי מורחב לבדיקת כפילויות
+      let uniqueId = `${transaction.date}_${transaction.amount}_${transaction.description}`;
+      
+      // הוספת נתונים נוספים למזהה אם קיימים
+      if (transactionCodeIndex !== -1 && values[transactionCodeIndex]) {
+        uniqueId += `_${values[transactionCodeIndex]}`;
+        transaction.transactionCode = values[transactionCodeIndex];
       }
-      processedIds.add(uniqueId);
-
-      // הוספת מספר כרטיס לעסקה אם קיים
+      
       if (cardNumberIndex !== -1 && values[cardNumberIndex]) {
+        uniqueId += `_${values[cardNumberIndex]}`;
         transaction.cardNumber = values[cardNumberIndex];
       }
+      
+      // בדיקה כפולה - גם לפי מזהה ייחודי וגם לפי שילוב של תאריך + סכום + תיאור
+      const simpleId = `${transaction.date}_${transaction.amount}_${transaction.description}`;
+      
+      if (processedIds.has(uniqueId) || processedIds.has(simpleId)) {
+        console.log(`Skipping duplicate CSV transaction: ${transaction.description} (${transaction.date}, ${transaction.amount})`);
+        continue;
+      }
+      
+      // שמירת המזהים לצורך בדיקת כפילויות
+      processedIds.add(uniqueId);
+      processedIds.add(simpleId);
       
       // זיהוי תשלומים מהתיאור וחילוץ פרטיהם
       const installmentInfo = detectInstallments({
@@ -137,13 +152,13 @@ export const processCSVLines = (
         transaction.isInstallment = true;
         transaction.installmentDetails = installmentInfo.details;
         transaction.notes = `יובא מקובץ | תשלום ${installmentInfo.details.installmentNumber} מתוך ${installmentInfo.details.totalInstallments}`;
+        
+        // עדכון המזהה הייחודי כך שיכלול מידע על תשלומים
+        const installmentUniqueId = `${uniqueId}_${installmentInfo.details.installmentNumber}_${installmentInfo.details.totalInstallments}`;
+        processedIds.add(installmentUniqueId);
       }
       
       // הוספת מידע נוסף אם קיים
-      if (transactionCodeIndex !== -1 && values[transactionCodeIndex]) {
-        transaction.transactionCode = values[transactionCodeIndex];
-      }
-      
       if (businessCategoryIndex !== -1 && values[businessCategoryIndex]) {
         transaction.businessCategory = values[businessCategoryIndex];
       }
@@ -155,6 +170,7 @@ export const processCSVLines = (
       data.push(transaction);
     }
 
+    console.log(`Extracted ${data.length} unique transactions from CSV`);
     return { success: true, data };
   } catch (error) {
     console.error("Error processing CSV lines:", error);
