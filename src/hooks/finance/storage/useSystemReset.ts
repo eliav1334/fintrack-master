@@ -1,11 +1,18 @@
 
-import { useCallback } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { toast } from "sonner";
 
 /**
  * Hook for system reset functionality
  */
 export const useSystemReset = () => {
+  const [importBlocked, setImportBlocked] = useState(false);
+
+  // בדיקה האם ייבוא נתונים חסום בעת טעינת הרכיב
+  useEffect(() => {
+    setImportBlocked(isImportBlocked());
+  }, []);
+
   /**
    * Resets all stored data in localStorage
    */
@@ -44,6 +51,7 @@ export const useSystemReset = () => {
       });
       
       console.log("איפוס LocalStorage הושלם בהצלחה");
+      setImportBlocked(true);
       return true;
     } catch (error) {
       console.error("שגיאה באיפוס LocalStorage:", error);
@@ -82,6 +90,23 @@ export const useSystemReset = () => {
       }
     }
     
+    // בדיקה אם יש יותר מדי עסקאות
+    const currentData = localStorage.getItem("financeState");
+    if (currentData) {
+      try {
+        const parsedData = JSON.parse(currentData);
+        const transactionsCount = parsedData.transactions?.length || 0;
+        
+        // אם יש יותר מ-10,000 עסקאות, חוסמים ייבוא
+        if (transactionsCount > 10000) {
+          localStorage.setItem("data_import_blocked", "true");
+          return true;
+        }
+      } catch (error) {
+        console.error("שגיאה בבדיקת מספר עסקאות:", error);
+      }
+    }
+    
     return isBlocked;
   }, []);
   
@@ -90,7 +115,14 @@ export const useSystemReset = () => {
    */
   const enableDataImport = useCallback(() => {
     localStorage.removeItem("data_import_blocked");
+    localStorage.removeItem("reset_in_progress");
+    
+    // גם אם יש יותר מ-10,000 עסקאות, נאפשר ייבוא חד פעמי
+    const currentTime = new Date().getTime();
+    localStorage.setItem("import_override_time", currentTime.toString());
+    
     toast.success("ייבוא נתונים הופעל מחדש");
+    setImportBlocked(false);
   }, []);
 
   return {

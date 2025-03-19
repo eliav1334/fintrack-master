@@ -16,8 +16,11 @@ export const parseFile = async (
 ): Promise<ParserResult> => {
   console.log("Parsing file:", file.name, "type:", file.type, "card filter:", cardFilter);
   
-  // בדיקה אם ייבוא נתונים חסום
-  if (localStorage.getItem("data_import_blocked") === "true") {
+  // בדיקה אם ייבוא נתונים חסום, אבל גם בודק אם יש override
+  const isBlocked = localStorage.getItem("data_import_blocked") === "true";
+  const overrideTime = localStorage.getItem("import_override_time");
+  
+  if (isBlocked && (!overrideTime || isOverrideExpired(overrideTime))) {
     console.warn("ייבוא נתונים חסום - המערכת באיפוס או שיש יותר מדי נתונים");
     return {
       success: false,
@@ -42,8 +45,8 @@ export const parseFile = async (
       const parsedData = JSON.parse(currentData);
       const transactionsCount = parsedData.transactions?.length || 0;
       
-      // אם יש יותר מ-10,000 עסקאות, חוסמים ייבוא נוסף
-      if (transactionsCount > 10000) {
+      // אם יש יותר מ-10,000 עסקאות, חוסמים ייבוא נוסף אלא אם כן יש override
+      if (transactionsCount > 10000 && (!overrideTime || isOverrideExpired(overrideTime))) {
         console.warn("יותר מדי עסקאות במערכת:", transactionsCount);
         localStorage.setItem("data_import_blocked", "true");
         return {
@@ -54,6 +57,11 @@ export const parseFile = async (
     } catch (error) {
       console.error("שגיאה בבדיקת מספר העסקאות:", error);
     }
+  }
+  
+  // אם הגענו לכאן, מחקנו את ה-override
+  if (overrideTime) {
+    localStorage.removeItem("import_override_time");
   }
   
   const fileType = detectFileType(file);
@@ -71,6 +79,18 @@ export const parseFile = async (
       };
   }
 };
+
+/**
+ * בודק אם ה-override פג תוקף (אחרי שעתיים)
+ */
+function isOverrideExpired(overrideTime: string): boolean {
+  const overrideTimestamp = parseInt(overrideTime);
+  const currentTime = new Date().getTime();
+  const hoursSinceOverride = (currentTime - overrideTimestamp) / (1000 * 60 * 60);
+  
+  // אם עברו יותר משעתיים מאז ה-override, הוא פג תוקף
+  return hoursSinceOverride > 2;
+}
 
 // Export everything to maintain compatibility with existing code
 export * from "./types";

@@ -1,21 +1,55 @@
 
 import React from "react";
+import ActionButtons from "./ActionButtons";
+import SystemStats from "./SystemStats";
+import BackupDialog from "./BackupDialog";
+import ResetDialog from "./ResetDialog";
+import ImportBlockInfo from "./ImportBlockInfo";
+import { useSystemReset } from "./SystemReset";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-const ReportContent = () => {
+export default function ReportContent() {
+  const { 
+    showResetDialog, 
+    setShowResetDialog, 
+    isResetting, 
+    resetFullSystem,
+    enableDataImport,
+    isImportBlocked
+  } = useSystemReset();
+
   return (
-    <div className="grid grid-cols-1 gap-4">
-      <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
-        <div className="flex flex-col space-y-1.5">
-          <h3 className="text-lg font-semibold leading-none tracking-tight">
-            דוחות זמינים בקרוב
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            דוחות פיננסיים יהיו זמינים בקרוב. עקוב אחר העדכונים.
-          </p>
-        </div>
-      </div>
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>סטטיסטיקות מערכת</CardTitle>
+          <CardDescription>
+            מידע על הנתונים שלך במערכת
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* הוספת רכיב התראת חסימת ייבוא */}
+          <ImportBlockInfo 
+            onEnableImport={enableDataImport}
+            isBlocked={isImportBlocked}
+          />
+          
+          <SystemStats />
+          <ActionButtons onResetClick={() => setShowResetDialog(true)} />
+        </CardContent>
+      </Card>
+
+      {/* עדכון הדיאלוג עם האפשרויות החדשות */}
+      <ResetDialog
+        open={showResetDialog}
+        onOpenChange={setShowResetDialog}
+        onReset={resetFullSystem}
+        isResetting={isResetting}
+        enableImport={enableDataImport}
+        isImportBlocked={isImportBlocked}
+      />
+      
+      <BackupDialog />
     </div>
   );
-};
-
-export default ReportContent;
+}

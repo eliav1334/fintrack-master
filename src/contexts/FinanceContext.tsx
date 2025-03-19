@@ -1,5 +1,5 @@
 
-import { createContext, useContext } from "react";
+import { createContext, useContext, useEffect } from "react";
 import { FinanceState, FinanceContextType, FinanceActionCreators } from "./types";
 import { useFinanceState } from "@/hooks/finance/useFinanceState";
 import { useFinanceActions } from "@/hooks/finance/useFinanceActions";
@@ -45,6 +45,29 @@ const FinanceContext = createContext<FinanceContextType>({
 export const FinanceProvider = ({ children }: { children: React.ReactNode }) => {
   const { state, dispatch } = useFinanceState();
   const actions: FinanceActionCreators = useFinanceActions(dispatch);
+
+  // בדיקה האם ייבוא נתונים חסום והצגת מידע בקונסול
+  useEffect(() => {
+    const isBlocked = localStorage.getItem("data_import_blocked") === "true";
+    const resetInProgress = localStorage.getItem("reset_in_progress") === "true";
+    
+    console.log("FinanceProvider - מצב המערכת:", {
+      transactionsCount: state.transactions.length,
+      categoriesCount: state.categories.length,
+      budgetsCount: state.budgets.length,
+      importFormatsCount: state.importFormats.length,
+      isImportBlocked: isBlocked,
+      isResetInProgress: resetInProgress
+    });
+    
+    if (isBlocked) {
+      console.warn("שים לב: ייבוא נתונים חסום במערכת");
+    }
+    
+    if (resetInProgress) {
+      console.warn("שים לב: איפוס מערכת בתהליך");
+    }
+  }, [state]);
 
   // Debug: Log state when provider renders
   console.log("FinanceProvider state:", state);

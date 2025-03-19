@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useFinance } from "@/contexts/FinanceContext";
 // Rename the imported hook to avoid naming conflict
@@ -8,9 +8,38 @@ import { useSystemReset as useSystemResetHook } from "@/hooks/finance/storage/us
 export const useSystemReset = () => {
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [isImportBlocked, setIsImportBlocked] = useState(false);
   const { resetState, deleteAllIncomeTransactions } = useFinance();
   // Use the renamed import
-  const { resetAllStoredData, enableDataImport } = useSystemResetHook();
+  const { resetAllStoredData, enableDataImport, isImportBlocked: checkIfImportBlocked } = useSystemResetHook();
+
+  // בדיקה האם ייבוא הנתונים חסום
+  useEffect(() => {
+    const checkImportBlockStatus = () => {
+      const blocked = checkIfImportBlocked();
+      setIsImportBlocked(blocked);
+    };
+    
+    // בדיקה בעת טעינת הדף
+    checkImportBlockStatus();
+    
+    // בדיקה כל 5 שניות
+    const interval = setInterval(checkImportBlockStatus, 5000);
+    
+    return () => clearInterval(interval);
+  }, [checkIfImportBlocked]);
+
+  // פונקציה להפעלת ייבוא נתונים מחדש
+  const handleEnableDataImport = () => {
+    try {
+      enableDataImport();
+      toast.success("ייבוא נתונים הופעל מחדש");
+      setIsImportBlocked(false);
+    } catch (error) {
+      console.error("שגיאה בהפעלת ייבוא נתונים:", error);
+      toast.error("שגיאה בהפעלת ייבוא נתונים");
+    }
+  };
 
   // פונקציה לאיפוס מלא של המערכת
   const resetFullSystem = () => {
@@ -66,6 +95,7 @@ export const useSystemReset = () => {
     setShowResetDialog,
     isResetting,
     resetFullSystem,
-    enableDataImport
+    enableDataImport: handleEnableDataImport,
+    isImportBlocked
   };
 };

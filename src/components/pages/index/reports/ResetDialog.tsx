@@ -9,13 +9,17 @@ interface ResetDialogProps {
   onOpenChange: (open: boolean) => void;
   onReset: () => void;
   isResetting: boolean;
+  enableImport?: () => void; // הוספת אפשרות לאפשר ייבוא
+  isImportBlocked?: boolean; // האם ייבוא חסום
 }
 
 const ResetDialog: React.FC<ResetDialogProps> = ({
   open,
   onOpenChange,
   onReset,
-  isResetting
+  isResetting,
+  enableImport,
+  isImportBlocked
 }) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -35,6 +39,19 @@ const ResetDialog: React.FC<ResetDialogProps> = ({
         </DialogHeader>
         
         <DialogFooter>
+          {isImportBlocked && enableImport && (
+            <Button 
+              variant="secondary" 
+              onClick={() => {
+                enableImport();
+                onOpenChange(false);
+              }}
+              disabled={isResetting}
+              className="w-full sm:w-auto"
+            >
+              הפעל ייבוא נתונים מחדש
+            </Button>
+          )}
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isResetting}>
             ביטול
           </Button>
