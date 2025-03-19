@@ -16,7 +16,7 @@ export const useSystemReset = () => {
   /**
    * איפוס מידע באחסון המקומי - עם אפשרות לשמירת גיבויים
    */
-  const resetAllStoredData = useCallback((options = { keepBackups: true }) => {
+  const resetAllStoredData = useCallback((options: { keepBackups?: boolean; blockImport?: boolean } = { keepBackups: true }) => {
     try {
       console.log("מבצע איפוס נתוני LocalStorage עם שמירת גיבויים:", options);
       
