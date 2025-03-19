@@ -188,6 +188,10 @@ const FileImport = () => {
     setSelectedCardNumbers(ALLOWED_CARD_NUMBERS);
   }, []);
 
+  useEffect(() => {
+    console.log("Available import formats:", state.importFormats);
+  }, [state.importFormats]);
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
@@ -757,18 +761,33 @@ const FileImport = () => {
                     + הוסף פורמט חדש
                   </Button>
                 </div>
-                <Select value={selectedFormatId} onValueChange={handleFormatChange}>
-                  <SelectTrigger>
+                <Select 
+                  value={selectedFormatId} 
+                  onValueChange={handleFormatChange}
+                  defaultOpen={false}
+                >
+                  <SelectTrigger id="format-selector" className="w-full">
                     <SelectValue placeholder="בחר פורמט" />
                   </SelectTrigger>
                   <SelectContent>
-                    {state.importFormats.map((format) => (
-                      <SelectItem key={format.id} value={format.id}>
-                        {format.name}
+                    {state.importFormats && state.importFormats.length > 0 ? (
+                      state.importFormats.map((format) => (
+                        <SelectItem key={format.id} value={format.id}>
+                          {format.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-formats" disabled>
+                        אין פורמטים זמינים
                       </SelectItem>
-                    ))}
+                    )}
                   </SelectContent>
                 </Select>
+                {state.importFormats.length === 0 && (
+                  <p className="text-xs text-amber-500 mt-1">
+                    לא נמצאו פורמטים. אנא הוסף פורמט חדש כדי להמשיך.
+                  </p>
+                )}
               </div>
 
               {cardFilter.length > 0 && (

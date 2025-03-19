@@ -55,7 +55,7 @@ export const useLocalStorage = () => {
   };
 
   /**
-   * הסרת כפילויות בעסקאות - גרסה משופרת
+   * הסרת כפילויות בעסקאות - גרסה משופרת מאוד
    */
   const removeDuplicateTransactions = (transactions: Transaction[]): Transaction[] => {
     if (!transactions || !Array.isArray(transactions)) {
@@ -64,13 +64,15 @@ export const useLocalStorage = () => {
     }
     
     console.log(`בודק כפילויות בין ${transactions.length} עסקאות`);
-    const seen = new Map();
+    
+    // שימוש במפה עם מפתחות מורכבים לזיהוי כפילויות
+    const uniqueTransactions = new Map<string, Transaction>();
     const duplicateIds = new Set<string>(); // מעקב אחר עסקאות כפולות
     
-    // יצירת מפתחות ראשוניים לכל העסקאות
+    // זיהוי כפילויות במערך
     transactions.forEach(transaction => {
       // יצירת מזהה ייחודי מורכב מהשדות החשובים
-      const simpleKey = `${transaction.date}_${transaction.amount}_${transaction.description}`;
+      const simpleKey = `${transaction.date}_${transaction.amount.toFixed(2)}_${transaction.description}_${transaction.type}`;
       
       // יצירת מזהה מורחב עם פרטים נוספים אם קיימים
       let complexKey = simpleKey;
@@ -87,30 +89,39 @@ export const useLocalStorage = () => {
         complexKey += `_${transaction.installmentDetails.installmentNumber}_${transaction.installmentDetails.totalInstallments}`;
       }
       
-      // שמירת המזהים למפה
-      if (!seen.has(simpleKey)) {
-        seen.set(simpleKey, transaction);
-      } else {
+      // בדיקה אם העסקה כבר קיימת
+      if (uniqueTransactions.has(simpleKey)) {
+        // כפילות נמצאה - נשמור את המזהה
         duplicateIds.add(transaction.id);
+        console.log("זיהוי עסקה כפולה (מפתח פשוט):", simpleKey, transaction);
+      } else {
+        // עסקה ייחודית - נשמור אותה
+        uniqueTransactions.set(simpleKey, transaction);
       }
       
-      if (simpleKey !== complexKey && !seen.has(complexKey)) {
-        seen.set(complexKey, transaction);
-      } else if (simpleKey !== complexKey) {
-        duplicateIds.add(transaction.id);
+      // בדיקה נוספת עם המפתח המורחב אם רלוונטי
+      if (simpleKey !== complexKey) {
+        if (uniqueTransactions.has(complexKey)) {
+          // כפילות נמצאה - נשמור את המזהה
+          duplicateIds.add(transaction.id);
+          console.log("זיהוי עסקה כפולה (מפתח מורחב):", complexKey, transaction);
+        } else {
+          // עסקה ייחודית גם במפתח המורחב - נשמור אותה
+          uniqueTransactions.set(complexKey, transaction);
+        }
       }
     });
     
-    // סינון העסקאות הכפולות
-    const uniqueTransactions = transactions.filter(transaction => !duplicateIds.has(transaction.id));
+    // בניית מערך התוצאה תוך סינון העסקאות הכפולות
+    const result = transactions.filter(transaction => !duplicateIds.has(transaction.id));
     
     // לוג מספר העסקאות שהוסרו
-    const removedCount = transactions.length - uniqueTransactions.length;
+    const removedCount = transactions.length - result.length;
     if (removedCount > 0) {
-      console.log(`הוסרו ${removedCount} עסקאות כפולות`);
+      console.log(`הוסרו ${removedCount} עסקאות כפולות מסך ${transactions.length} עסקאות`);
     }
     
-    return uniqueTransactions;
+    return result;
   };
 
   return {

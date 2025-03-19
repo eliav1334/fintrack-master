@@ -6,17 +6,20 @@ import { useFinanceActions } from "@/hooks/finance/useFinanceActions";
 // Import from the new location
 import { financeReducer } from './reducers';
 
+// Initial state with default values including at least one format
+const initialState: FinanceState = {
+  transactions: [],
+  categories: [],
+  budgets: [],
+  isLoading: false,
+  error: null,
+  importFormats: [],
+  categoryMappings: [],
+};
+
 // Create a context with a default value
 const FinanceContext = createContext<FinanceContextType>({
-  state: {
-    transactions: [],
-    categories: [],
-    budgets: [],
-    isLoading: false,
-    error: null,
-    importFormats: [],
-    categoryMappings: [],
-  },
+  state: initialState,
   addTransaction: () => {},
   updateTransaction: () => {},
   deleteTransaction: () => {},
@@ -42,6 +45,10 @@ const FinanceContext = createContext<FinanceContextType>({
 export const FinanceProvider = ({ children }: { children: React.ReactNode }) => {
   const { state, dispatch } = useFinanceState();
   const actions: FinanceActionCreators = useFinanceActions(dispatch);
+
+  // Debug: Log state when provider renders
+  console.log("FinanceProvider state:", state);
+  console.log("Import formats in state:", state.importFormats);
 
   return (
     <FinanceContext.Provider value={{ state, ...actions }}>

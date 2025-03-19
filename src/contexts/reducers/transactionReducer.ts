@@ -4,11 +4,12 @@ import { FinanceState, FinanceAction } from "../types";
 export const transactionReducer = (state: FinanceState, action: FinanceAction): FinanceState => {
   switch (action.type) {
     case "ADD_TRANSACTION":
-      // בדיקה אם העסקה כבר קיימת
+      // שיפור בדיקת עסקאות כפולות
       const isDuplicateTransaction = state.transactions.some(tx => 
         tx.date === action.payload.date && 
-        tx.amount === action.payload.amount && 
-        tx.description === action.payload.description
+        Math.abs(tx.amount - action.payload.amount) < 0.01 && // השוואה עם טווח סבירות קטן 
+        tx.description === action.payload.description &&
+        tx.type === action.payload.type
       );
       
       if (isDuplicateTransaction) {
@@ -39,16 +40,24 @@ export const transactionReducer = (state: FinanceState, action: FinanceAction): 
       
     case "ADD_TRANSACTIONS":
       if (!Array.isArray(action.payload) || action.payload.length === 0) {
+        console.log("ניסיון להוסיף מערך עסקאות ריק או לא תקין");
         return state;
       }
       
-      // סינון עסקאות כפולות לפני הוספה
+      // שיפור סינון עסקאות כפולות
       const uniqueNewTransactions = action.payload.filter(newTx => {
-        return !state.transactions.some(existingTx => 
+        const isDuplicate = state.transactions.some(existingTx => 
           existingTx.date === newTx.date && 
-          existingTx.amount === newTx.amount && 
-          existingTx.description === newTx.description
+          Math.abs(existingTx.amount - newTx.amount) < 0.01 && // השוואה עם טווח סבירות קטן
+          existingTx.description === newTx.description &&
+          existingTx.type === newTx.type
         );
+        
+        if (isDuplicate) {
+          console.log("זיהוי עסקה כפולה בייבוא:", newTx);
+        }
+        
+        return !isDuplicate;
       });
       
       console.log(`הוספת ${uniqueNewTransactions.length} עסקאות חדשות (מתוך ${action.payload.length} שנקלטו)`);
@@ -57,9 +66,23 @@ export const transactionReducer = (state: FinanceState, action: FinanceAction): 
         return state; // אם אין עסקאות חדשות, מחזירים את המצב הנוכחי ללא שינוי
       }
       
+      // מניעת כפילות בין עסקאות שמיובאות באותה פעולה
+      const seenTransactions = new Map();
+      const trulyUniqueTransactions = uniqueNewTransactions.filter(tx => {
+        const key = `${tx.date}_${tx.amount}_${tx.description}_${tx.type}`;
+        if (seenTransactions.has(key)) {
+          console.log("זיהוי כפילות בין עסקאות חדשות:", tx);
+          return false;
+        }
+        seenTransactions.set(key, true);
+        return true;
+      });
+      
+      console.log(`הוספת ${trulyUniqueTransactions.length} עסקאות חדשות לאחר סינון סופי`);
+      
       return {
         ...state,
-        transactions: [...state.transactions, ...uniqueNewTransactions],
+        transactions: [...state.transactions, ...trulyUniqueTransactions],
       };
     
     case "DELETE_ALL_INCOME_TRANSACTIONS":
