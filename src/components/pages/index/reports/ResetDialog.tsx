@@ -9,7 +9,7 @@ interface ResetDialogProps {
   onOpenChange: (open: boolean) => void;
   onReset: () => void;
   isResetting: boolean;
-  enableImport?: () => void; // הוספת אפשרות לאפשר ייבוא
+  enableImport?: () => void; // אפשרות לאפשר ייבוא
   isImportBlocked?: boolean; // האם ייבוא חסום
 }
 
@@ -32,13 +32,13 @@ const ResetDialog: React.FC<ResetDialogProps> = ({
           <DialogDescription>
             פעולה זו תמחק את כל הנתונים במערכת ותחזיר את המערכת למצב הראשוני.
             <br />
-            <strong>כל העסקאות, התקציבים והמיפויים יימחקו.</strong>
+            <strong>כל העסקאות, התקציבים והמיפויים יימחקו אך הגיבויים יישמרו.</strong>
             <br />
             <strong>האם אתה בטוח שברצונך להמשיך?</strong>
           </DialogDescription>
         </DialogHeader>
         
-        <DialogFooter>
+        <DialogFooter className="flex-col gap-2 sm:flex-row">
           {isImportBlocked && enableImport && (
             <Button 
               variant="secondary" 
@@ -52,13 +52,14 @@ const ResetDialog: React.FC<ResetDialogProps> = ({
               הפעל ייבוא נתונים מחדש
             </Button>
           )}
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isResetting}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isResetting} className="w-full sm:w-auto">
             ביטול
           </Button>
           <Button 
             variant="destructive"
             onClick={onReset}
             disabled={isResetting}
+            className="w-full sm:w-auto"
           >
             {isResetting ? "מאפס..." : "אפס מערכת"}
           </Button>

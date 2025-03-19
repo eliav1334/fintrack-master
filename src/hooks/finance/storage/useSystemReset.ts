@@ -14,11 +14,11 @@ export const useSystemReset = () => {
   }, []);
 
   /**
-   * Resets all stored data in localStorage
+   * איפוס מידע באחסון המקומי - עם אפשרות לשמירת גיבויים
    */
-  const resetAllStoredData = useCallback(() => {
+  const resetAllStoredData = useCallback((options = { keepBackups: true }) => {
     try {
-      console.log("מבצע איפוס מלא של נתוני LocalStorage");
+      console.log("מבצע איפוס נתוני LocalStorage עם שמירת גיבויים:", options);
       
       // מוודא שיש דילוג על הוספת הכנסות אוטומטיות
       localStorage.setItem("skip_auto_incomes", "true");
@@ -32,16 +32,39 @@ export const useSystemReset = () => {
       const currentTime = new Date().getTime();
       localStorage.setItem("last_import_reset", currentTime.toString());
       
-      // מחיקה של כל המפתחות הרלוונטיים מהאחסון המקומי
-      const keysToKeep = ["skip_auto_incomes", "permanent_skip_auto_incomes", "reset_in_progress", "data_import_blocked", "last_import_reset"];
+      // מחיקה של מפתחות ספציפיים תוך שמירת גיבויים
+      const keysToKeep = [
+        "skip_auto_incomes", 
+        "permanent_skip_auto_incomes", 
+        "reset_in_progress", 
+        "data_import_blocked", 
+        "last_import_reset"
+      ];
+      
+      // אם מבקשים לשמור גיבויים, נוסיף את כל המפתחות שמתחילים ב-backup
+      if (options.keepBackups) {
+        Object.keys(localStorage).forEach(key => {
+          if (key.includes("backup") || key.includes("_daily_backup_")) {
+            keysToKeep.push(key);
+          }
+        });
+      }
+      
+      // יצירת גיבוי אוטומטי של המצב הנוכחי לפני האיפוס
+      const currentData = localStorage.getItem("financeState");
+      if (currentData) {
+        const resetBackupKey = `financeState_reset_backup_${currentTime}`;
+        localStorage.setItem(resetBackupKey, currentData);
+        console.log("נוצר גיבוי אוטומטי לפני איפוס:", resetBackupKey);
+      }
       
       // מחיקת מפתחות ספציפיים
       localStorage.removeItem("financeState");
       
-      // מחיקת כל הגיבויים
+      // מחיקת כל המפתחות שלא ברשימת השמורים
       Object.keys(localStorage).forEach(key => {
         if (!keysToKeep.includes(key) && 
-            (key.startsWith("financeState_") || 
+            (key.startsWith("financeState_") && !key.includes("backup") && !key.includes("_daily_backup_") || 
              key === "lastAutoIncomeDate" || 
              key.includes("transaction") || 
              key.includes("budget") ||
@@ -50,7 +73,7 @@ export const useSystemReset = () => {
         }
       });
       
-      console.log("איפוס LocalStorage הושלם בהצלחה");
+      console.log("איפוס LocalStorage הושלם בהצלחה, גיבויים נשמרו");
       setImportBlocked(true);
       return true;
     } catch (error) {
@@ -73,18 +96,31 @@ export const useSystemReset = () => {
    * בודק אם יש הגבלת ייבוא נתונים
    */
   const isImportBlocked = useCallback(() => {
+    // בדיקה אם משתמש הפעיל ידנית דריסת חסימה
+    const overrideTimestamp = localStorage.getItem("import_override_time");
+    if (overrideTimestamp) {
+      const overrideTime = parseInt(overrideTimestamp);
+      const currentTime = new Date().getTime();
+      const hoursSinceOverride = (currentTime - overrideTime) / (1000 * 60 * 60);
+      
+      // אם עברו פחות מ-24 שעות מאז הדריסה, מתעלמים מהחסימה
+      if (hoursSinceOverride < 24) {
+        return false;
+      }
+    }
+    
     // בדיקה אם יש חסימת ייבוא גורפת
     const isBlocked = localStorage.getItem("data_import_blocked") === "true";
     
-    // בדיקה אם חלף מספיק זמן מאז האיפוס האחרון (24 שעות)
+    // בדיקה אם חלף מספיק זמן מאז האיפוס האחרון (8 שעות במקום 24)
     const lastResetTimestamp = localStorage.getItem("last_import_reset");
     if (lastResetTimestamp) {
       const lastReset = parseInt(lastResetTimestamp);
       const currentTime = new Date().getTime();
       const hoursSinceReset = (currentTime - lastReset) / (1000 * 60 * 60);
       
-      // אם עברו יותר מ-24 שעות מאז האיפוס, מסירים את החסימה
-      if (hoursSinceReset > 24) {
+      // אם עברו יותר מ-8 שעות מאז האיפוס, מסירים את החסימה
+      if (hoursSinceReset > 8) {
         localStorage.removeItem("data_import_blocked");
         return false;
       }
@@ -97,8 +133,8 @@ export const useSystemReset = () => {
         const parsedData = JSON.parse(currentData);
         const transactionsCount = parsedData.transactions?.length || 0;
         
-        // אם יש יותר מ-10,000 עסקאות, חוסמים ייבוא
-        if (transactionsCount > 10000) {
+        // מעלים את הסף ל-25,000 עסקאות במקום 10,000
+        if (transactionsCount > 25000) {
           localStorage.setItem("data_import_blocked", "true");
           return true;
         }
@@ -117,11 +153,11 @@ export const useSystemReset = () => {
     localStorage.removeItem("data_import_blocked");
     localStorage.removeItem("reset_in_progress");
     
-    // גם אם יש יותר מ-10,000 עסקאות, נאפשר ייבוא חד פעמי
+    // רישום דריסת החסימה לטווח של 24 שעות
     const currentTime = new Date().getTime();
     localStorage.setItem("import_override_time", currentTime.toString());
     
-    toast.success("ייבוא נתונים הופעל מחדש");
+    toast.success("ייבוא נתונים הופעל מחדש לטווח של 24 שעות");
     setImportBlocked(false);
   }, []);
 

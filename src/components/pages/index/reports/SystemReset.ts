@@ -41,7 +41,7 @@ export const useSystemReset = () => {
     }
   };
 
-  // פונקציה לאיפוס מלא של המערכת
+  // פונקציה לאיפוס מלא של המערכת אך עם שמירת גיבויים
   const resetFullSystem = () => {
     try {
       setIsResetting(true);
@@ -55,8 +55,8 @@ export const useSystemReset = () => {
       localStorage.setItem("reset_in_progress", "true");
       localStorage.setItem("data_import_blocked", "true");
       
-      // שלב 1: מחיקת כל הנתונים ב-localStorage
-      const resetSuccess = resetAllStoredData();
+      // שלב 1: מחיקת נתונים ב-localStorage עם שמירת גיבויים
+      const resetSuccess = resetAllStoredData({ keepBackups: true });
       
       if (!resetSuccess) {
         throw new Error("שגיאה באיפוס נתוני LocalStorage");
@@ -70,7 +70,7 @@ export const useSystemReset = () => {
       
       // שלב 4: הודעה למשתמש
       toast.success("המערכת אופסה בהצלחה", {
-        description: "כל הנתונים נמחקו מהמטמון והמערכת. המערכת תתרענן כדי להשלים את האיפוס."
+        description: "הנתונים נמחקו אך הגיבויים נשמרו. המערכת תתרענן כדי להשלים את האיפוס."
       });
       
       // רענון הדף לאחר האיפוס להבטחת איפוס מלא

@@ -3,7 +3,6 @@ import React from "react";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { useSystemReset } from "@/hooks/finance/storage/useSystemReset";
 
 interface ImportBlockInfoProps {
   onEnableImport: () => void;
@@ -23,7 +22,7 @@ const ImportBlockInfo: React.FC<ImportBlockInfoProps> = ({
       <AlertDescription className="flex flex-col gap-2">
         <p>
           המערכת עברה איפוס לאחרונה או שיש יותר מדי נתונים (מעל 10,000 עסקאות).
-          זו הגבלה שנועדה לשמור על ביצועי המערכת.
+          ניתן לאפשר ייבוא נתונים מחדש בלחיצה על הכפתור למטה.
         </p>
         <div className="flex justify-end mt-2">
           <Button 

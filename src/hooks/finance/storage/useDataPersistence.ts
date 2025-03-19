@@ -15,22 +15,36 @@ export const useDataPersistence = (state: FinanceState, isDataLoaded: boolean) =
     // שמירה רק אם נתונים כבר נטענו כדי למנוע דריסה של נתונים קיימים
     if (!isDataLoaded) return;
     
-    // בדיקה אם איפוס בתהליך או שייבוא נתונים חסום
-    if (localStorage.getItem("reset_in_progress") === "true" || 
-        localStorage.getItem("data_import_blocked") === "true") {
-      console.log("דילוג על שמירת נתונים בגלל איפוס או חסימת ייבוא");
+    // בדיקה אם איפוס בתהליך
+    if (localStorage.getItem("reset_in_progress") === "true") {
+      console.log("דילוג על שמירת נתונים בגלל איפוס פעיל");
+      return;
+    }
+    
+    // בדיקה אם יש דריסת חסימת ייבוא
+    const hasImportOverride = localStorage.getItem("import_override_time") !== null;
+    
+    // רק אם אין דריסת חסימה, בודקים אם ייבוא חסום
+    if (!hasImportOverride && localStorage.getItem("data_import_blocked") === "true") {
+      console.log("דילוג על שמירת נתונים בגלל חסימת ייבוא פעילה (ללא דריסה)");
       return;
     }
     
     try {
-      // בדיקה אם יש יותר מדי עסקאות (מעל 10,000)
-      if (state.transactions.length > 10000) {
+      // בדיקה אם יש יותר מדי עסקאות (מעל 25,000)
+      if (state.transactions.length > 25000) {
         console.warn("יותר מדי עסקאות - חוסם ייבוא נוסף:", state.transactions.length);
-        localStorage.setItem("data_import_blocked", "true");
-        toast.warning("יש יותר מדי עסקאות במערכת", {
-          description: "מומלץ לאפס את המערכת או למחוק עסקאות ישנות"
-        });
-        return;
+        
+        // רק אם אין דריסת חסימה, מפעילים את החסימה
+        if (!hasImportOverride) {
+          localStorage.setItem("data_import_blocked", "true");
+          toast.warning("יש יותר מדי עסקאות במערכת", {
+            description: "מומלץ לאפס את המערכת או למחוק עסקאות ישנות"
+          });
+          return;
+        } else {
+          console.log("נמצאה דריסת חסימת ייבוא - ממשיך בשמירה למרות כמות עסקאות גדולה");
+        }
       }
       
       const dataToSave = {
