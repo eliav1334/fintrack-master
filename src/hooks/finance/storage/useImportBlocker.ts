@@ -1,47 +1,68 @@
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { SYSTEM_CONSTANTS } from "./constants/systemConstants";
 
 /**
  * הוק לניהול חסימת ייבוא נתונים
+ * גרסה משופרת למניעת לולאות אינסופיות
  */
 export const useImportBlocker = () => {
-  // לא שומרים מצב בהוק כדי למנוע בעיות סנכרון עם localStorage
+  const [isBlocked, setIsBlocked] = useState<boolean>(false);
+  
+  // בדיקה אחת בלבד בטעינה
+  useEffect(() => {
+    const blocked = checkIfImportBlocked();
+    setIsBlocked(blocked);
+    // אין תלויות - רק פעם אחת בטעינה
+  }, []);
   
   /**
    * בדיקה האם ייבוא נתונים חסום
    */
-  const isImportBlocked = useCallback((): boolean => {
+  const checkIfImportBlocked = useCallback((): boolean => {
     try {
       // בדיקת חסימת ייבוא
-      const blocked = localStorage.getItem(SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED) === "true";
+      const blockedValue = localStorage.getItem(SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED);
+      const blocked = blockedValue === "true";
       
-      // אם יש חסימה, בודקים אם יש override פעיל
-      if (blocked) {
-        const overrideTimeStr = localStorage.getItem(SYSTEM_CONSTANTS.KEYS.IMPORT_OVERRIDE_TIME);
-        
-        // אם אין override, החסימה בתוקף
-        if (!overrideTimeStr) return true;
-        
-        // המרה למספר ובדיקת תקינות
-        const overrideTime = parseInt(overrideTimeStr, 10);
-        if (isNaN(overrideTime)) return true;
-        
-        // בדיקה אם ה-override עדיין בתוקף (48 שעות)
-        const currentTime = Date.now();
-        const timeDiffHours = (currentTime - overrideTime) / (1000 * 60 * 60);
-        
-        // אם ה-override פג תוקף, החסימה בתוקף
-        return timeDiffHours > SYSTEM_CONSTANTS.OVERRIDE_HOURS;
+      // אם אין חסימה, מחזירים false מיד
+      if (!blocked) {
+        return false;
       }
       
-      return false;
+      // אם יש חסימה, בודקים אם יש override פעיל
+      const overrideTimeStr = localStorage.getItem(SYSTEM_CONSTANTS.KEYS.IMPORT_OVERRIDE_TIME);
+      
+      // אם אין override, החסימה בתוקף
+      if (!overrideTimeStr) {
+        return true;
+      }
+      
+      // המרה למספר ובדיקת תקינות
+      const overrideTime = parseInt(overrideTimeStr, 10);
+      if (isNaN(overrideTime)) {
+        return true;
+      }
+      
+      // בדיקה אם ה-override עדיין בתוקף (48 שעות)
+      const currentTime = Date.now();
+      const timeDiffHours = (currentTime - overrideTime) / (1000 * 60 * 60);
+      
+      // אם ה-override פג תוקף, החסימה בתוקף
+      return timeDiffHours > SYSTEM_CONSTANTS.OVERRIDE_HOURS;
     } catch (error) {
       console.error("שגיאה בבדיקת חסימת ייבוא:", error);
       return false; // במקרה של שגיאה, מניחים שאין חסימה
     }
   }, []);
+
+  /**
+   * בדיקת מצב חסימת ייבוא נוכחי - חוזרת לערך מקומי ולא קוראת לlocalstorage
+   */
+  const isImportBlocked = useCallback((): boolean => {
+    return isBlocked;
+  }, [isBlocked]);
 
   /**
    * הפעלת ייבוא נתונים מחדש (override)
@@ -51,6 +72,9 @@ export const useImportBlocker = () => {
       // שמירת זמן ה-override
       const currentTime = Date.now();
       localStorage.setItem(SYSTEM_CONSTANTS.KEYS.IMPORT_OVERRIDE_TIME, currentTime.toString());
+      
+      // עדכון המצב המקומי
+      setIsBlocked(false);
       
       // הצגת הודעת הצלחה
       toast.success(SYSTEM_CONSTANTS.MESSAGES.SUCCESS.IMPORT_ENABLED);
@@ -66,13 +90,23 @@ export const useImportBlocker = () => {
   /**
    * סימון חסימת ייבוא
    */
-  const importBlocked = useCallback((reason?: string) => {
+  const setImportBlocked = useCallback((block: boolean, reason?: string) => {
     try {
-      localStorage.setItem(SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED, "true");
-      console.warn("חסימת ייבוא נתונים הופעלה", reason ? `: ${reason}` : "");
+      if (block) {
+        localStorage.setItem(SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED, "true");
+        console.warn("חסימת ייבוא נתונים הופעלה", reason ? `: ${reason}` : "");
+      } else {
+        localStorage.removeItem(SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED);
+        localStorage.removeItem(SYSTEM_CONSTANTS.KEYS.IMPORT_OVERRIDE_TIME);
+        console.log("חסימת ייבוא נתונים בוטלה");
+      }
+      
+      // עדכון המצב המקומי
+      setIsBlocked(block);
+      
       return true;
     } catch (error) {
-      console.error("שגיאה בחסימת ייבוא נתונים:", error);
+      console.error("שגיאה בעדכון חסימת ייבוא נתונים:", error);
       return false;
     }
   }, []);
@@ -80,6 +114,7 @@ export const useImportBlocker = () => {
   return {
     isImportBlocked,
     enableDataImport,
-    importBlocked
+    setImportBlocked,
+    checkIfImportBlocked
   };
 };

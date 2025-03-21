@@ -16,52 +16,67 @@ export const parseFile = async (
 ): Promise<ParserResult> => {
   console.log("Parsing file:", file.name, "type:", file.type, "card filter:", cardFilter);
   
-  // בדיקת חסימת ייבוא
-  const isBlocked = localStorage.getItem("data_import_blocked") === "true";
+  // בדיקת חסימת ייבוא - מימוש פשוט ובטוח
+  const isBlockedValue = localStorage.getItem("data_import_blocked");
+  const isBlocked = isBlockedValue === "true";
+  
   if (isBlocked) {
+    // בדיקת דריסה אם קיימת
     const overrideTimeStr = localStorage.getItem("import_override_time");
+    const hasValidOverride = overrideTimeStr !== null;
     
-    // אם אין override או שהוא לא תקין, החסימה בתוקף
-    if (!overrideTimeStr) {
-      console.warn("ייבוא נתונים חסום - אין override");
+    // אם אין דריסה תקפה, ייבוא חסום
+    if (!hasValidOverride) {
+      console.warn("ייבוא נתונים חסום - אין override תקף");
       return {
         success: false,
         error: "ייבוא נתונים חסום. לחץ על 'אפשר ייבוא נתונים מחדש' כדי להמשיך."
       };
     }
     
-    // המרה למספר ובדיקת תקינות
-    const overrideTime = parseInt(overrideTimeStr, 10);
-    if (isNaN(overrideTime)) {
-      console.warn("ייבוא נתונים חסום - override לא תקין", overrideTimeStr);
-      return {
-        success: false,
-        error: "ייבוא נתונים חסום. ערך ה-override אינו תקין."
-      };
-    }
-    
-    // בדיקה אם ה-override עדיין בתוקף (48 שעות)
-    const currentTime = Date.now();
-    const timeDiffHours = (currentTime - overrideTime) / (1000 * 60 * 60);
-    
-    if (timeDiffHours > 48) {
-      console.warn("ייבוא נתונים חסום - override פג תוקף", {
-        currentTime,
-        overrideTime,
-        timeDiffHours
+    try {
+      // המרה למספר ובדיקת תקינות
+      const overrideTime = parseInt(overrideTimeStr, 10);
+      
+      // אם ערך הדריסה אינו מספר תקין
+      if (isNaN(overrideTime)) {
+        console.warn("ייבוא נתונים חסום - ערך דריסה לא תקין");
+        return {
+          success: false,
+          error: "ייבוא נתונים חסום. ערך הדריסה אינו תקין."
+        };
+      }
+      
+      // בדיקה אם הדריסה בתוקף (פחות מ-48 שעות)
+      const currentTime = Date.now();
+      const timeDiffHours = (currentTime - overrideTime) / (1000 * 60 * 60);
+      
+      // אם הדריסה פגה
+      if (timeDiffHours > 48) {
+        console.warn("ייבוא נתונים חסום - דריסה פגה", {
+          currentTime,
+          overrideTime,
+          timeDiffHours
+        });
+        return {
+          success: false,
+          error: "ייבוא נתונים חסום. תוקף ההיתר פג לאחר 48 שעות. לחץ על 'אפשר ייבוא נתונים מחדש' כדי להמשיך."
+        };
+      }
+      
+      // דריסה תקפה - ניתן להמשיך
+      console.log("חסימת ייבוא קיימת אך יש דריסה בתוקף", {
+        hours: timeDiffHours,
+        remaining: 48 - timeDiffHours
       });
+    } catch (error) {
+      // שגיאה בבדיקת הדריסה - חוסמים את הייבוא ליתר ביטחון
+      console.error("שגיאה בבדיקת תוקף דריסה:", error);
       return {
         success: false,
-        error: "ייבוא נתונים חסום. תוקף ההיתר פג לאחר 48 שעות. לחץ על 'אפשר ייבוא נתונים מחדש' כדי להמשיך."
+        error: "שגיאה בבדיקת תוקף ייבוא. לחץ על 'אפשר ייבוא נתונים מחדש' כדי לנסות שוב."
       };
     }
-    
-    console.log("חסימת ייבוא קיימת אך יש override בתוקף", {
-      currentTime,
-      overrideTime,
-      timeDiffHours,
-      remainingHours: 48 - timeDiffHours
-    });
   }
   
   // בדיקת גודל הקובץ - הגבלה ל-5MB

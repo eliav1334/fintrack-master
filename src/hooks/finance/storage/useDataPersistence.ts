@@ -1,5 +1,5 @@
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { FinanceState } from "@/contexts/types";
 import { useLocalStorage } from "./useLocalStorage";
@@ -9,24 +9,39 @@ import { useLocalStorage } from "./useLocalStorage";
  */
 export const useDataPersistence = (state: FinanceState, isDataLoaded: boolean) => {
   const { saveDataToLocalStorage, createDailyBackup } = useLocalStorage();
+  const lastSaveTimeRef = useRef<number>(0);
 
   // שמירת נתונים ב-localStorage בכל שינוי
   useEffect(() => {
     // שמירה רק אם נתונים כבר נטענו כדי למנוע דריסה של נתונים קיימים
-    if (!isDataLoaded) return;
-    
-    // בדיקה אם איפוס בתהליך
-    if (localStorage.getItem("reset_in_progress") === "true") {
-      console.log("דילוג על שמירת נתונים בגלל איפוס פעיל");
+    if (!isDataLoaded) {
+      console.log("דילוג על שמירת נתונים: טעינת נתונים לא הושלמה");
       return;
     }
     
-    // בדיקה אם יש דריסת חסימת ייבוא
-    const hasImportOverride = localStorage.getItem("import_override_time") !== null;
+    // מניעת שמירות תכופות מדי (לפחות 500ms בין שמירות)
+    const now = Date.now();
+    if (now - lastSaveTimeRef.current < 500) {
+      console.log("דילוג על שמירת נתונים: שמירה קודמת בוצעה לאחרונה");
+      return;
+    }
     
-    // רק אם אין דריסת חסימה, בודקים אם ייבוא חסום
-    if (!hasImportOverride && localStorage.getItem("data_import_blocked") === "true") {
-      console.log("דילוג על שמירת נתונים בגלל חסימת ייבוא פעילה (ללא דריסה)");
+    // בדיקה אם איפוס בתהליך
+    if (localStorage.getItem("reset_in_progress") === "true") {
+      console.log("דילוג על שמירת נתונים: איפוס מערכת בתהליך");
+      return;
+    }
+    
+    // בדיקת חסימת ייבוא - מימוש בטוח
+    const isBlockedValue = localStorage.getItem("data_import_blocked");
+    const isBlocked = isBlockedValue === "true";
+    
+    // בדיקת דריסה
+    const hasOverride = localStorage.getItem("import_override_time") !== null;
+    
+    // אם ייבוא חסום וללא דריסה, לא שומרים
+    if (isBlocked && !hasOverride) {
+      console.log("דילוג על שמירת נתונים: חסימת ייבוא פעילה ללא דריסה");
       return;
     }
     
@@ -36,7 +51,7 @@ export const useDataPersistence = (state: FinanceState, isDataLoaded: boolean) =
         console.warn("יותר מדי עסקאות - חוסם ייבוא נוסף:", state.transactions.length);
         
         // רק אם אין דריסת חסימה, מפעילים את החסימה
-        if (!hasImportOverride) {
+        if (!hasOverride) {
           localStorage.setItem("data_import_blocked", "true");
           toast.warning("יש יותר מדי עסקאות במערכת", {
             description: "מומלץ לאפס את המערכת או למחוק עסקאות ישנות"
@@ -53,6 +68,9 @@ export const useDataPersistence = (state: FinanceState, isDataLoaded: boolean) =
         categoryMappings: state.categoryMappings
       };
       
+      // עדכון זמן השמירה האחרון
+      lastSaveTimeRef.current = now;
+      
       // יצירת גיבוי תקופתי (פעם ביום)
       createDailyBackup(dataToSave);
       
@@ -61,7 +79,8 @@ export const useDataPersistence = (state: FinanceState, isDataLoaded: boolean) =
       console.log("נתונים נשמרו בהצלחה:", {
         transactions: state.transactions.length,
         budgets: state.budgets.length,
-        categoryMappings: state.categoryMappings.length
+        categoryMappings: state.categoryMappings.length,
+        time: new Date().toISOString()
       });
     } catch (error) {
       console.error("שגיאה בשמירת נתונים לאחסון מקומי:", error);
@@ -71,7 +90,6 @@ export const useDataPersistence = (state: FinanceState, isDataLoaded: boolean) =
         console.error("חריגת מכסת אחסון - חוסם ייבוא נוסף", error);
         localStorage.setItem("data_import_blocked", "true");
         
-        // מבקש מהמשתמש לנקות חלק מהנתונים אך לא חוסם באופן מוחלט
         toast.error("חריגת מכסת אחסון", {
           description: "אין מספיק מקום לשמור את כל הנתונים. מומלץ למחוק חלק מהנתונים או ליצור גיבוי ולאפס."
         });

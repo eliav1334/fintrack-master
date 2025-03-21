@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useFinance } from "@/contexts/FinanceContext";
-// אין צורך לשנות את שם ההוק המיובא כיוון שהפונקציונליות שלו נשארה זהה חיצונית
 import { useSystemReset as useSystemResetHook } from "@/hooks/finance/storage/useSystemReset";
 
 export const useSystemReset = () => {
@@ -10,24 +9,14 @@ export const useSystemReset = () => {
   const [isResetting, setIsResetting] = useState(false);
   const [isImportBlocked, setIsImportBlocked] = useState(false);
   const { resetState, deleteAllIncomeTransactions } = useFinance();
-  // השימוש בהוק נשאר זהה, אבל הפונקציונליות הפנימית שלו השתנתה
   const { resetAllStoredData, enableDataImport, isImportBlocked: checkIfImportBlocked } = useSystemResetHook();
 
-  // בדיקה האם ייבוא הנתונים חסום
+  // בדיקה האם ייבוא הנתונים חסום - פעם אחת בעת טעינת הקומפוננטה
   useEffect(() => {
-    const checkImportBlockStatus = () => {
-      const blocked = checkIfImportBlocked();
-      setIsImportBlocked(blocked);
-    };
-    
-    // בדיקה בעת טעינת הדף
-    checkImportBlockStatus();
-    
-    // בדיקה כל 5 שניות
-    const interval = setInterval(checkImportBlockStatus, 5000);
-    
-    return () => clearInterval(interval);
-  }, [checkIfImportBlocked]);
+    const blocked = checkIfImportBlocked();
+    setIsImportBlocked(blocked);
+    // אין תלויות - פעם אחת בטעינה בלבד
+  }, []);
 
   // פונקציה להפעלת ייבוא נתונים מחדש
   const handleEnableDataImport = () => {
@@ -53,9 +42,6 @@ export const useSystemReset = () => {
       localStorage.setItem("skip_auto_incomes", "true");
       localStorage.setItem("permanent_skip_auto_incomes", "true");
       localStorage.setItem("reset_in_progress", "true");
-      
-      // שינוי: לא מגדירים חסימת ייבוא באופן אוטומטי
-      // נותנים למשתמש לבחור אם לחסום ייבוא או לא
       
       // שלב 1: מחיקת נתונים ב-localStorage עם שמירת גיבויים
       // ללא חסימת ייבוא אוטומטית

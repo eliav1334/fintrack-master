@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -22,8 +22,23 @@ const ImportBlockInfo: React.FC<ImportBlockInfoProps> = ({
   onEnableImport,
   isBlocked
 }) => {
-  // הצגת האלרט רק אם ייבוא הנתונים חסום
-  if (!isBlocked) return null;
+  // שימוש במצב מקומי כדי למנוע רינדורים מיותרים
+  const [showAlert, setShowAlert] = useState<boolean>(isBlocked);
+  
+  // עדכון הצגת האלרט רק כאשר isBlocked משתנה
+  useEffect(() => {
+    setShowAlert(isBlocked);
+  }, [isBlocked]);
+  
+  // אם לא צריך להציג את האלרט, אין מה להציג
+  if (!showAlert) return null;
+  
+  // טיפול בלחיצה על הכפתור
+  const handleEnableImport = () => {
+    onEnableImport();
+    // מסתירים את האלרט מיד לאחר הלחיצה
+    setShowAlert(false);
+  };
   
   return (
     <Alert variant="destructive" className="mb-4">
@@ -37,7 +52,7 @@ const ImportBlockInfo: React.FC<ImportBlockInfoProps> = ({
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={onEnableImport}
+            onClick={handleEnableImport}
             className="text-sm"
           >
             {IMPORT_BLOCK_MESSAGES.BUTTON_TEXT}
