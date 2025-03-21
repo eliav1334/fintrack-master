@@ -4,6 +4,20 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
 
+// קבועים להודעות
+const RESET_DIALOG_MESSAGES = {
+  TITLE: "איפוס מערכת",
+  DESCRIPTION: "פעולה זו תמחק את כל הנתונים במערכת ותחזיר את המערכת למצב הראשוני.",
+  WARNING: "כל העסקאות, התקציבים והמיפויים יימחקו אך הגיבויים יישמרו.",
+  CONFIRMATION: "האם אתה בטוח שברצונך להמשיך?",
+  BUTTONS: {
+    ENABLE_IMPORT: "הפעל ייבוא נתונים מחדש",
+    CANCEL: "ביטול",
+    RESET: "אפס מערכת",
+    RESETTING: "מאפס..."
+  }
+};
+
 interface ResetDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -21,20 +35,40 @@ const ResetDialog: React.FC<ResetDialogProps> = ({
   enableImport,
   isImportBlocked
 }) => {
+  // מניעת פעולות נוספות כאשר האיפוס בתהליך
+  const handleResetClick = () => {
+    if (!isResetting) {
+      onReset();
+    }
+  };
+  
+  const handleEnableImport = () => {
+    if (enableImport && !isResetting) {
+      enableImport();
+      onOpenChange(false);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(newState) => {
+      // מונע סגירה של הדיאלוג כאשר האיפוס בתהליך
+      if (isResetting && newState === false) {
+        return;
+      }
+      onOpenChange(newState);
+    }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-destructive" />
-            איפוס מערכת
+            {RESET_DIALOG_MESSAGES.TITLE}
           </DialogTitle>
           <DialogDescription>
-            פעולה זו תמחק את כל הנתונים במערכת ותחזיר את המערכת למצב הראשוני.
+            {RESET_DIALOG_MESSAGES.DESCRIPTION}
             <br />
-            <strong>כל העסקאות, התקציבים והמיפויים יימחקו אך הגיבויים יישמרו.</strong>
+            <strong>{RESET_DIALOG_MESSAGES.WARNING}</strong>
             <br />
-            <strong>האם אתה בטוח שברצונך להמשיך?</strong>
+            <strong>{RESET_DIALOG_MESSAGES.CONFIRMATION}</strong>
           </DialogDescription>
         </DialogHeader>
         
@@ -42,26 +76,28 @@ const ResetDialog: React.FC<ResetDialogProps> = ({
           {isImportBlocked && enableImport && (
             <Button 
               variant="secondary" 
-              onClick={() => {
-                enableImport();
-                onOpenChange(false);
-              }}
+              onClick={handleEnableImport}
               disabled={isResetting}
               className="w-full sm:w-auto"
             >
-              הפעל ייבוא נתונים מחדש
+              {RESET_DIALOG_MESSAGES.BUTTONS.ENABLE_IMPORT}
             </Button>
           )}
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isResetting} className="w-full sm:w-auto">
-            ביטול
+          <Button 
+            variant="outline" 
+            onClick={() => onOpenChange(false)} 
+            disabled={isResetting} 
+            className="w-full sm:w-auto"
+          >
+            {RESET_DIALOG_MESSAGES.BUTTONS.CANCEL}
           </Button>
           <Button 
             variant="destructive"
-            onClick={onReset}
+            onClick={handleResetClick}
             disabled={isResetting}
             className="w-full sm:w-auto"
           >
-            {isResetting ? "מאפס..." : "אפס מערכת"}
+            {isResetting ? RESET_DIALOG_MESSAGES.BUTTONS.RESETTING : RESET_DIALOG_MESSAGES.BUTTONS.RESET}
           </Button>
         </DialogFooter>
       </DialogContent>

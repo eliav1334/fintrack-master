@@ -2,8 +2,51 @@
 import { useCallback, useState, useEffect } from "react";
 import { toast } from "sonner";
 
+// קבועי מערכת
+const SYSTEM_CONSTANTS = {
+  // הגבלות מערכת
+  MAX_TRANSACTIONS: 50000,
+  OVERRIDE_HOURS: 48,
+  RESET_HOURS: 4,
+  
+  // מפתחות localStorage
+  KEYS: {
+    SKIP_AUTO_INCOMES: "skip_auto_incomes",
+    PERMANENT_SKIP_AUTO_INCOMES: "permanent_skip_auto_incomes",
+    RESET_IN_PROGRESS: "reset_in_progress",
+    DATA_IMPORT_BLOCKED: "data_import_blocked",
+    LAST_IMPORT_RESET: "last_import_reset",
+    IMPORT_OVERRIDE_TIME: "import_override_time",
+    FINANCE_STATE: "financeState"
+  },
+  
+  // הודעות מערכת
+  MESSAGES: {
+    // הודעות הצלחה
+    SUCCESS: {
+      RESET_COMPLETED: "איפוס המערכת הושלם בהצלחה",
+      BACKUP_CREATED: "גיבוי נוצר בהצלחה",
+      AUTO_INCOMES_ENABLED: "הכנסות אוטומטיות הופעלו מחדש",
+      IMPORT_ENABLED: "ייבוא נתונים הופעל מחדש לטווח של 48 שעות"
+    },
+    // הודעות שגיאה
+    ERROR: {
+      RESET_FAILED: "שגיאה באיפוס המערכת",
+      DATA_VALIDATION: "שגיאה באימות הנתונים",
+      TRANSACTION_COUNT: "כמות העסקאות חורגת מהמגבלה המותרת"
+    },
+    // הודעות לוג
+    LOG: {
+      RESET_START: "מבצע איפוס נתוני LocalStorage עם שמירת גיבויים",
+      BACKUP_CREATED: "נוצר גיבוי אוטומטי לפני איפוס",
+      RESET_COMPLETED: "איפוס LocalStorage הושלם בהצלחה, גיבויים נשמרו",
+      ERROR: "שגיאה באיפוס LocalStorage"
+    }
+  }
+};
+
 /**
- * Hook for system reset functionality
+ * הוק לפונקציונליות איפוס מערכת
  */
 export const useSystemReset = () => {
   const [importBlocked, setImportBlocked] = useState(false);
@@ -14,34 +57,56 @@ export const useSystemReset = () => {
   }, []);
 
   /**
+   * פונקציה לאימות נתונים מה-localStorage
+   * @param data הנתונים לאימות
+   * @returns האם הנתונים תקינים
+   */
+  const validateStoredData = (data: string | null): boolean => {
+    if (!data) return false;
+    
+    try {
+      const parsedData = JSON.parse(data);
+      return (
+        parsedData !== null && 
+        typeof parsedData === 'object' && 
+        (!parsedData.transactions || Array.isArray(parsedData.transactions))
+      );
+    } catch (error) {
+      console.error("שגיאה באימות נתונים:", error);
+      return false;
+    }
+  };
+
+  /**
    * איפוס מידע באחסון המקומי - עם אפשרות לשמירת גיבויים
    */
   const resetAllStoredData = useCallback((options: { keepBackups?: boolean; blockImport?: boolean } = { keepBackups: true }) => {
     try {
-      console.log("מבצע איפוס נתוני LocalStorage עם שמירת גיבויים:", options);
+      console.log(SYSTEM_CONSTANTS.MESSAGES.LOG.RESET_START + ":", options);
       
       // מוודא שיש דילוג על הוספת הכנסות אוטומטיות
-      localStorage.setItem("skip_auto_incomes", "true");
-      localStorage.setItem("permanent_skip_auto_incomes", "true");
+      localStorage.setItem(SYSTEM_CONSTANTS.KEYS.SKIP_AUTO_INCOMES, "true");
+      localStorage.setItem(SYSTEM_CONSTANTS.KEYS.PERMANENT_SKIP_AUTO_INCOMES, "true");
       
       // סימון שאיפוס בתהליך (למניעת טעינת נתונים חדשים)
-      localStorage.setItem("reset_in_progress", "true");
+      localStorage.setItem(SYSTEM_CONSTANTS.KEYS.RESET_IN_PROGRESS, "true");
       
-      // במקום לחסום ייבוא נתונים באופן מיידי, נגדיר את מגבלת הזמן קצרה יותר
+      // במקום לחסום ייבוא נתונים באופן מיידי, נגדיר את מגבלת הזמן
       const currentTime = new Date().getTime();
-      localStorage.setItem("last_import_reset", currentTime.toString());
+      localStorage.setItem(SYSTEM_CONSTANTS.KEYS.LAST_IMPORT_RESET, currentTime.toString());
+      
       // חסימת ייבוא רק אם המשתמש לא ביקש אחרת
       if (options.blockImport !== false) {
-        localStorage.setItem("data_import_blocked", "true");
+        localStorage.setItem(SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED, "true");
       }
       
       // מחיקה של מפתחות ספציפיים תוך שמירת גיבויים
       const keysToKeep = [
-        "skip_auto_incomes", 
-        "permanent_skip_auto_incomes", 
-        "reset_in_progress", 
-        "data_import_blocked", 
-        "last_import_reset"
+        SYSTEM_CONSTANTS.KEYS.SKIP_AUTO_INCOMES, 
+        SYSTEM_CONSTANTS.KEYS.PERMANENT_SKIP_AUTO_INCOMES, 
+        SYSTEM_CONSTANTS.KEYS.RESET_IN_PROGRESS, 
+        SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED, 
+        SYSTEM_CONSTANTS.KEYS.LAST_IMPORT_RESET
       ];
       
       // אם מבקשים לשמור גיבויים, נוסיף את כל המפתחות שמתחילים ב-backup
@@ -54,15 +119,15 @@ export const useSystemReset = () => {
       }
       
       // יצירת גיבוי אוטומטי של המצב הנוכחי לפני האיפוס
-      const currentData = localStorage.getItem("financeState");
-      if (currentData) {
+      const currentData = localStorage.getItem(SYSTEM_CONSTANTS.KEYS.FINANCE_STATE);
+      if (currentData && validateStoredData(currentData)) {
         const resetBackupKey = `financeState_reset_backup_${currentTime}`;
         localStorage.setItem(resetBackupKey, currentData);
-        console.log("נוצר גיבוי אוטומטי לפני איפוס:", resetBackupKey);
+        console.log(SYSTEM_CONSTANTS.MESSAGES.LOG.BACKUP_CREATED + ":", resetBackupKey);
       }
       
       // מחיקת מפתחות ספציפיים
-      localStorage.removeItem("financeState");
+      localStorage.removeItem(SYSTEM_CONSTANTS.KEYS.FINANCE_STATE);
       
       // מחיקת כל המפתחות שלא ברשימת השמורים
       Object.keys(localStorage).forEach(key => {
@@ -76,12 +141,13 @@ export const useSystemReset = () => {
         }
       });
       
-      console.log("איפוס LocalStorage הושלם בהצלחה, גיבויים נשמרו");
+      console.log(SYSTEM_CONSTANTS.MESSAGES.LOG.RESET_COMPLETED);
       setImportBlocked(true);
+      toast.success(SYSTEM_CONSTANTS.MESSAGES.SUCCESS.RESET_COMPLETED);
       return true;
     } catch (error) {
-      console.error("שגיאה באיפוס LocalStorage:", error);
-      toast.error("שגיאה באיפוס נתונים מקומיים");
+      console.error(SYSTEM_CONSTANTS.MESSAGES.LOG.ERROR + ":", error);
+      toast.error(SYSTEM_CONSTANTS.MESSAGES.ERROR.RESET_FAILED);
       return false;
     }
   }, []);
@@ -90,9 +156,9 @@ export const useSystemReset = () => {
    * מאפשר הכנסות אוטומטיות (מבטל את הדילוג)
    */
   const enableAutoIncomes = useCallback(() => {
-    localStorage.removeItem("skip_auto_incomes");
-    localStorage.removeItem("permanent_skip_auto_incomes");
-    toast.success("הכנסות אוטומטיות הופעלו מחדש");
+    localStorage.removeItem(SYSTEM_CONSTANTS.KEYS.SKIP_AUTO_INCOMES);
+    localStorage.removeItem(SYSTEM_CONSTANTS.KEYS.PERMANENT_SKIP_AUTO_INCOMES);
+    toast.success(SYSTEM_CONSTANTS.MESSAGES.SUCCESS.AUTO_INCOMES_ENABLED);
   }, []);
   
   /**
@@ -100,45 +166,53 @@ export const useSystemReset = () => {
    */
   const isImportBlocked = useCallback(() => {
     // בדיקה אם משתמש הפעיל ידנית דריסת חסימה
-    const overrideTimestamp = localStorage.getItem("import_override_time");
+    const overrideTimestamp = localStorage.getItem(SYSTEM_CONSTANTS.KEYS.IMPORT_OVERRIDE_TIME);
     if (overrideTimestamp) {
-      const overrideTime = parseInt(overrideTimestamp);
-      const currentTime = new Date().getTime();
-      const hoursSinceOverride = (currentTime - overrideTime) / (1000 * 60 * 60);
-      
-      // אם עברו פחות מ-48 שעות מאז הדריסה, מתעלמים מהחסימה
-      if (hoursSinceOverride < 48) {
-        return false;
+      try {
+        const overrideTime = parseInt(overrideTimestamp);
+        const currentTime = new Date().getTime();
+        const hoursSinceOverride = (currentTime - overrideTime) / (1000 * 60 * 60);
+        
+        // אם עברו פחות מ-48 שעות מאז הדריסה, מתעלמים מהחסימה
+        if (hoursSinceOverride < SYSTEM_CONSTANTS.OVERRIDE_HOURS) {
+          return false;
+        }
+      } catch (error) {
+        console.error("שגיאה בחישוב זמן דריסת חסימה:", error);
       }
     }
     
     // בדיקה אם יש חסימת ייבוא גורפת
-    const isBlocked = localStorage.getItem("data_import_blocked") === "true";
+    const isBlocked = localStorage.getItem(SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED) === "true";
     
-    // בדיקה אם חלף מספיק זמן מאז האיפוס האחרון (4 שעות במקום 8)
-    const lastResetTimestamp = localStorage.getItem("last_import_reset");
+    // בדיקה אם חלף מספיק זמן מאז האיפוס האחרון
+    const lastResetTimestamp = localStorage.getItem(SYSTEM_CONSTANTS.KEYS.LAST_IMPORT_RESET);
     if (lastResetTimestamp) {
-      const lastReset = parseInt(lastResetTimestamp);
-      const currentTime = new Date().getTime();
-      const hoursSinceReset = (currentTime - lastReset) / (1000 * 60 * 60);
-      
-      // אם עברו יותר מ-4 שעות מאז האיפוס, מסירים את החסימה
-      if (hoursSinceReset > 4) {
-        localStorage.removeItem("data_import_blocked");
-        return false;
+      try {
+        const lastReset = parseInt(lastResetTimestamp);
+        const currentTime = new Date().getTime();
+        const hoursSinceReset = (currentTime - lastReset) / (1000 * 60 * 60);
+        
+        // אם עברו יותר מהזמן המוגדר מאז האיפוס, מסירים את החסימה
+        if (hoursSinceReset > SYSTEM_CONSTANTS.RESET_HOURS) {
+          localStorage.removeItem(SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED);
+          return false;
+        }
+      } catch (error) {
+        console.error("שגיאה בחישוב זמן מאז איפוס:", error);
       }
     }
     
     // בדיקה אם יש יותר מדי עסקאות
-    const currentData = localStorage.getItem("financeState");
+    const currentData = localStorage.getItem(SYSTEM_CONSTANTS.KEYS.FINANCE_STATE);
     if (currentData) {
       try {
         const parsedData = JSON.parse(currentData);
         const transactionsCount = parsedData.transactions?.length || 0;
         
-        // מעלים את הסף ל-50,000 עסקאות במקום 25,000
-        if (transactionsCount > 50000) {
-          localStorage.setItem("data_import_blocked", "true");
+        // בדיקה לפי קבוע מערכת למספר המקסימלי של עסקאות
+        if (transactionsCount > SYSTEM_CONSTANTS.MAX_TRANSACTIONS) {
+          localStorage.setItem(SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED, "true");
           return true;
         }
       } catch (error) {
@@ -153,14 +227,14 @@ export const useSystemReset = () => {
    * מאפשר ייבוא נתונים (מסיר חסימה)
    */
   const enableDataImport = useCallback(() => {
-    localStorage.removeItem("data_import_blocked");
-    localStorage.removeItem("reset_in_progress");
+    localStorage.removeItem(SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED);
+    localStorage.removeItem(SYSTEM_CONSTANTS.KEYS.RESET_IN_PROGRESS);
     
-    // רישום דריסת החסימה לטווח של 48 שעות במקום 24
+    // רישום דריסת החסימה לטווח של 48 שעות
     const currentTime = new Date().getTime();
-    localStorage.setItem("import_override_time", currentTime.toString());
+    localStorage.setItem(SYSTEM_CONSTANTS.KEYS.IMPORT_OVERRIDE_TIME, currentTime.toString());
     
-    toast.success("ייבוא נתונים הופעל מחדש לטווח של 48 שעות");
+    toast.success(SYSTEM_CONSTANTS.MESSAGES.SUCCESS.IMPORT_ENABLED);
     setImportBlocked(false);
   }, []);
 
