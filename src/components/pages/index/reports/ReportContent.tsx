@@ -39,10 +39,8 @@ export default function ReportContent() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* הוספת רכיב התראת חסימת ייבוא */}
-          <ImportBlockInfo 
-            onEnableImport={enableDataImport}
-          />
+          {/* ImportBlockInfo עכשיו לא מקבל פרופס - הוא משתמש ב-useImportBlocker ישירות */}
+          <ImportBlockInfo />
           
           <SystemStats />
           <ActionButtons 

@@ -14,18 +14,28 @@ export const useImportBlocker = () => {
     return localStorage.getItem(SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED) === "true";
   }, []);
   
-  // טעינה ראשונית של המצב מה-localStorage
+  // טעינה ראשונית של המצב מה-localStorage והאזנה לשינויים
   useEffect(() => {
-    setBlocked(checkImportBlockStatus());
+    // פונקציה לעדכון המצב הפנימי
+    const updateBlockedState = () => {
+      const isBlocked = checkImportBlockStatus();
+      setBlocked(isBlocked);
+    };
     
-    // גם להאזין לשינויים ב-localStorage מחלקים אחרים של האפליקציה
+    // קריאה ראשונית בטעינה
+    updateBlockedState();
+    
+    // האזנה לשינויים דרך אירועי storage
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED || e.key === null) {
-        setBlocked(checkImportBlockStatus());
+        updateBlockedState();
       }
     };
     
+    // הוספת מאזין לשינויים בחלון הנוכחי
     window.addEventListener('storage', handleStorageChange);
+    
+    // ניקוי המאזין כאשר הקומפוננטה מתפרקת
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
@@ -49,7 +59,7 @@ export const useImportBlocker = () => {
       // עדכון ה-state המקומי
       setBlocked(false);
       
-      // פרסום אירוע לעדכון שאר הקומפוננטות
+      // הודעה לחלונות אחרים על השינוי
       window.dispatchEvent(new StorageEvent('storage', { 
         key: SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED 
       }));
@@ -65,6 +75,14 @@ export const useImportBlocker = () => {
    * קביעת מצב חסימת ייבוא
    */
   const setImportBlocked = useCallback((value: boolean): void => {
+    // אם המצב כבר זהה, לא עושים שינוי כדי למנוע לופים
+    if (value === blocked) {
+      console.log("דילוג על שינוי מצב חסימה - המצב כבר", value ? "חסום" : "פתוח");
+      return;
+    }
+    
+    console.log("שינוי מצב חסימת ייבוא ל:", value);
+    
     if (value) {
       localStorage.setItem(SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED, "true");
     } else {
@@ -74,14 +92,14 @@ export const useImportBlocker = () => {
     // עדכון ה-state המקומי
     setBlocked(value);
     
-    // פרסום אירוע לעדכון שאר הקומפוננטות
+    // הודעה לחלונות אחרים על השינוי
     window.dispatchEvent(new StorageEvent('storage', { 
       key: SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED 
     }));
-  }, []);
+  }, [blocked]);
 
   return {
-    isImportBlocked: blocked,          // גישה ל-state המקומי
+    isImportBlocked: blocked,          // האם הייבוא חסום כרגע
     checkImportBlockStatus,            // פונקציה לבדיקת המצב הנוכחי
     enableDataImport,                  // פונקציה להפעלת ייבוא מחדש
     setImportBlocked                   // פונקציה לקביעת מצב החסימה

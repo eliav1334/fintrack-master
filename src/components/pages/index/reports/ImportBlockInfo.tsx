@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -14,47 +14,22 @@ const IMPORT_BLOCK_MESSAGES = {
   BUTTON_TEXT: "אפשר ייבוא נתונים מחדש"
 };
 
-interface ImportBlockInfoProps {
-  onEnableImport: () => void;
-}
-
-const ImportBlockInfo: React.FC<ImportBlockInfoProps> = ({ onEnableImport }) => {
-  // שימוש בהוק החדש לניהול מצב החסימה
-  const { checkImportBlockStatus } = useImportBlocker();
+const ImportBlockInfo: React.FC = () => {
+  // שימוש ישיר בהוק ללא תלות בפרופס חיצוניים
+  const { isImportBlocked, enableDataImport } = useImportBlocker();
   
-  // שמירת מצב התצוגה בקומפוננטה
-  const [showAlert, setShowAlert] = useState<boolean>(false);
-  
-  // בדיקת מצב החסימה בטעינה ובכל רענון
-  useEffect(() => {
-    const isBlocked = checkImportBlockStatus();
-    setShowAlert(isBlocked);
-    
-    // התחלת מעקב בזמן אמת אחר שינויים ב-localStorage
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "data_import_blocked" || e.key === null) {
-        const currentBlockStatus = checkImportBlockStatus();
-        setShowAlert(currentBlockStatus);
-      }
-    };
-    
-    // הוספת מאזין לשינויים ב-localStorage
-    window.addEventListener('storage', handleStorageChange);
-    
-    // ניקוי המאזין בסיום
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, [checkImportBlockStatus]);
-  
+  // בדיקה אם המערכת חסומה
   // אם לא צריך להציג את האלרט, אין מה להציג
-  if (!showAlert) return null;
+  if (!isImportBlocked) return null;
   
-  // טיפול בלחיצה על הכפתור - מפעיל את הפונקציה החיצונית ומסתיר את האלרט
+  // טיפול בלחיצה על הכפתור
   const handleEnableImport = () => {
-    onEnableImport();
-    setShowAlert(false);
-    console.log("ImportBlockInfo - import enabled, hiding alert");
+    try {
+      enableDataImport();
+      console.log("ImportBlockInfo - import enabled successfully");
+    } catch (error) {
+      console.error("ImportBlockInfo - error enabling import:", error);
+    }
   };
   
   return (
