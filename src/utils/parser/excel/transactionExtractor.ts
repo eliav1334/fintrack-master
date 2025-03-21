@@ -28,7 +28,11 @@ export const extractTransactionsFromSheet = (
   
   for (let i = 0; i < jsonData.length; i++) {
     const row = jsonData[i];
-    if (!row || !Array.isArray(row) || row.length < Math.max(indices.dateIndex, indices.amountIndex, indices.descriptionIndex) + 1) {
+    if (!row || !Array.isArray(row) || row.length < Math.max(
+        indices.dateIndex >= 0 ? indices.dateIndex : 0, 
+        indices.amountIndex >= 0 ? indices.amountIndex : 0, 
+        indices.descriptionIndex >= 0 ? indices.descriptionIndex : 0
+      ) + 1) {
       continue;  // דילוג על שורות חסרות או קצרות מדי
     }
     

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { useImportBlocker } from "@/hooks/finance/storage/useImportBlocker";
 
 // קבועים להודעות
 const IMPORT_BLOCK_MESSAGES = {
@@ -15,23 +16,36 @@ const IMPORT_BLOCK_MESSAGES = {
 
 interface ImportBlockInfoProps {
   onEnableImport: () => void;
-  isBlocked: boolean;
 }
 
-const ImportBlockInfo: React.FC<ImportBlockInfoProps> = ({ 
-  onEnableImport,
-  isBlocked: initialIsBlocked
-}) => {
-  // שימוש במצב מקומי להדליק/לכבות את האלרט
+const ImportBlockInfo: React.FC<ImportBlockInfoProps> = ({ onEnableImport }) => {
+  // שימוש בהוק החדש לניהול מצב החסימה
+  const { checkImportBlockStatus } = useImportBlocker();
+  
+  // שמירת מצב התצוגה בקומפוננטה
   const [showAlert, setShowAlert] = useState<boolean>(false);
   
-  // אתחול והעדכון של מצב התצוגה מותנה בפרופ החיצוני בלבד בטעינה ראשונית
+  // בדיקת מצב החסימה בטעינה ובכל רענון
   useEffect(() => {
-    // בדיקת ה-localStorage ישירות לוודא שאנחנו מקבלים את הערך העדכני
-    const isCurrentlyBlocked = localStorage.getItem("data_import_blocked") === "true";
-    setShowAlert(isCurrentlyBlocked);
-    console.log("ImportBlockInfo - checking block status:", { isCurrentlyBlocked });
-  }, []);
+    const isBlocked = checkImportBlockStatus();
+    setShowAlert(isBlocked);
+    
+    // התחלת מעקב בזמן אמת אחר שינויים ב-localStorage
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "data_import_blocked" || e.key === null) {
+        const currentBlockStatus = checkImportBlockStatus();
+        setShowAlert(currentBlockStatus);
+      }
+    };
+    
+    // הוספת מאזין לשינויים ב-localStorage
+    window.addEventListener('storage', handleStorageChange);
+    
+    // ניקוי המאזין בסיום
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [checkImportBlockStatus]);
   
   // אם לא צריך להציג את האלרט, אין מה להציג
   if (!showAlert) return null;

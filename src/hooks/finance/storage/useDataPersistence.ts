@@ -3,13 +3,15 @@ import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { FinanceState } from "@/contexts/types";
 import { useLocalStorage } from "./useLocalStorage";
+import { SYSTEM_CONSTANTS } from "./constants/systemConstants";
 
 /**
- * הוק לשמירה אוטומטית של נתונים לאחסון מקומי
+ * הוק לשמירה אוטומטית של נתונים לאחסון מקומי עם בקרת שגיאות משופרת
  */
 export const useDataPersistence = (state: FinanceState, isDataLoaded: boolean) => {
   const { saveDataToLocalStorage, createDailyBackup } = useLocalStorage();
   const lastSaveTimeRef = useRef<number>(0);
+  const lastTransactionsCountRef = useRef<number>(0);
 
   // שמירת נתונים ב-localStorage בכל שינוי
   useEffect(() => {
@@ -26,18 +28,27 @@ export const useDataPersistence = (state: FinanceState, isDataLoaded: boolean) =
       return;
     }
     
+    // בדיקה אם הנתונים השתנו
+    if (state.transactions.length === lastTransactionsCountRef.current) {
+      console.log("דילוג על שמירת נתונים: אין שינוי במספר העסקאות");
+      return;
+    }
+    
+    // עדכון מספר העסקאות האחרון
+    lastTransactionsCountRef.current = state.transactions.length;
+    
     // בדיקה אם איפוס בתהליך
-    if (localStorage.getItem("reset_in_progress") === "true") {
+    if (localStorage.getItem(SYSTEM_CONSTANTS.KEYS.RESET_IN_PROGRESS) === "true") {
       console.log("דילוג על שמירת נתונים: איפוס מערכת בתהליך");
       return;
     }
     
-    // בדיקת חסימת ייבוא - מימוש בטוח
-    const isBlockedValue = localStorage.getItem("data_import_blocked");
-    const isBlocked = isBlockedValue === "true";
+    // בדיקת חסימת ייבוא - בדיקה ישירה ובטוחה
+    const isBlocked = localStorage.getItem(SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED) === "true";
     
     // בדיקת דריסה
-    const hasOverride = localStorage.getItem("import_override_time") !== null;
+    const hasOverrideTimeStr = localStorage.getItem(SYSTEM_CONSTANTS.KEYS.IMPORT_OVERRIDE_TIME);
+    const hasOverride = hasOverrideTimeStr !== null;
     
     // אם ייבוא חסום וללא דריסה, לא שומרים
     if (isBlocked && !hasOverride) {
@@ -47,12 +58,15 @@ export const useDataPersistence = (state: FinanceState, isDataLoaded: boolean) =
     
     try {
       // בדיקה אם יש יותר מדי עסקאות (מעל 50,000)
-      if (state.transactions.length > 50000) {
+      if (state.transactions.length > SYSTEM_CONSTANTS.MAX_TRANSACTIONS) {
         console.warn("יותר מדי עסקאות - חוסם ייבוא נוסף:", state.transactions.length);
         
         // רק אם אין דריסת חסימה, מפעילים את החסימה
         if (!hasOverride) {
-          localStorage.setItem("data_import_blocked", "true");
+          localStorage.setItem(SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED, "true");
+          // מחיקת כל דריסה קיימת
+          localStorage.removeItem(SYSTEM_CONSTANTS.KEYS.IMPORT_OVERRIDE_TIME);
+          
           toast.warning("יש יותר מדי עסקאות במערכת", {
             description: "מומלץ לאפס את המערכת או למחוק עסקאות ישנות"
           });
@@ -62,6 +76,7 @@ export const useDataPersistence = (state: FinanceState, isDataLoaded: boolean) =
         }
       }
       
+      // הכנת נתונים לשמירה
       const dataToSave = {
         transactions: state.transactions,
         budgets: state.budgets,
@@ -75,7 +90,8 @@ export const useDataPersistence = (state: FinanceState, isDataLoaded: boolean) =
       createDailyBackup(dataToSave);
       
       // שמירת הנתונים הנוכחיים
-      saveDataToLocalStorage("financeState", dataToSave);
+      saveDataToLocalStorage(SYSTEM_CONSTANTS.KEYS.FINANCE_STATE, dataToSave);
+      
       console.log("נתונים נשמרו בהצלחה:", {
         transactions: state.transactions.length,
         budgets: state.budgets.length,
@@ -88,7 +104,9 @@ export const useDataPersistence = (state: FinanceState, isDataLoaded: boolean) =
       // בדיקה אם השגיאה היא בגלל חריגת מכסה
       if (error instanceof Error && error.name === "QuotaExceededError") {
         console.error("חריגת מכסת אחסון - חוסם ייבוא נוסף", error);
-        localStorage.setItem("data_import_blocked", "true");
+        localStorage.setItem(SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED, "true");
+        // מחיקת כל דריסה קיימת
+        localStorage.removeItem(SYSTEM_CONSTANTS.KEYS.IMPORT_OVERRIDE_TIME);
         
         toast.error("חריגת מכסת אחסון", {
           description: "אין מספיק מקום לשמור את כל הנתונים. מומלץ למחוק חלק מהנתונים או ליצור גיבוי ולאפס."

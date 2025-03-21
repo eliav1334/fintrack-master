@@ -3,38 +3,47 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useFinance } from "@/contexts/FinanceContext";
 import { useSystemReset as useSystemResetHook } from "@/hooks/finance/storage/useSystemReset";
+import { useImportBlocker } from "@/hooks/finance/storage/useImportBlocker";
 
 export const useSystemReset = () => {
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [isImportBlocked, setIsImportBlocked] = useState(false);
   const { resetState, deleteAllIncomeTransactions } = useFinance();
-  const { resetAllStoredData, enableDataImport, isImportBlocked: checkIfImportBlocked } = useSystemResetHook();
+  const { resetAllStoredData } = useSystemResetHook();
+  const { checkImportBlockStatus, enableDataImport } = useImportBlocker();
 
-  // בדיקה האם ייבוא הנתונים חסום - פעם אחת בעת טעינת הקומפוננטה
+  // בדיקה חד פעמית של מצב חסימת הייבוא
   useEffect(() => {
-    // קריאה ישירה ל-localStorage כדי לקבל את הערך העדכני ביותר
-    const blocked = localStorage.getItem("data_import_blocked") === "true";
+    const blocked = checkImportBlockStatus();
     setIsImportBlocked(blocked);
     console.log("SystemReset - checked import block status:", { blocked });
+  }, [checkImportBlockStatus]);
+
+  // מעקב אחר שינויים במצב חסימת הייבוא
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "data_import_blocked" || e.key === null) {
+        const currentBlockStatus = checkImportBlockStatus();
+        setIsImportBlocked(currentBlockStatus);
+      }
+    };
     
-    // אין תלויות - פעם אחת בטעינה בלבד
-  }, []);
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [checkImportBlockStatus]);
 
   // פונקציה להפעלת ייבוא נתונים מחדש
   const handleEnableDataImport = () => {
     try {
-      // קודם מסירים את הסימון מ-localStorage
-      localStorage.removeItem("data_import_blocked");
-      
-      // קריאה לפונקציה להפעלת ייבוא מחדש
+      // קריאה ישירה לפונקציה מהוק
       enableDataImport();
       
       // הודעה למשתמש
       toast.success("ייבוא נתונים הופעל מחדש ל-48 שעות");
-      
-      // עדכון מצב מקומי
-      setIsImportBlocked(false);
       
       console.log("SystemReset - import enabled successfully");
     } catch (error) {
@@ -55,6 +64,9 @@ export const useSystemReset = () => {
       localStorage.setItem("skip_auto_incomes", "true");
       localStorage.setItem("permanent_skip_auto_incomes", "true");
       localStorage.setItem("reset_in_progress", "true");
+      
+      // אנחנו מסירים את חסימת הייבוא כחלק מהאיפוס
+      localStorage.removeItem("data_import_blocked");
       
       // שלב 1: מחיקת נתונים ב-localStorage עם שמירת גיבויים
       // ללא חסימת ייבוא אוטומטית

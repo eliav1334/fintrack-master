@@ -9,7 +9,7 @@ import { useResetManager } from "./useResetManager";
  */
 export const useSystemReset = () => {
   // שימוש בהוקים המפוצלים
-  const { isImportBlocked, enableDataImport, setImportBlocked } = useImportBlocker();
+  const { isImportBlocked, checkImportBlockStatus, enableDataImport, setImportBlocked } = useImportBlocker();
   const { enableAutoIncomes } = useAutoIncomesControl();
   const { resetAllStoredData } = useResetManager();
 
@@ -17,7 +17,8 @@ export const useSystemReset = () => {
     resetAllStoredData,
     enableAutoIncomes,
     isImportBlocked,
+    checkImportBlockStatus,
     enableDataImport,
-    importBlocked: setImportBlocked
+    setImportBlocked
   };
 };

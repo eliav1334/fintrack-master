@@ -16,29 +16,26 @@ export const parseFile = async (
 ): Promise<ParserResult> => {
   console.log("Parsing file:", file.name, "type:", file.type, "card filter:", cardFilter);
   
-  // בדיקת חסימת ייבוא - מימוש פשוט ובטוח
-  const isBlockedValue = localStorage.getItem("data_import_blocked");
-  const isBlocked = isBlockedValue === "true";
+  // בדיקת חסימת ייבוא - יישום פשוט ויציב
+  const isBlocked = localStorage.getItem("data_import_blocked") === "true";
   
   if (isBlocked) {
-    // בדיקת דריסה אם קיימת
+    // בדיקת אם יש דריסת חסימה תקפה
     const overrideTimeStr = localStorage.getItem("import_override_time");
-    const hasValidOverride = overrideTimeStr !== null;
     
-    // אם אין דריסה תקפה, ייבוא חסום
-    if (!hasValidOverride) {
-      console.warn("ייבוא נתונים חסום - אין override תקף");
+    if (!overrideTimeStr) {
+      console.warn("ייבוא נתונים חסום - אין override");
       return {
         success: false,
         error: "ייבוא נתונים חסום. לחץ על 'אפשר ייבוא נתונים מחדש' כדי להמשיך."
       };
     }
     
+    // בדיקת תוקף הדריסה
     try {
-      // המרה למספר ובדיקת תקינות
       const overrideTime = parseInt(overrideTimeStr, 10);
+      const currentTime = Date.now();
       
-      // אם ערך הדריסה אינו מספר תקין
       if (isNaN(overrideTime)) {
         console.warn("ייבוא נתונים חסום - ערך דריסה לא תקין");
         return {
@@ -47,30 +44,31 @@ export const parseFile = async (
         };
       }
       
-      // בדיקה אם הדריסה בתוקף (פחות מ-48 שעות)
-      const currentTime = Date.now();
+      // בדיקה אם הדריסה פגה תוקף (יותר מ-48 שעות)
       const timeDiffHours = (currentTime - overrideTime) / (1000 * 60 * 60);
       
-      // אם הדריסה פגה
       if (timeDiffHours > 48) {
         console.warn("ייבוא נתונים חסום - דריסה פגה", {
           currentTime,
           overrideTime,
           timeDiffHours
         });
+        
+        // מחיקת הדריסה הפגה
+        localStorage.removeItem("import_override_time");
+        
         return {
           success: false,
           error: "ייבוא נתונים חסום. תוקף ההיתר פג לאחר 48 שעות. לחץ על 'אפשר ייבוא נתונים מחדש' כדי להמשיך."
         };
       }
       
-      // דריסה תקפה - ניתן להמשיך
+      // דריסה תקפה - נמשיך בייבוא
       console.log("חסימת ייבוא קיימת אך יש דריסה בתוקף", {
         hours: timeDiffHours,
         remaining: 48 - timeDiffHours
       });
     } catch (error) {
-      // שגיאה בבדיקת הדריסה - חוסמים את הייבוא ליתר ביטחון
       console.error("שגיאה בבדיקת תוקף דריסה:", error);
       return {
         success: false,
@@ -106,6 +104,10 @@ export const parseFile = async (
         // אם יש יותר מ-50,000 עסקאות, חסימת ייבוא
         if (transactionsCount > 50000) {
           localStorage.setItem("data_import_blocked", "true");
+          
+          // מחיקת כל דריסה קיימת שעלולה לגרום לבעיה
+          localStorage.removeItem("import_override_time");
+          
           console.error("יותר מדי עסקאות במערכת:", transactionsCount);
           return {
             success: false,

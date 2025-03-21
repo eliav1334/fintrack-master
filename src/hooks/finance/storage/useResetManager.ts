@@ -29,6 +29,12 @@ export const useResetManager = () => {
       // חסימת ייבוא רק אם המשתמש לא ביקש אחרת
       if (options.blockImport !== false) {
         localStorage.setItem(SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED, "true");
+        // מיד רישום לקונסול לצורך דיבאג
+        console.log("חסימת ייבוא נתונים הופעלה:", new Date().toISOString());
+      } else {
+        // וודא שחסימת הייבוא מבוטלת
+        localStorage.removeItem(SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED);
+        console.log("חסימת ייבוא נתונים לא הופעלה (לפי בקשת המשתמש)");
       }
       
       // מחיקה של מפתחות ספציפיים תוך שמירת גיבויים
@@ -37,7 +43,8 @@ export const useResetManager = () => {
         SYSTEM_CONSTANTS.KEYS.PERMANENT_SKIP_AUTO_INCOMES, 
         SYSTEM_CONSTANTS.KEYS.RESET_IN_PROGRESS, 
         SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED, 
-        SYSTEM_CONSTANTS.KEYS.LAST_IMPORT_RESET
+        SYSTEM_CONSTANTS.KEYS.LAST_IMPORT_RESET,
+        SYSTEM_CONSTANTS.KEYS.IMPORT_OVERRIDE_TIME
       ];
       
       // אם מבקשים לשמור גיבויים, נוסיף את כל המפתחות שמתחילים ב-backup
