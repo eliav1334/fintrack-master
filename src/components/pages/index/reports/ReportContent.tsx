@@ -42,7 +42,6 @@ export default function ReportContent() {
           {/* הוספת רכיב התראת חסימת ייבוא */}
           <ImportBlockInfo 
             onEnableImport={enableDataImport}
-            isBlocked={isImportBlocked}
           />
           
           <SystemStats />
