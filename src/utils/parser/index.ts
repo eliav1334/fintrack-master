@@ -4,7 +4,6 @@ import { ParserResult } from "./types";
 import { detectFileType } from "./utils";
 import { parseCSV } from "./csv";
 import { parseExcel } from "./excel";
-import { useSystemReset } from "@/hooks/finance/storage/useSystemReset";
 
 /**
  * מנתח קובץ באמצעות הפרסר המתאים לפי סוג הקובץ
