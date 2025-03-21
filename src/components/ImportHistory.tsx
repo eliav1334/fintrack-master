@@ -1,13 +1,14 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useFinance } from "@/contexts/FinanceContext";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertCircle, ArrowUpDown, FileText, Trash } from "lucide-react";
+import { AlertCircle, ArrowUpDown, FileText, Trash, Info } from "lucide-react";
 import { Transaction } from "@/types";
+import { detectDuplicateTransactions } from "@/hooks/finance/storage/dataValidation";
 
 const ImportHistory = () => {
   const { state, deleteTransaction } = useFinance();
@@ -17,6 +18,13 @@ const ImportHistory = () => {
     transactions: Transaction[];
   } | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [duplicatesCount, setDuplicatesCount] = useState(0);
+  
+  // בדיקת כפילויות בטעינה ראשונית
+  useEffect(() => {
+    const count = detectDuplicateTransactions(state.transactions);
+    setDuplicatesCount(count);
+  }, [state.transactions]);
   
   // ארגון העסקאות לפי קבוצות ייבוא
   const imports = React.useMemo(() => {
@@ -27,7 +35,12 @@ const ImportHistory = () => {
     
     // מיון לפי תאריך יצירה (מהחדש לישן)
     const sortedTransactions = [...importedTransactions].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      (a, b) => {
+        // שימוש בתאריך יצירה אם קיים, אחרת בתאריך העסקה
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : new Date(a.date).getTime();
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : new Date(b.date).getTime();
+        return dateB - dateA;
+      }
     );
     
     // קיבוץ עסקאות לפי מקור הייבוא ותאריך
@@ -60,7 +73,11 @@ const ImportHistory = () => {
         source,
         transactions
       };
-    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }).sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return dateB - dateA;
+    });
   }, [state.transactions]);
   
   // פונקציה לביטול ייבוא
@@ -93,6 +110,23 @@ const ImportHistory = () => {
     }).format(amount);
   };
   
+  // הצגת התראה על כפילויות
+  const DuplicatesWarning = () => {
+    if (duplicatesCount === 0) return null;
+    
+    return (
+      <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mb-4 flex items-start gap-2">
+        <Info className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
+        <div>
+          <p className="font-medium text-amber-800">זוהו {duplicatesCount} עסקאות כפולות</p>
+          <p className="text-sm text-amber-700 mt-1">
+            ייתכן שיש עסקאות זהות שהתווספו בטעות. מומלץ לבצע איפוס מערכת וייבוא מחדש של הנתונים.
+          </p>
+        </div>
+      </div>
+    );
+  };
+  
   if (imports.length === 0) {
     return (
       <Card className="mt-6">
@@ -114,6 +148,8 @@ const ImportHistory = () => {
           <CardTitle>היסטוריית ייבוא</CardTitle>
         </CardHeader>
         <CardContent>
+          <DuplicatesWarning />
+          
           <div className="space-y-4">
             {imports.map((importGroup, index) => {
               // חישוב סכומי הכנסות והוצאות

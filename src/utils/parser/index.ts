@@ -1,8 +1,10 @@
+
 import { Transaction, FileImportFormat } from "@/types";
 import { ParserResult } from "./types";
 import { detectFileType } from "./utils";
 import { parseCSV } from "./csv";
 import { parseExcel } from "./excel";
+import { validateStoredData, detectDuplicateTransactions } from "@/hooks/finance/storage/dataValidation";
 
 /**
  * מנתח קובץ באמצעות הפרסר המתאים לפי סוג הקובץ
@@ -14,16 +16,52 @@ export const parseFile = async (
 ): Promise<ParserResult> => {
   console.log("Parsing file:", file.name, "type:", file.type, "card filter:", cardFilter);
   
-  // בדיקה אם ייבוא נתונים חסום, אבל גם בודק אם יש override
+  // בדיקת חסימת ייבוא
   const isBlocked = localStorage.getItem("data_import_blocked") === "true";
-  const overrideTime = localStorage.getItem("import_override_time");
-  
-  if (isBlocked && (!overrideTime || isOverrideExpired(overrideTime))) {
-    console.warn("ייבוא נתונים חסום - המערכת באיפוס או שיש יותר מדי נתונים");
-    return {
-      success: false,
-      error: "ייבוא נתונים חסום. המערכת עברה איפוס לאחרונה או שיש יותר מדי נתונים. נסה שוב מאוחר יותר.",
-    };
+  if (isBlocked) {
+    const overrideTimeStr = localStorage.getItem("import_override_time");
+    
+    // אם אין override או שהוא לא תקין, החסימה בתוקף
+    if (!overrideTimeStr) {
+      console.warn("ייבוא נתונים חסום - אין override");
+      return {
+        success: false,
+        error: "ייבוא נתונים חסום. לחץ על 'אפשר ייבוא נתונים מחדש' כדי להמשיך."
+      };
+    }
+    
+    // המרה למספר ובדיקת תקינות
+    const overrideTime = parseInt(overrideTimeStr, 10);
+    if (isNaN(overrideTime)) {
+      console.warn("ייבוא נתונים חסום - override לא תקין", overrideTimeStr);
+      return {
+        success: false,
+        error: "ייבוא נתונים חסום. ערך ה-override אינו תקין."
+      };
+    }
+    
+    // בדיקה אם ה-override עדיין בתוקף (48 שעות)
+    const currentTime = Date.now();
+    const timeDiffHours = (currentTime - overrideTime) / (1000 * 60 * 60);
+    
+    if (timeDiffHours > 48) {
+      console.warn("ייבוא נתונים חסום - override פג תוקף", {
+        currentTime,
+        overrideTime,
+        timeDiffHours
+      });
+      return {
+        success: false,
+        error: "ייבוא נתונים חסום. תוקף ההיתר פג לאחר 48 שעות. לחץ על 'אפשר ייבוא נתונים מחדש' כדי להמשיך."
+      };
+    }
+    
+    console.log("חסימת ייבוא קיימת אך יש override בתוקף", {
+      currentTime,
+      overrideTime,
+      timeDiffHours,
+      remainingHours: 48 - timeDiffHours
+    });
   }
   
   // בדיקת גודל הקובץ - הגבלה ל-5MB
@@ -36,31 +74,41 @@ export const parseFile = async (
     };
   }
   
-  // בדיקת מגבלת ייבוא על פי מספר עסקאות קיימות
+  // בדיקת מספר העסקאות הקיימות
   const currentData = localStorage.getItem("financeState");
-  if (currentData) {
+  if (currentData && validateStoredData(currentData)) {
     try {
       const parsedData = JSON.parse(currentData);
-      const transactionsCount = parsedData.transactions?.length || 0;
-      
-      // אם יש יותר מ-10,000 עסקאות, חוסמים ייבוא נוסף אלא אם כן יש override
-      if (transactionsCount > 10000 && (!overrideTime || isOverrideExpired(overrideTime))) {
-        console.warn("יותר מדי עסקאות במערכת:", transactionsCount);
-        localStorage.setItem("data_import_blocked", "true");
-        return {
-          success: false,
-          error: "יש יותר מדי עסקאות במערכת. אנא מחק חלק מהעסקאות או אפס את המערכת לפני ייבוא נוסף.",
-        };
+      if (parsedData.transactions && Array.isArray(parsedData.transactions)) {
+        const transactionsCount = parsedData.transactions.length;
+        
+        // בדיקת כפילויות בנתונים קיימים
+        const duplicatesCount = detectDuplicateTransactions(parsedData.transactions);
+        if (duplicatesCount > 0) {
+          console.warn(`נמצאו ${duplicatesCount} כפילויות בנתונים הקיימים`);
+        }
+        
+        // אם יש יותר מ-50,000 עסקאות, חסימת ייבוא
+        if (transactionsCount > 50000) {
+          localStorage.setItem("data_import_blocked", "true");
+          console.error("יותר מדי עסקאות במערכת:", transactionsCount);
+          return {
+            success: false,
+            error: "יש יותר מדי עסקאות במערכת. אנא מחק חלק מהעסקאות או אפס את המערכת לפני ייבוא נוסף.",
+          };
+        }
+        
+        // התראה אם מתקרבים למגבלה
+        if (transactionsCount > 40000) {
+          console.warn("מספר גבוה של עסקאות:", transactionsCount);
+        }
       }
     } catch (error) {
       console.error("שגיאה בבדיקת מספר העסקאות:", error);
     }
   }
   
-  // אם הגענו לכאן, נוודא שלא נמחק את ה-override בטעות
-  // מחיקת ה-override רק אם התהליך הסתיים בהצלחה ותוך וידוא שלא מופעל חוזר ונשנה
-  // בינתיים נשאיר את ה-override פעיל
-  
+  // הפעלת הפרסר המתאים לפי סוג הקובץ
   const fileType = detectFileType(file);
   console.log("Detected file type:", fileType);
   
@@ -76,28 +124,6 @@ export const parseFile = async (
       };
   }
 };
-
-/**
- * בודק אם ה-override פג תוקף (אחרי 48 שעות)
- */
-function isOverrideExpired(overrideTime: string): boolean {
-  try {
-    const overrideTimestamp = parseInt(overrideTime);
-    if (isNaN(overrideTimestamp)) {
-      console.error("ערך לא תקין עבור import_override_time:", overrideTime);
-      return true;
-    }
-    
-    const currentTime = new Date().getTime();
-    const hoursSinceOverride = (currentTime - overrideTimestamp) / (1000 * 60 * 60);
-    
-    // אם עברו יותר מ-48 שעות מאז ה-override, הוא פג תוקף
-    return hoursSinceOverride > 48;
-  } catch (error) {
-    console.error("שגיאה בבדיקת תוקף ה-override:", error);
-    return true;
-  }
-}
 
 // Export everything to maintain compatibility with existing code
 export * from "./types";

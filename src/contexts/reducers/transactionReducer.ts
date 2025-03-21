@@ -44,45 +44,83 @@ export const transactionReducer = (state: FinanceState, action: FinanceAction): 
         return state;
       }
       
-      // שיפור סינון עסקאות כפולות
-      const uniqueNewTransactions = action.payload.filter(newTx => {
-        const isDuplicate = state.transactions.some(existingTx => 
-          existingTx.date === newTx.date && 
-          Math.abs(existingTx.amount - newTx.amount) < 0.01 && // השוואה עם טווח סבירות קטן
-          existingTx.description === newTx.description &&
-          existingTx.type === newTx.type
-        );
+      // מניעת כפילויות - נשמור רשימה של עסקאות קיימות וחדשות מסוננות
+      const existingTransactionMap = new Map();
+      const transactionKeys = new Set();
+      
+      // יצירת מפה של כל העסקאות הקיימות
+      state.transactions.forEach(tx => {
+        const key = `${tx.date}_${tx.amount}_${tx.description}_${tx.type}`;
+        existingTransactionMap.set(key, true);
         
-        if (isDuplicate) {
-          console.log("זיהוי עסקה כפולה בייבוא:", newTx);
+        // שמירת מפתחות מורחבים אם יש מידע נוסף
+        if (tx.transactionCode) {
+          existingTransactionMap.set(`${key}_${tx.transactionCode}`, true);
         }
-        
-        return !isDuplicate;
+        if (tx.cardNumber) {
+          existingTransactionMap.set(`${key}_${tx.cardNumber}`, true);
+        }
+        if (tx.isInstallment && tx.installmentDetails) {
+          existingTransactionMap.set(
+            `${key}_${tx.installmentDetails.installmentNumber}_${tx.installmentDetails.totalInstallments}`,
+            true
+          );
+        }
       });
       
-      console.log(`הוספת ${uniqueNewTransactions.length} עסקאות חדשות (מתוך ${action.payload.length} שנקלטו)`);
-      
-      if (uniqueNewTransactions.length === 0) {
-        return state; // אם אין עסקאות חדשות, מחזירים את המצב הנוכחי ללא שינוי
-      }
-      
-      // מניעת כפילות בין עסקאות שמיובאות באותה פעולה
-      const seenTransactions = new Map();
-      const trulyUniqueTransactions = uniqueNewTransactions.filter(tx => {
-        const key = `${tx.date}_${tx.amount}_${tx.description}_${tx.type}`;
-        if (seenTransactions.has(key)) {
-          console.log("זיהוי כפילות בין עסקאות חדשות:", tx);
+      // סינון עסקאות חדשות שאינן כפולות
+      const uniqueNewTransactions = action.payload.filter(newTx => {
+        // יצירת מפתח בסיסי
+        const key = `${newTx.date}_${newTx.amount}_${newTx.description}_${newTx.type}`;
+        
+        // בדיקה אם העסקה כבר קיימת בנתונים הקיימים
+        if (existingTransactionMap.has(key)) {
+          console.log("דילוג על עסקה כפולה:", newTx.description);
           return false;
         }
-        seenTransactions.set(key, true);
+        
+        // בדיקת מפתחות מורחבים
+        if (newTx.transactionCode && existingTransactionMap.has(`${key}_${newTx.transactionCode}`)) {
+          console.log("דילוג על עסקה כפולה (לפי קוד עסקה):", newTx.description);
+          return false;
+        }
+        
+        if (newTx.cardNumber && existingTransactionMap.has(`${key}_${newTx.cardNumber}`)) {
+          console.log("דילוג על עסקה כפולה (לפי מספר כרטיס):", newTx.description);
+          return false;
+        }
+        
+        if (newTx.isInstallment && newTx.installmentDetails) {
+          const installmentKey = `${key}_${newTx.installmentDetails.installmentNumber}_${newTx.installmentDetails.totalInstallments}`;
+          if (existingTransactionMap.has(installmentKey)) {
+            console.log("דילוג על עסקה כפולה (לפי פרטי תשלומים):", newTx.description);
+            return false;
+          }
+        }
+        
+        // בדיקה לכפילויות בין העסקאות החדשות עצמן
+        if (transactionKeys.has(key)) {
+          console.log("דילוג על עסקה כפולה בין העסקאות החדשות:", newTx.description);
+          return false;
+        }
+        
+        // שמירת המפתח לבדיקת כפילויות בין העסקאות החדשות
+        transactionKeys.add(key);
+        
+        // העסקה ייחודית
         return true;
       });
       
-      console.log(`הוספת ${trulyUniqueTransactions.length} עסקאות חדשות לאחר סינון סופי`);
+      console.log(`מוסיף ${uniqueNewTransactions.length} עסקאות חדשות ייחודיות מתוך ${action.payload.length} שהתקבלו`);
+      
+      if (uniqueNewTransactions.length === 0) {
+        console.log("אין עסקאות חדשות להוספה");
+        return state;
+      }
       
       return {
         ...state,
-        transactions: [...state.transactions, ...trulyUniqueTransactions],
+        transactions: [...state.transactions, ...uniqueNewTransactions],
       };
     
     case "DELETE_ALL_INCOME_TRANSACTIONS":
