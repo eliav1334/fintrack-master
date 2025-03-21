@@ -46,6 +46,9 @@ export const useSystemReset = () => {
       toast.success("ייבוא נתונים הופעל מחדש ל-48 שעות");
       
       console.log("SystemReset - import enabled successfully");
+      
+      // עדכון המצב המקומי
+      setIsImportBlocked(false);
     } catch (error) {
       console.error("שגיאה בהפעלת ייבוא נתונים:", error);
       toast.error("שגיאה בהפעלת ייבוא נתונים");

@@ -17,6 +17,18 @@ export const useImportBlocker = () => {
   // טעינה ראשונית של המצב מה-localStorage
   useEffect(() => {
     setBlocked(checkImportBlockStatus());
+    
+    // גם להאזין לשינויים ב-localStorage מחלקים אחרים של האפליקציה
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED || e.key === null) {
+        setBlocked(checkImportBlockStatus());
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, [checkImportBlockStatus]);
 
   /**
@@ -24,6 +36,8 @@ export const useImportBlocker = () => {
    */
   const enableDataImport = useCallback((): void => {
     try {
+      console.log("מפעיל ייבוא נתונים מחדש");
+      
       // הסרת חסימת הייבוא
       localStorage.removeItem(SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED);
       
@@ -34,6 +48,11 @@ export const useImportBlocker = () => {
       
       // עדכון ה-state המקומי
       setBlocked(false);
+      
+      // פרסום אירוע לעדכון שאר הקומפוננטות
+      window.dispatchEvent(new StorageEvent('storage', { 
+        key: SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED 
+      }));
       
       console.log("ייבוא נתונים הופעל מחדש, תוקף:", new Date(expiryTime).toLocaleString());
     } catch (error) {
@@ -54,6 +73,11 @@ export const useImportBlocker = () => {
     
     // עדכון ה-state המקומי
     setBlocked(value);
+    
+    // פרסום אירוע לעדכון שאר הקומפוננטות
+    window.dispatchEvent(new StorageEvent('storage', { 
+      key: SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED 
+    }));
   }, []);
 
   return {
