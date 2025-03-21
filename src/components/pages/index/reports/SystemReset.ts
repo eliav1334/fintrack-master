@@ -13,17 +13,30 @@ export const useSystemReset = () => {
 
   // בדיקה האם ייבוא הנתונים חסום - פעם אחת בעת טעינת הקומפוננטה
   useEffect(() => {
-    const blocked = checkIfImportBlocked();
+    // קריאה ישירה ל-localStorage כדי לקבל את הערך העדכני ביותר
+    const blocked = localStorage.getItem("data_import_blocked") === "true";
     setIsImportBlocked(blocked);
+    console.log("SystemReset - checked import block status:", { blocked });
+    
     // אין תלויות - פעם אחת בטעינה בלבד
   }, []);
 
   // פונקציה להפעלת ייבוא נתונים מחדש
   const handleEnableDataImport = () => {
     try {
+      // קודם מסירים את הסימון מ-localStorage
+      localStorage.removeItem("data_import_blocked");
+      
+      // קריאה לפונקציה להפעלת ייבוא מחדש
       enableDataImport();
+      
+      // הודעה למשתמש
       toast.success("ייבוא נתונים הופעל מחדש ל-48 שעות");
+      
+      // עדכון מצב מקומי
       setIsImportBlocked(false);
+      
+      console.log("SystemReset - import enabled successfully");
     } catch (error) {
       console.error("שגיאה בהפעלת ייבוא נתונים:", error);
       toast.error("שגיאה בהפעלת ייבוא נתונים");

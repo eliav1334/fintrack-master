@@ -20,24 +20,27 @@ interface ImportBlockInfoProps {
 
 const ImportBlockInfo: React.FC<ImportBlockInfoProps> = ({ 
   onEnableImport,
-  isBlocked
+  isBlocked: initialIsBlocked
 }) => {
-  // שימוש במצב מקומי כדי למנוע רינדורים מיותרים
-  const [showAlert, setShowAlert] = useState<boolean>(isBlocked);
+  // שימוש במצב מקומי להדליק/לכבות את האלרט
+  const [showAlert, setShowAlert] = useState<boolean>(false);
   
-  // עדכון הצגת האלרט רק כאשר isBlocked משתנה
+  // אתחול והעדכון של מצב התצוגה מותנה בפרופ החיצוני בלבד בטעינה ראשונית
   useEffect(() => {
-    setShowAlert(isBlocked);
-  }, [isBlocked]);
+    // בדיקת ה-localStorage ישירות לוודא שאנחנו מקבלים את הערך העדכני
+    const isCurrentlyBlocked = localStorage.getItem("data_import_blocked") === "true";
+    setShowAlert(isCurrentlyBlocked);
+    console.log("ImportBlockInfo - checking block status:", { isCurrentlyBlocked });
+  }, []);
   
   // אם לא צריך להציג את האלרט, אין מה להציג
   if (!showAlert) return null;
   
-  // טיפול בלחיצה על הכפתור
+  // טיפול בלחיצה על הכפתור - מפעיל את הפונקציה החיצונית ומסתיר את האלרט
   const handleEnableImport = () => {
     onEnableImport();
-    // מסתירים את האלרט מיד לאחר הלחיצה
     setShowAlert(false);
+    console.log("ImportBlockInfo - import enabled, hiding alert");
   };
   
   return (

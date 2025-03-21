@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { FinanceAction } from "@/contexts/types";
-import { Transaction, Budget } from "@/types";
 import { useLocalStorage } from "./useLocalStorage";
 import { useSystemReset } from "./useSystemReset";
 import { useIncomeFilters } from "../income/useIncomeFilters";
@@ -156,7 +155,7 @@ export const useDataLoading = (dispatch: React.Dispatch<FinanceAction>) => {
           
           if (savedData.budgets && Array.isArray(savedData.budgets) && 
               savedData.budgets.length > 0) {
-            savedData.budgets.forEach((budget: Budget) => {
+            savedData.budgets.forEach((budget) => {
               dispatch({ type: "SET_BUDGET", payload: budget });
             });
             dataWasLoaded = true;
