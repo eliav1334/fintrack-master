@@ -22,6 +22,7 @@ const ImportBlockInfo: React.FC<ImportBlockInfoProps> = ({
   onEnableImport,
   isBlocked
 }) => {
+  // הצגת האלרט רק אם ייבוא הנתונים חסום
   if (!isBlocked) return null;
   
   return (

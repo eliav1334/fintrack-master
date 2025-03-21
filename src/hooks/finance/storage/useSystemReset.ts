@@ -53,7 +53,15 @@ export const useSystemReset = () => {
 
   // בדיקה האם ייבוא נתונים חסום בעת טעינת הרכיב
   useEffect(() => {
-    setImportBlocked(isImportBlocked());
+    const checkIfBlocked = () => {
+      const blocked = isImportBlocked();
+      setImportBlocked(blocked);
+    };
+    
+    checkIfBlocked();
+    
+    // נריץ את הבדיקה פעם אחת בלבד בטעינה
+    // כדי למנוע לופים של בדיקות חוזרות
   }, []);
 
   /**
@@ -163,64 +171,69 @@ export const useSystemReset = () => {
   
   /**
    * בודק אם יש הגבלת ייבוא נתונים
+   * הפונקציה משתמשת בגישה ישירה ל-localStorage ללא תלות בהוקים אחרים
+   * כדי למנוע לופים אינסופיים
    */
   const isImportBlocked = useCallback(() => {
-    // בדיקה אם משתמש הפעיל ידנית דריסת חסימה
-    const overrideTimestamp = localStorage.getItem(SYSTEM_CONSTANTS.KEYS.IMPORT_OVERRIDE_TIME);
-    if (overrideTimestamp) {
-      try {
+    try {
+      // בדיקה אם משתמש הפעיל ידנית דריסת חסימה
+      const overrideTimestamp = localStorage.getItem(SYSTEM_CONSTANTS.KEYS.IMPORT_OVERRIDE_TIME);
+      if (overrideTimestamp) {
         const overrideTime = parseInt(overrideTimestamp);
-        const currentTime = new Date().getTime();
-        const hoursSinceOverride = (currentTime - overrideTime) / (1000 * 60 * 60);
-        
-        // אם עברו פחות מ-48 שעות מאז הדריסה, מתעלמים מהחסימה
-        if (hoursSinceOverride < SYSTEM_CONSTANTS.OVERRIDE_HOURS) {
-          return false;
+        if (!isNaN(overrideTime)) {
+          const currentTime = new Date().getTime();
+          const hoursSinceOverride = (currentTime - overrideTime) / (1000 * 60 * 60);
+          
+          // אם עברו פחות מ-48 שעות מאז הדריסה, מתעלמים מהחסימה
+          if (hoursSinceOverride < SYSTEM_CONSTANTS.OVERRIDE_HOURS) {
+            return false;
+          }
         }
-      } catch (error) {
-        console.error("שגיאה בחישוב זמן דריסת חסימה:", error);
       }
-    }
-    
-    // בדיקה אם יש חסימת ייבוא גורפת
-    const isBlocked = localStorage.getItem(SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED) === "true";
-    
-    // בדיקה אם חלף מספיק זמן מאז האיפוס האחרון
-    const lastResetTimestamp = localStorage.getItem(SYSTEM_CONSTANTS.KEYS.LAST_IMPORT_RESET);
-    if (lastResetTimestamp) {
-      try {
+      
+      // בדיקה אם יש חסימת ייבוא גורפת
+      const isBlocked = localStorage.getItem(SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED) === "true";
+      
+      // בדיקה אם חלף מספיק זמן מאז האיפוס האחרון
+      const lastResetTimestamp = localStorage.getItem(SYSTEM_CONSTANTS.KEYS.LAST_IMPORT_RESET);
+      if (lastResetTimestamp) {
         const lastReset = parseInt(lastResetTimestamp);
-        const currentTime = new Date().getTime();
-        const hoursSinceReset = (currentTime - lastReset) / (1000 * 60 * 60);
-        
-        // אם עברו יותר מהזמן המוגדר מאז האיפוס, מסירים את החסימה
-        if (hoursSinceReset > SYSTEM_CONSTANTS.RESET_HOURS) {
-          localStorage.removeItem(SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED);
-          return false;
+        if (!isNaN(lastReset)) {
+          const currentTime = new Date().getTime();
+          const hoursSinceReset = (currentTime - lastReset) / (1000 * 60 * 60);
+          
+          // אם עברו יותר מהזמן המוגדר מאז האיפוס, מסירים את החסימה
+          if (hoursSinceReset > SYSTEM_CONSTANTS.RESET_HOURS) {
+            localStorage.removeItem(SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED);
+            return false;
+          }
         }
-      } catch (error) {
-        console.error("שגיאה בחישוב זמן מאז איפוס:", error);
       }
-    }
-    
-    // בדיקה אם יש יותר מדי עסקאות
-    const currentData = localStorage.getItem(SYSTEM_CONSTANTS.KEYS.FINANCE_STATE);
-    if (currentData) {
-      try {
-        const parsedData = JSON.parse(currentData);
-        const transactionsCount = parsedData.transactions?.length || 0;
-        
-        // בדיקה לפי קבוע מערכת למספר המקסימלי של עסקאות
-        if (transactionsCount > SYSTEM_CONSTANTS.MAX_TRANSACTIONS) {
-          localStorage.setItem(SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED, "true");
-          return true;
+      
+      // בדיקה אם יש יותר מדי עסקאות
+      const currentData = localStorage.getItem(SYSTEM_CONSTANTS.KEYS.FINANCE_STATE);
+      if (currentData) {
+        try {
+          const parsedData = JSON.parse(currentData);
+          if (parsedData && parsedData.transactions) {
+            const transactionsCount = parsedData.transactions.length || 0;
+            
+            // בדיקה לפי קבוע מערכת למספר המקסימלי של עסקאות
+            if (transactionsCount > SYSTEM_CONSTANTS.MAX_TRANSACTIONS) {
+              localStorage.setItem(SYSTEM_CONSTANTS.KEYS.DATA_IMPORT_BLOCKED, "true");
+              return true;
+            }
+          }
+        } catch (error) {
+          console.error("שגיאה בבדיקת מספר עסקאות:", error);
         }
-      } catch (error) {
-        console.error("שגיאה בבדיקת מספר עסקאות:", error);
       }
+      
+      return isBlocked;
+    } catch (error) {
+      console.error("שגיאה בבדיקת חסימת ייבוא:", error);
+      return false;
     }
-    
-    return isBlocked;
   }, []);
   
   /**

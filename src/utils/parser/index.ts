@@ -58,10 +58,9 @@ export const parseFile = async (
     }
   }
   
-  // אם הגענו לכאן, מחקנו את ה-override
-  if (overrideTime) {
-    localStorage.removeItem("import_override_time");
-  }
+  // אם הגענו לכאן, נוודא שלא נמחק את ה-override בטעות
+  // מחיקת ה-override רק אם התהליך הסתיים בהצלחה ותוך וידוא שלא מופעל חוזר ונשנה
+  // בינתיים נשאיר את ה-override פעיל
   
   const fileType = detectFileType(file);
   console.log("Detected file type:", fileType);
@@ -83,12 +82,22 @@ export const parseFile = async (
  * בודק אם ה-override פג תוקף (אחרי שעתיים)
  */
 function isOverrideExpired(overrideTime: string): boolean {
-  const overrideTimestamp = parseInt(overrideTime);
-  const currentTime = new Date().getTime();
-  const hoursSinceOverride = (currentTime - overrideTimestamp) / (1000 * 60 * 60);
-  
-  // אם עברו יותר משעתיים מאז ה-override, הוא פג תוקף
-  return hoursSinceOverride > 2;
+  try {
+    const overrideTimestamp = parseInt(overrideTime);
+    if (isNaN(overrideTimestamp)) {
+      console.error("ערך לא תקין עבור import_override_time:", overrideTime);
+      return true;
+    }
+    
+    const currentTime = new Date().getTime();
+    const hoursSinceOverride = (currentTime - overrideTimestamp) / (1000 * 60 * 60);
+    
+    // אם עברו יותר משעתיים מאז ה-override, הוא פג תוקף
+    return hoursSinceOverride > 2;
+  } catch (error) {
+    console.error("שגיאה בבדיקת תוקף ה-override:", error);
+    return true;
+  }
 }
 
 // Export everything to maintain compatibility with existing code
