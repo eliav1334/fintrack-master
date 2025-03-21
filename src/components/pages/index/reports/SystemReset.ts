@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useFinance } from "@/contexts/FinanceContext";
-// Rename the imported hook to avoid naming conflict
+// אין צורך לשנות את שם ההוק המיובא כיוון שהפונקציונליות שלו נשארה זהה חיצונית
 import { useSystemReset as useSystemResetHook } from "@/hooks/finance/storage/useSystemReset";
 
 export const useSystemReset = () => {
@@ -10,7 +10,7 @@ export const useSystemReset = () => {
   const [isResetting, setIsResetting] = useState(false);
   const [isImportBlocked, setIsImportBlocked] = useState(false);
   const { resetState, deleteAllIncomeTransactions } = useFinance();
-  // Use the renamed import
+  // השימוש בהוק נשאר זהה, אבל הפונקציונליות הפנימית שלו השתנתה
   const { resetAllStoredData, enableDataImport, isImportBlocked: checkIfImportBlocked } = useSystemResetHook();
 
   // בדיקה האם ייבוא הנתונים חסום

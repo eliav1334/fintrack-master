@@ -1,4 +1,3 @@
-
 import { Transaction, FileImportFormat } from "@/types";
 import { ParserResult } from "./types";
 import { detectFileType } from "./utils";
@@ -79,7 +78,7 @@ export const parseFile = async (
 };
 
 /**
- * בודק אם ה-override פג תוקף (אחרי שעתיים)
+ * בודק אם ה-override פג תוקף (אחרי 48 שעות)
  */
 function isOverrideExpired(overrideTime: string): boolean {
   try {
@@ -92,8 +91,8 @@ function isOverrideExpired(overrideTime: string): boolean {
     const currentTime = new Date().getTime();
     const hoursSinceOverride = (currentTime - overrideTimestamp) / (1000 * 60 * 60);
     
-    // אם עברו יותר משעתיים מאז ה-override, הוא פג תוקף
-    return hoursSinceOverride > 2;
+    // אם עברו יותר מ-48 שעות מאז ה-override, הוא פג תוקף
+    return hoursSinceOverride > 48;
   } catch (error) {
     console.error("שגיאה בבדיקת תוקף ה-override:", error);
     return true;

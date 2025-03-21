@@ -1,5 +1,4 @@
 
-import { Transaction } from "@/types";
 import { useSystemReset } from "./storage/useSystemReset";
 import { useIncomeTransactions } from "./income/useIncomeTransactions";
 import { useIncomeFilters } from "./income/useIncomeFilters";
