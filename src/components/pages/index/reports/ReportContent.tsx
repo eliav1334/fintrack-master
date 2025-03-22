@@ -14,9 +14,7 @@ export default function ReportContent() {
     showResetDialog, 
     setShowResetDialog, 
     isResetting, 
-    resetFullSystem,
-    enableDataImport,
-    isImportBlocked
+    resetFullSystem
   } = useSystemReset();
   
   // Adding the backup manager hook
@@ -52,14 +50,12 @@ export default function ReportContent() {
         </CardContent>
       </Card>
 
-      {/* עדכון הדיאלוג עם האפשרויות החדשות */}
+      {/* עדכון הדיאלוג עם האפשרויות הרלוונטיות בלבד */}
       <ResetDialog
         open={showResetDialog}
         onOpenChange={setShowResetDialog}
         onReset={resetFullSystem}
         isResetting={isResetting}
-        enableImport={enableDataImport}
-        isImportBlocked={isImportBlocked}
       />
       
       <BackupDialog 

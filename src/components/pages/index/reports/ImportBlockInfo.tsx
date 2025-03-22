@@ -1,9 +1,10 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useImportBlocker } from "@/hooks/finance/storage/useImportBlocker";
+import { toast } from "sonner";
 
 // קבועים להודעות
 const IMPORT_BLOCK_MESSAGES = {
@@ -17,18 +18,29 @@ const IMPORT_BLOCK_MESSAGES = {
 const ImportBlockInfo: React.FC = () => {
   // שימוש ישיר בהוק ללא תלות בפרופס חיצוניים
   const { isImportBlocked, enableDataImport } = useImportBlocker();
+  // מצב מקומי למניעת רינדורים מיותרים
+  const [showAlert, setShowAlert] = useState<boolean>(false);
   
-  // בדיקה אם המערכת חסומה
+  // בדיקה של מצב החסימה פעם אחת בטעינה ובכל שינוי
+  useEffect(() => {
+    setShowAlert(isImportBlocked);
+  }, [isImportBlocked]);
+  
   // אם לא צריך להציג את האלרט, אין מה להציג
-  if (!isImportBlocked) return null;
+  if (!showAlert) return null;
   
   // טיפול בלחיצה על הכפתור
   const handleEnableImport = () => {
     try {
       enableDataImport();
       console.log("ImportBlockInfo - import enabled successfully");
+      // הצגת הודעת הצלחה
+      toast.success("ייבוא נתונים הופעל מחדש ל-48 שעות");
+      // עדכון מצב התצוגה המקומי
+      setShowAlert(false);
     } catch (error) {
       console.error("ImportBlockInfo - error enabling import:", error);
+      toast.error("שגיאה בהפעלת ייבוא נתונים");
     }
   };
   

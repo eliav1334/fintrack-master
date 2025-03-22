@@ -8,52 +8,9 @@ import { useImportBlocker } from "@/hooks/finance/storage/useImportBlocker";
 export const useSystemReset = () => {
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
-  const [isImportBlocked, setIsImportBlocked] = useState(false);
   const { resetState, deleteAllIncomeTransactions } = useFinance();
   const { resetAllStoredData } = useSystemResetHook();
-  const { checkImportBlockStatus, enableDataImport } = useImportBlocker();
-
-  // בדיקה חד פעמית של מצב חסימת הייבוא
-  useEffect(() => {
-    const blocked = checkImportBlockStatus();
-    setIsImportBlocked(blocked);
-    console.log("SystemReset - checked import block status:", { blocked });
-  }, [checkImportBlockStatus]);
-
-  // מעקב אחר שינויים במצב חסימת הייבוא
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "data_import_blocked" || e.key === null) {
-        const currentBlockStatus = checkImportBlockStatus();
-        setIsImportBlocked(currentBlockStatus);
-      }
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, [checkImportBlockStatus]);
-
-  // פונקציה להפעלת ייבוא נתונים מחדש
-  const handleEnableDataImport = () => {
-    try {
-      // קריאה ישירה לפונקציה מהוק
-      enableDataImport();
-      
-      // הודעה למשתמש
-      toast.success("ייבוא נתונים הופעל מחדש ל-48 שעות");
-      
-      console.log("SystemReset - import enabled successfully");
-      
-      // עדכון המצב המקומי
-      setIsImportBlocked(false);
-    } catch (error) {
-      console.error("שגיאה בהפעלת ייבוא נתונים:", error);
-      toast.error("שגיאה בהפעלת ייבוא נתונים");
-    }
-  };
+  const { enableDataImport } = useImportBlocker();
 
   // פונקציה לאיפוס מלא של המערכת אך עם שמירת גיבויים
   const resetFullSystem = () => {
@@ -88,6 +45,14 @@ export const useSystemReset = () => {
       // שלב 3: איפוס ה-state במערכת
       resetState();
       
+      // מפעילים ייבוא נתונים מחדש אוטומטית
+      try {
+        enableDataImport();
+        console.log("SystemReset - import enabled as part of reset");
+      } catch (err) {
+        console.error("שגיאה בהפעלת ייבוא נתונים כחלק מאיפוס:", err);
+      }
+      
       // שלב 4: הודעה למשתמש
       toast.success("המערכת אופסה בהצלחה", {
         description: "הנתונים נמחקו אך הגיבויים נשמרו. המערכת תתרענן כדי להשלים את האיפוס."
@@ -114,8 +79,6 @@ export const useSystemReset = () => {
     showResetDialog,
     setShowResetDialog,
     isResetting,
-    resetFullSystem,
-    enableDataImport: handleEnableDataImport,
-    isImportBlocked
+    resetFullSystem
   };
 };
