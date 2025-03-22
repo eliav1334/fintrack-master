@@ -41,7 +41,7 @@ const CleanupDialog: React.FC<CleanupDialogProps> = ({
   const [isCleaning, setIsCleaning] = useState(false);
   const [removeDuplicates, setRemoveDuplicates] = useState(true);
   const [archiveOld, setArchiveOld] = useState(false);
-  const { state, dispatch } = useFinance();
+  const { state, addTransactions } = useFinance();
   const { removeDuplicateTransactions, archiveOldTransactions } = useLocalStorage();
   
   const handleCleanup = async () => {
@@ -72,7 +72,7 @@ const CleanupDialog: React.FC<CleanupDialogProps> = ({
       
       // עדכון ה-state רק אם יש שינוי
       if (removedCount > 0 || archivedCount > 0) {
-        dispatch({ type: "SET_TRANSACTIONS", payload: newTransactions });
+        addTransactions(newTransactions);
         
         toast.success(CLEANUP_DIALOG_MESSAGES.RESULTS.SUCCESS, {
           description: 

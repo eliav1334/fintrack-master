@@ -10,7 +10,7 @@ export const useSystemReset = () => {
   const [isResetting, setIsResetting] = useState(false);
   const { resetState, deleteAllIncomeTransactions } = useFinance();
   const { resetAllStoredData } = useSystemResetHook();
-  const { enableDataImport } = useImportBlocker();
+  const { enableDataImport, isImportBlocked } = useImportBlocker();
 
   // פונקציה לאיפוס מלא של המערכת אך עם שמירת גיבויים
   const resetFullSystem = () => {
@@ -83,6 +83,8 @@ export const useSystemReset = () => {
     showResetDialog,
     setShowResetDialog,
     isResetting,
-    resetFullSystem
+    resetFullSystem,
+    isImportBlocked,
+    enableDataImport
   };
 };
