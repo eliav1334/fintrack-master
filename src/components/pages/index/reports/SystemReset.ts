@@ -15,12 +15,13 @@ export const useSystemReset = () => {
   // פונקציה לאיפוס מלא של המערכת אך עם שמירת גיבויים
   const resetFullSystem = () => {
     try {
+      // סימון מצב איפוס
       setIsResetting(true);
       
       // מציג הודעת טעינה
       toast.loading("מאפס את המערכת...");
       
-      // וידוא שאנחנו מסמנים לדלג על הוספת הכנסות אוטומטיות, כולל סימון קבוע
+      // וידוא שאנחנו מסמנים לדלג על הוספת הכנסות אוטומטיות
       localStorage.setItem("skip_auto_incomes", "true");
       localStorage.setItem("permanent_skip_auto_incomes", "true");
       localStorage.setItem("reset_in_progress", "true");
@@ -32,7 +33,7 @@ export const useSystemReset = () => {
       // ללא חסימת ייבוא אוטומטית
       const resetSuccess = resetAllStoredData({ 
         keepBackups: true,
-        blockImport: false
+        blockImport: false // חשוב - לא חוסמים ייבוא באיפוס
       });
       
       if (!resetSuccess) {
@@ -47,6 +48,7 @@ export const useSystemReset = () => {
       
       // מפעילים ייבוא נתונים מחדש אוטומטית
       try {
+        // שימוש בפונקציה המשופרת להפעלת ייבוא נתונים
         enableDataImport();
         console.log("SystemReset - import enabled as part of reset");
       } catch (err) {
@@ -63,6 +65,7 @@ export const useSystemReset = () => {
         window.location.reload();
       }, 1500);
       
+      // סגירת הדיאלוג
       setShowResetDialog(false);
     } catch (error) {
       console.error("שגיאה באיפוס המערכת:", error);
@@ -70,6 +73,7 @@ export const useSystemReset = () => {
         description: "לא ניתן היה לאפס את המערכת. נסה שוב או פנה לתמיכה טכנית."
       });
     } finally {
+      // סיום מצב האיפוס וסגירת הודעת הטעינה
       setIsResetting(false);
       toast.dismiss();
     }

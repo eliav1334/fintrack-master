@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -16,31 +16,53 @@ const IMPORT_BLOCK_MESSAGES = {
 };
 
 const ImportBlockInfo: React.FC = () => {
-  // שימוש ישיר בהוק ללא תלות בפרופס חיצוניים
+  // שימוש ישיר בהוק במקום להעביר דרך props
   const { isImportBlocked, enableDataImport } = useImportBlocker();
-  // מצב מקומי למניעת רינדורים מיותרים
+  // מצב מקומי למניעת רינדורים מיותרים וטיפול בלופים אפשריים
   const [showAlert, setShowAlert] = useState<boolean>(false);
+  const [buttonDisabled, setButtonDisabled] = useState<boolean>(false);
+  
+  // פונקציית עזר ממוקדת לעדכון מצב תצוגת האלרט
+  const updateAlertVisibility = useCallback(() => {
+    if (isImportBlocked !== showAlert) {
+      console.log("עדכון מצב תצוגת אלרט:", isImportBlocked);
+      setShowAlert(isImportBlocked);
+    }
+  }, [isImportBlocked, showAlert]);
   
   // בדיקה של מצב החסימה פעם אחת בטעינה ובכל שינוי
   useEffect(() => {
-    setShowAlert(isImportBlocked);
-  }, [isImportBlocked]);
+    updateAlertVisibility();
+  }, [isImportBlocked, updateAlertVisibility]);
   
   // אם לא צריך להציג את האלרט, אין מה להציג
   if (!showAlert) return null;
   
-  // טיפול בלחיצה על הכפתור
+  // טיפול בלחיצה על הכפתור עם מניעת לחיצות מרובות
   const handleEnableImport = () => {
+    if (buttonDisabled) return;
+    
     try {
+      // מניעת לחיצות מרובות
+      setButtonDisabled(true);
+      
       enableDataImport();
       console.log("ImportBlockInfo - import enabled successfully");
+      
       // הצגת הודעת הצלחה
       toast.success("ייבוא נתונים הופעל מחדש ל-48 שעות");
-      // עדכון מצב התצוגה המקומי
+      
+      // עדכון מצב התצוגה המקומי מיד (לא מחכים לעדכון מ-useImportBlocker)
       setShowAlert(false);
+      
+      // שחרור נעילת הכפתור לאחר 2 שניות
+      setTimeout(() => {
+        setButtonDisabled(false);
+      }, 2000);
     } catch (error) {
       console.error("ImportBlockInfo - error enabling import:", error);
       toast.error("שגיאה בהפעלת ייבוא נתונים");
+      setButtonDisabled(false);
     }
   };
   
@@ -58,6 +80,7 @@ const ImportBlockInfo: React.FC = () => {
             size="sm" 
             onClick={handleEnableImport}
             className="text-sm"
+            disabled={buttonDisabled}
           >
             {IMPORT_BLOCK_MESSAGES.BUTTON_TEXT}
           </Button>

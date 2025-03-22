@@ -17,7 +17,7 @@ export default function ReportContent() {
     resetFullSystem
   } = useSystemReset();
   
-  // Adding the backup manager hook
+  // הוק ניהול גיבויים
   const {
     backups,
     showBackupDialog,
@@ -37,7 +37,7 @@ export default function ReportContent() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* ImportBlockInfo עכשיו לא מקבל פרופס - הוא משתמש ב-useImportBlocker ישירות */}
+          {/* ImportBlockInfo משתמש ישירות ב-useImportBlocker ואין צורך בפרופס */}
           <ImportBlockInfo />
           
           <SystemStats />
@@ -50,7 +50,7 @@ export default function ReportContent() {
         </CardContent>
       </Card>
 
-      {/* עדכון הדיאלוג עם האפשרויות הרלוונטיות בלבד */}
+      {/* דיאלוגים למשימות מערכת */}
       <ResetDialog
         open={showResetDialog}
         onOpenChange={setShowResetDialog}
