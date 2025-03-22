@@ -1,8 +1,8 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { RotateCw, Trash2, RefreshCw } from "lucide-react";
-import { toast } from "sonner";
+import CleanupDialog from "./CleanupDialog";
 
 interface ActionButtonsProps {
   backupsCount: number;
@@ -17,46 +17,54 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   onShowResetDialog,
   isResetting
 }) => {
+  const [showCleanupDialog, setShowCleanupDialog] = useState(false);
+
   return (
-    <div className="flex flex-wrap gap-4 mb-6">
-      {/* כפתור שחזור גיבויים - מוצג רק אם יש גיבויים זמינים */}
-      {backupsCount > 0 && (
+    <>
+      <div className="flex flex-wrap gap-4 mb-6">
+        {/* כפתור שחזור גיבויים - מוצג רק אם יש גיבויים זמינים */}
+        {backupsCount > 0 && (
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={onShowBackupDialog}
+            className="flex gap-2 items-center"
+          >
+            <RotateCw className="h-4 w-4" />
+            שחזור מגיבוי ({backupsCount})
+          </Button>
+        )}
+        
+        {/* כפתור איפוס המערכת */}
+        <Button 
+          variant="destructive" 
+          size="sm"
+          onClick={onShowResetDialog}
+          className="flex gap-2 items-center"
+          disabled={isResetting}
+        >
+          <Trash2 className="h-4 w-4" />
+          איפוס מערכת מלא
+        </Button>
+        
+        {/* כפתור ניקוי כפילויות */}
         <Button 
           variant="outline" 
           size="sm"
-          onClick={onShowBackupDialog}
+          onClick={() => setShowCleanupDialog(true)}
           className="flex gap-2 items-center"
         >
-          <RotateCw className="h-4 w-4" />
-          שחזור מגיבוי ({backupsCount})
+          <RefreshCw className="h-4 w-4" />
+          ניקוי נתונים
         </Button>
-      )}
+      </div>
       
-      {/* כפתור איפוס המערכת */}
-      <Button 
-        variant="destructive" 
-        size="sm"
-        onClick={onShowResetDialog}
-        className="flex gap-2 items-center"
-        disabled={isResetting}
-      >
-        <Trash2 className="h-4 w-4" />
-        איפוס מערכת מלא
-      </Button>
-      
-      {/* כפתור ניקוי כפילויות */}
-      <Button 
-        variant="outline" 
-        size="sm"
-        onClick={() => {
-          toast.info("הפונקציה תתווסף בקרוב");
-        }}
-        className="flex gap-2 items-center"
-      >
-        <RefreshCw className="h-4 w-4" />
-        ניקוי כפילויות
-      </Button>
-    </div>
+      {/* דיאלוג ניקוי כפילויות */}
+      <CleanupDialog
+        open={showCleanupDialog}
+        onOpenChange={setShowCleanupDialog}
+      />
+    </>
   );
 };
 

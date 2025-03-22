@@ -45,12 +45,47 @@ export const useLocalStorage = () => {
         localStorage.setItem(`financeState_daily_backup_${today}`, JSON.stringify(data));
         localStorage.setItem("lastBackupDate", today);
         console.log(`נשמר גיבוי יומי: financeState_daily_backup_${today}`);
+        
+        // ניקוי גיבויים ישנים (שומרים רק 7 ימים אחרונים)
+        cleanupOldBackups();
+        
         return true;
       }
       return false;
     } catch (error) {
       console.error("שגיאה ביצירת גיבוי יומי:", error);
       return false;
+    }
+  };
+  
+  /**
+   * ניקוי גיבויים ישנים (שומר רק 7 ימים אחרונים)
+   */
+  const cleanupOldBackups = () => {
+    try {
+      const dailyBackupKeys: string[] = [];
+      
+      // איסוף כל מפתחות הגיבויים היומיים
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith("financeState_daily_backup_")) {
+          dailyBackupKeys.push(key);
+        }
+      }
+      
+      // מיון לפי תאריך (מהישן לחדש)
+      dailyBackupKeys.sort();
+      
+      // אם יש יותר מ-7 גיבויים, מוחקים את הישנים ביותר
+      if (dailyBackupKeys.length > 7) {
+        const keysToRemove = dailyBackupKeys.slice(0, dailyBackupKeys.length - 7);
+        keysToRemove.forEach(key => {
+          localStorage.removeItem(key);
+          console.log(`נמחק גיבוי ישן: ${key}`);
+        });
+      }
+    } catch (error) {
+      console.error("שגיאה בניקוי גיבויים ישנים:", error);
     }
   };
 
@@ -93,7 +128,6 @@ export const useLocalStorage = () => {
       if (uniqueTransactions.has(simpleKey)) {
         // כפילות נמצאה - נשמור את המזהה
         duplicateIds.add(transaction.id);
-        console.log("זיהוי עסקה כפולה (מפתח פשוט):", simpleKey, transaction);
       } else {
         // עסקה ייחודית - נשמור אותה
         uniqueTransactions.set(simpleKey, transaction);
@@ -104,7 +138,6 @@ export const useLocalStorage = () => {
         if (uniqueTransactions.has(complexKey)) {
           // כפילות נמצאה - נשמור את המזהה
           duplicateIds.add(transaction.id);
-          console.log("זיהוי עסקה כפולה (מפתח מורחב):", complexKey, transaction);
         } else {
           // עסקה ייחודית גם במפתח המורחב - נשמור אותה
           uniqueTransactions.set(complexKey, transaction);
@@ -123,11 +156,52 @@ export const useLocalStorage = () => {
     
     return result;
   };
+  
+  /**
+   * ניקוי עסקאות ישנות (ארכוב)
+   */
+  const archiveOldTransactions = (transactions: Transaction[], monthsToKeep: number = 12): Transaction[] => {
+    try {
+      if (!transactions || !Array.isArray(transactions) || transactions.length === 0) {
+        return transactions;
+      }
+      
+      // חישוב התאריך הגבולי (לפני X חודשים)
+      const now = new Date();
+      const cutoffDate = new Date(now.getFullYear(), now.getMonth() - monthsToKeep, 1).toISOString().split('T')[0];
+      
+      // סינון העסקאות החדשות מהתאריך הגבולי
+      const recentTransactions = transactions.filter(transaction => transaction.date >= cutoffDate);
+      
+      // העסקאות הישנות שיועברו לארכיון
+      const oldTransactions = transactions.filter(transaction => transaction.date < cutoffDate);
+      
+      // אם יש עסקאות ישנות, שומרים אותן בארכיון
+      if (oldTransactions.length > 0) {
+        console.log(`מעביר ${oldTransactions.length} עסקאות ישנות לארכיון`);
+        
+        // שמירת הארכיון עם תאריך
+        const archiveKey = `financeState_archive_${new Date().toISOString().split('T')[0]}`;
+        saveDataToLocalStorage(archiveKey, { archivedTransactions: oldTransactions });
+        
+        toast.info(`הועברו ${oldTransactions.length} עסקאות ישנות לארכיון`, {
+          description: `עסקאות לפני ${cutoffDate} נשמרו בארכיון והוסרו מהתצוגה הראשית.`
+        });
+      }
+      
+      return recentTransactions;
+    } catch (error) {
+      console.error("שגיאה בארכוב עסקאות ישנות:", error);
+      return transactions;
+    }
+  };
 
   return {
     saveDataToLocalStorage,
     loadDataFromLocalStorage,
     createDailyBackup,
-    removeDuplicateTransactions
+    removeDuplicateTransactions,
+    archiveOldTransactions,
+    cleanupOldBackups
   };
 };

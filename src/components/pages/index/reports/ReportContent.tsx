@@ -10,11 +10,14 @@ import { useBackupManager } from "./BackupManager";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function ReportContent() {
+  // שימוש בהוקים לניהול מצב המערכת
   const { 
     showResetDialog, 
     setShowResetDialog, 
     isResetting, 
-    resetFullSystem
+    resetFullSystem,
+    isImportBlocked,
+    enableDataImport
   } = useSystemReset();
   
   // הוק ניהול גיבויים
@@ -56,6 +59,8 @@ export default function ReportContent() {
         onOpenChange={setShowResetDialog}
         onReset={resetFullSystem}
         isResetting={isResetting}
+        enableImport={enableDataImport}
+        isImportBlocked={isImportBlocked}
       />
       
       <BackupDialog 
