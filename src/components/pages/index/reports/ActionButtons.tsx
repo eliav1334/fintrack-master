@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { RotateCcw, Database, Archive, CleaningServices } from "lucide-react";
+import { RotateCcw, Database, Archive, Trash2 } from "lucide-react";
 
 interface ActionButtonsProps {
   onShowBackupDialog: () => void;

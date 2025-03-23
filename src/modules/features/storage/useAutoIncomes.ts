@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { FinanceAction } from "@/modules/core/finance/types";
+import { FinanceAction, Transaction } from "@/modules/core/finance/types";
 import { toast } from "sonner";
 
 /**
@@ -60,7 +60,7 @@ export const useAutoIncomes = (
             amount: 10000,
             date: new Date().toISOString(),
             description: "משכורת חודשית",
-            type: "income",
+            type: "income" as const,
             paymentMethod: "bank",
             categoryId: "salary"
           }

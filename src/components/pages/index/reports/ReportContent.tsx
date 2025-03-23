@@ -29,6 +29,9 @@ export default function ReportContent() {
     setSelectedBackup,
     restoreBackup
   } = useBackupManager();
+  
+  // State for cleanup dialog
+  const [showCleanupDialog, setShowCleanupDialog] = React.useState(false);
 
   return (
     <div className="space-y-4">
@@ -48,6 +51,7 @@ export default function ReportContent() {
             backupsCount={backups.length}
             onShowBackupDialog={() => setShowBackupDialog(true)} 
             onShowResetDialog={() => setShowResetDialog(true)}
+            onShowCleanupDialog={() => setShowCleanupDialog(true)}
             isResetting={isResetting}
           />
         </CardContent>

@@ -1,3 +1,3 @@
 
-// ייצוא ממשקי איפוס המערכת
-export * from '@/modules/features/storage/useSystemReset';
+// Export reset functionality
+export * from './useResetSystem';

@@ -24,14 +24,13 @@ export const useFinanceStats = (state: FinanceState) => {
     const balance = totalIncome - totalExpenses;
     
     // תקציב חודשי
-    const currentMonthBudget = state.budgets.find(
-      b => b.month === new Date().getMonth() + 1 && 
-           b.year === new Date().getFullYear()
-    );
-    
-    // החודש הנוכחי
     const currentMonth = new Date().getMonth() + 1; 
     const currentYear = new Date().getFullYear();
+    
+    const currentMonthBudget = state.budgets.find(
+      b => (b.month !== undefined && b.month === currentMonth) && 
+           (b.year !== undefined && b.year === currentYear)
+    );
     
     // עסקאות החודש הנוכחי
     const currentMonthTransactions = transactions.filter(tx => {
