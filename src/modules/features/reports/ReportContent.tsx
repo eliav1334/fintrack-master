@@ -1,17 +1,16 @@
 
 import React from "react";
-import ActionButtons from "@/components/pages/index/reports/ActionButtons";
 import SystemStats from "@/components/pages/index/reports/SystemStats";
+import ActionButtons from "@/components/pages/index/reports/ActionButtons";
 import BackupDialog from "@/components/pages/index/reports/BackupDialog";
 import ResetDialog from "@/components/pages/index/reports/ResetDialog";
 import ImportBlockInfo from "@/components/pages/index/reports/ImportBlockInfo";
-import { useSystemReset } from "@/modules/features/storage/useSystemReset";
+import { useSystemReset } from "@/modules/features/reset/useResetSystem";
 import { useBackupManager } from "./BackupManager";
+import CleanupDialog from "./CleanupDialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import CleanupDialog from "@/modules/features/cleanup/CleanupDialog";
-import { useCleanupManager } from "@/modules/features/cleanup/useCleanupManager";
 
-export const ReportContent: React.FC = () => {
+export function ReportContent() {
   // שימוש בהוקים לניהול מצב המערכת
   const { 
     showResetDialog, 
@@ -32,11 +31,8 @@ export const ReportContent: React.FC = () => {
     restoreBackup
   } = useBackupManager();
   
-  // הוק ניהול ניקוי נתונים
-  const {
-    showCleanupDialog,
-    setShowCleanupDialog
-  } = useCleanupManager();
+  // State for cleanup dialog
+  const [showCleanupDialog, setShowCleanupDialog] = React.useState(false);
 
   return (
     <div className="space-y-4">
@@ -48,9 +44,7 @@ export const ReportContent: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* ImportBlockInfo משתמש ישירות ב-useImportBlocker ואין צורך בפרופס */}
           <ImportBlockInfo />
-          
           <SystemStats />
           <ActionButtons 
             backupsCount={backups.length}
@@ -87,6 +81,4 @@ export const ReportContent: React.FC = () => {
       />
     </div>
   );
-};
-
-export default ReportContent;
+}

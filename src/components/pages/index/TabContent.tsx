@@ -4,13 +4,11 @@ import { useNavigate } from "react-router-dom";
 import { TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import Dashboard from "@/components/Dashboard";
-import TransactionList from "@/components/TransactionList";
-import { TransactionForm } from "@/components/transactions";
-import FileImport from "@/components/FileImport";
-import { AdvancedReportView } from "@/components/reports";
 import { RecommendationsCard } from "@/components/dashboard";
 import { useFinance } from "@/modules/core/finance/FinanceContext";
 import ReportsContent from "./ReportsContent";
+import TransactionsModule from "@/modules/features/transactions/TransactionsModule";
+import { AdvancedReportView } from "@/components/reports";
 
 interface TabContentProps {
   activeTab: string;
@@ -63,28 +61,19 @@ const TabContent: React.FC<TabContentProps> = ({
         )}
       </TabsContent>
 
-      {/* רשימת תנועות */}
+      {/* מודול עסקאות המאוחד */}
       <TabsContent value="transactions" className="animate-enter">
-        <Card className="p-6">
-          <h2 className="text-2xl font-bold mb-6">היסטוריית תנועות</h2>
-          <TransactionList />
-        </Card>
+        <TransactionsModule activeTab="transactions" />
       </TabsContent>
 
       {/* טופס הוספת תנועה */}
       <TabsContent value="add-transaction" className="animate-enter">
-        <Card className="p-6 max-w-2xl mx-auto">
-          <h2 className="text-2xl font-bold mb-6">הוספת תנועה חדשה</h2>
-          <TransactionForm />
-        </Card>
+        <TransactionsModule activeTab="add-transaction" />
       </TabsContent>
 
       {/* ייבוא קבצים */}
       <TabsContent value="import" className="animate-enter">
-        <Card className="p-6 max-w-2xl mx-auto">
-          <h2 className="text-2xl font-bold mb-6">ייבוא תנועות מקובץ</h2>
-          <FileImport />
-        </Card>
+        <TransactionsModule activeTab="import" />
       </TabsContent>
 
       {/* דוחות */}
