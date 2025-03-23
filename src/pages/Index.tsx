@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useFinance } from "@/contexts/FinanceContext";
+import { useFinance } from "@/modules/core/finance/FinanceContext";
 import { Tabs } from "@/components/ui/tabs";
 import { useFinanceDashboard } from "@/hooks/useFinanceDashboard";
 import { Header, TabsNavigation, TabContent } from "@/components/pages/index";

@@ -1,85 +1,100 @@
 
-import { useEffect } from "react";
-import { useFinance } from "@/contexts/FinanceContext";
-import { 
-  SystemStats, 
-  ActionButtons, 
-  ReportContent, 
-  BackupDialog, 
-  ResetDialog,
-  useBackupManager,
-  useSystemReset
-} from "./reports";
+import React, { useState } from "react";
+import { TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, BarChart3, PiggyBank } from "lucide-react";
+import { ReportContent } from "@/modules/features/reports/ReportContent";
 
 interface ReportsContentProps {
-  handleAddTransaction?: () => void;
-  handleNavigateToBudgets?: () => void;
+  handleAddTransaction: () => void;
+  handleNavigateToBudgets: () => void;
 }
 
-const ReportsContent = ({ handleAddTransaction, handleNavigateToBudgets }: ReportsContentProps) => {
-  const { state } = useFinance();
-  
-  // Custom hooks for backup and reset functionality
-  const { 
-    backups, 
-    showBackupDialog, 
-    setShowBackupDialog, 
-    selectedBackup, 
-    setSelectedBackup, 
-    restoreBackup 
-  } = useBackupManager();
-  
-  const {
-    showResetDialog,
-    setShowResetDialog,
-    isResetting,
-    resetFullSystem
-  } = useSystemReset();
-  
-  return (
-    <div className="w-full py-6">
-      <div className="mx-auto px-4 md:px-6">
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-bold tracking-tight">דוחות</h1>
-            <p className="text-muted-foreground">
-              צפה וייצא דוחות פיננסיים
-            </p>
+const ReportsContent: React.FC<ReportsContentProps> = ({
+  handleAddTransaction,
+  handleNavigateToBudgets
+}) => {
+  const [activeSection, setActiveSection] = useState<"main" | "transactions" | "budgets">("main");
+
+  const renderContent = () => {
+    switch (activeSection) {
+      case "main":
+        return <ReportContent />;
+      case "transactions":
+        return (
+          <div className="space-y-4">
+            <Button
+              variant="outline"
+              className="flex items-center gap-2"
+              onClick={() => setActiveSection("main")}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              חזרה לדוחות
+            </Button>
+            <div>
+              <h2 className="text-xl font-bold mb-4">ניהול תנועות</h2>
+              <p className="mb-4">
+                כאן ניתן להוסיף תנועות חדשות, לערוך תנועות קיימות או לנהל קטגוריות.
+              </p>
+              <Button onClick={handleAddTransaction}>הוספת תנועה חדשה</Button>
+            </div>
           </div>
-          
-          {/* System Statistics Component */}
-          <SystemStats />
-          
-          {/* Action Buttons Component */}
-          <ActionButtons
-            backupsCount={backups.length}
-            onShowBackupDialog={() => setShowBackupDialog(true)}
-            onShowResetDialog={() => setShowResetDialog(true)}
-            isResetting={isResetting}
-          />
-          
-          {/* Report Content Component */}
-          <ReportContent />
+        );
+      case "budgets":
+        return (
+          <div className="space-y-4">
+            <Button
+              variant="outline"
+              className="flex items-center gap-2"
+              onClick={() => setActiveSection("main")}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              חזרה לדוחות
+            </Button>
+            <div>
+              <h2 className="text-xl font-bold mb-4">ניהול תקציבים</h2>
+              <p className="mb-4">
+                כאן ניתן לצפות בתקציבים שלך, להוסיף תקציבים חדשים או לערוך תקציבים קיימים.
+              </p>
+              <Button onClick={handleNavigateToBudgets}>ניהול תקציבים</Button>
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {activeSection === "main" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <Button
+            variant="outline"
+            className="h-auto py-6 flex flex-col items-center gap-2"
+            onClick={() => setActiveSection("transactions")}
+          >
+            <BarChart3 className="h-12 w-12 mb-2" />
+            <span className="text-lg font-medium">ניהול תנועות</span>
+            <span className="text-sm text-muted-foreground text-center">
+              הוספה, עריכה ומחיקה של תנועות קיימות
+            </span>
+          </Button>
+          <Button
+            variant="outline"
+            className="h-auto py-6 flex flex-col items-center gap-2"
+            onClick={() => setActiveSection("budgets")}
+          >
+            <PiggyBank className="h-12 w-12 mb-2" />
+            <span className="text-lg font-medium">ניהול תקציבים</span>
+            <span className="text-sm text-muted-foreground text-center">
+              הגדרה וניהול של תקציבים חודשיים
+            </span>
+          </Button>
         </div>
-      </div>
-      
-      {/* Backup Dialog Component */}
-      <BackupDialog
-        open={showBackupDialog}
-        onOpenChange={setShowBackupDialog}
-        backups={backups}
-        selectedBackup={selectedBackup}
-        onBackupChange={setSelectedBackup}
-        onRestore={restoreBackup}
-      />
-      
-      {/* Reset Dialog Component */}
-      <ResetDialog
-        open={showResetDialog}
-        onOpenChange={setShowResetDialog}
-        onReset={resetFullSystem}
-        isResetting={isResetting}
-      />
+      )}
+
+      {renderContent()}
     </div>
   );
 };

@@ -1,70 +1,62 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
-import { RotateCw, Trash2, RefreshCw } from "lucide-react";
-import CleanupDialog from "./CleanupDialog";
+import { RotateCcw, Database, Archive, CleaningServices } from "lucide-react";
 
 interface ActionButtonsProps {
-  backupsCount: number;
   onShowBackupDialog: () => void;
   onShowResetDialog: () => void;
+  onShowCleanupDialog: () => void;
+  backupsCount: number;
   isResetting: boolean;
 }
 
 const ActionButtons: React.FC<ActionButtonsProps> = ({
-  backupsCount,
   onShowBackupDialog,
   onShowResetDialog,
+  onShowCleanupDialog,
+  backupsCount,
   isResetting
 }) => {
-  const [showCleanupDialog, setShowCleanupDialog] = useState(false);
-
   return (
-    <>
-      <div className="flex flex-wrap gap-4 mb-6">
-        {/* כפתור שחזור גיבויים - מוצג רק אם יש גיבויים זמינים */}
-        {backupsCount > 0 && (
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={onShowBackupDialog}
-            className="flex gap-2 items-center"
-          >
-            <RotateCw className="h-4 w-4" />
-            שחזור מגיבוי ({backupsCount})
-          </Button>
-        )}
-        
-        {/* כפתור איפוס המערכת */}
-        <Button 
-          variant="destructive" 
-          size="sm"
-          onClick={onShowResetDialog}
-          className="flex gap-2 items-center"
-          disabled={isResetting}
+    <div className="space-y-3 pt-4">
+      <h3 className="text-lg font-semibold">פעולות מערכת</h3>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <Button
+          variant="outline"
+          className="flex items-center gap-2 justify-center"
+          onClick={onShowBackupDialog}
+          disabled={backupsCount === 0}
         >
-          <Trash2 className="h-4 w-4" />
-          איפוס מערכת מלא
+          <Database className="w-4 h-4" />
+          <span>שחזור מגיבוי {backupsCount > 0 ? `(${backupsCount})` : ""}</span>
         </Button>
         
-        {/* כפתור ניקוי כפילויות */}
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={() => setShowCleanupDialog(true)}
-          className="flex gap-2 items-center"
+        <Button
+          variant="outline"
+          className="flex items-center gap-2 justify-center"
+          onClick={onShowCleanupDialog}
         >
-          <RefreshCw className="h-4 w-4" />
-          ניקוי נתונים
+          <Archive className="w-4 h-4" />
+          <span>ניקוי עסקאות</span>
+        </Button>
+        
+        <Button
+          variant="destructive"
+          className="flex items-center gap-2 justify-center"
+          onClick={onShowResetDialog}
+          disabled={isResetting}
+        >
+          <RotateCcw className="w-4 h-4" />
+          <span>איפוס מערכת</span>
         </Button>
       </div>
       
-      {/* דיאלוג ניקוי כפילויות */}
-      <CleanupDialog
-        open={showCleanupDialog}
-        onOpenChange={setShowCleanupDialog}
-      />
-    </>
+      <p className="text-sm text-muted-foreground mt-2">
+        פעולות אלו משפיעות על הנתונים שלך. מומלץ לגבות את הנתונים לפני ביצוע פעולות אלו.
+      </p>
+    </div>
   );
 };
 

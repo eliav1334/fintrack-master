@@ -9,7 +9,7 @@ import { TransactionForm } from "@/components/transactions";
 import FileImport from "@/components/FileImport";
 import { AdvancedReportView } from "@/components/reports";
 import { RecommendationsCard } from "@/components/dashboard";
-import { useFinance } from "@/contexts/FinanceContext";
+import { useFinance } from "@/modules/core/finance/FinanceContext";
 import ReportsContent from "./ReportsContent";
 
 interface TabContentProps {
