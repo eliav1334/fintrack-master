@@ -17,7 +17,7 @@ const CleanupDialog: React.FC<CleanupDialogProps> = ({
   onOpenChange
 }) => {
   const [months, setMonths] = React.useState<string>("12");
-  const { state, updateTransactions } = useFinance();
+  const { state, addTransactions } = useFinance();
   const { archiveOldTransactions } = useLocalStorage();
   const [isProcessing, setIsProcessing] = React.useState(false);
   
@@ -31,7 +31,7 @@ const CleanupDialog: React.FC<CleanupDialogProps> = ({
       
       // עדכון המערכת עם העסקאות החדשות (ללא הישנות)
       if (cleanedTransactions.length !== state.transactions.length) {
-        updateTransactions(cleanedTransactions);
+        addTransactions(cleanedTransactions);
         
         toast.success(`ניקוי עסקאות הושלם בהצלחה`, {
           description: `${state.transactions.length - cleanedTransactions.length} עסקאות הועברו לארכיון`
