@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react';
 import { useFinance } from '@/modules/core/finance/FinanceContext';
 import { toast } from 'sonner';
 
-export const useResetSystem = () => {
+export const useSystemReset = () => {
   const [isResetting, setIsResetting] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const { resetState } = useFinance();
