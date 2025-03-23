@@ -1,3 +1,3 @@
 
 // ייצוא ממשק האיפוס
-export * from '@/modules/features/storage/useSystemReset';
+export * from '@/modules/features/reset/useResetSystem';

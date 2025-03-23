@@ -7,7 +7,7 @@ import ResetDialog from "@/components/pages/index/reports/ResetDialog";
 import ImportBlockInfo from "@/components/pages/index/reports/ImportBlockInfo";
 import { useSystemReset } from "@/modules/features/reset/useResetSystem";
 import { useBackupManager } from "./BackupManager";
-import CleanupDialog from "./CleanupDialog";
+import CleanupDialog from "@/modules/features/cleanup/CleanupDialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function ReportContent() {
