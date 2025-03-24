@@ -3,6 +3,7 @@
 export * from './reports';
 export * from './cleanup';
 export * from './reset';
+export * from './transactions';
 
 // Export storage functionality without useSystemReset
 export { 

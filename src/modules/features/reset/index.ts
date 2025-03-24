@@ -1,3 +1,3 @@
 
-// Export reset functionality
+// ייצוא ממשק האיפוס
 export * from './useResetSystem';
