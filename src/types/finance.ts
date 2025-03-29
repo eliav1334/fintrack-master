@@ -9,6 +9,9 @@ export type TransactionCategory =
   | 'utilities'
   | 'healthcare'
   | 'entertainment'
+  | 'shopping'
+  | 'education'
+  | 'savings'
   | 'other'
   | 'דיור'
   | 'מזון'
@@ -16,6 +19,10 @@ export type TransactionCategory =
   | 'חשבונות'
   | 'בריאות'
   | 'בידור'
+  | 'קניות'
+  | 'חינוך'
+  | 'חסכונות'
+  | 'אחר'
 
 export interface Transaction {
   id: string

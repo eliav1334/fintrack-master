@@ -4,110 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useFinanceStore } from '@/stores/financeStore'
 import { useToast } from '@/components/ui/use-toast'
 import { FileUp } from 'lucide-react'
-import * as XLSX from 'xlsx'
-import { ImportedTransaction, TransactionType } from '@/types/finance'
+import { processExcelFile } from '@/services/import/excelImporter'
+import { processJsonFile } from '@/services/import/jsonImporter'
 
 const Import: React.FC = () => {
   const { importTransactions } = useFinanceStore()
   const { toast } = useToast()
-
-  const processExcelFile = (arrayBuffer: ArrayBuffer): ImportedTransaction[] => {
-    console.log('Starting Excel file processing')
-    const workbook = XLSX.read(arrayBuffer, { type: 'array' })
-    console.log('Excel sheets:', workbook.SheetNames)
-    const sheetName = workbook.SheetNames[0]
-    const worksheet = workbook.Sheets[sheetName]
-    const jsonData = XLSX.utils.sheet_to_json(worksheet, { raw: false })
-    console.log('Parsed Excel data:', jsonData)
-
-    return jsonData.map((row: any) => {
-      console.log('Processing row:', row)
-      
-      // מיפוי שמות העמודות האפשריים
-      const possibleDateColumns = ['תאריך', 'תאריך עסקה', 'תאריך רכישה', 'תאריך חיוב']
-      const possibleDescColumns = ['תיאור', 'פרטים', 'שם בית עסק', 'פירוט']
-      const possibleAmountColumns = ['סכום', 'סכום חיוב', 'חיוב', 'סכום בש"ח']
-      const possibleCategoryColumns = ['קטגוריה', 'סוג', 'סיווג']
-      const possibleStatusColumns = ['סטטוס', 'מצב']
-
-      // חיפוש ערכים בעמודות לפי השמות האפשריים
-      const findValue = (columns: string[]) => {
-        const column = Object.keys(row).find(key => 
-          columns.some(col => key.includes(col))
-        )
-        return column ? row[column] : undefined
-      }
-
-      const dateStr = findValue(possibleDateColumns)
-      const description = findValue(possibleDescColumns)
-      const amountStr = findValue(possibleAmountColumns)
-      const category = findValue(possibleCategoryColumns)
-      const status = findValue(possibleStatusColumns)
-
-      console.log('Found fields:', {
-        date: dateStr,
-        description,
-        amount: amountStr,
-        category,
-        status
-      })
-
-      // טיפול בתאריך
-      let date: string
-      try {
-        if (typeof dateStr === 'string') {
-          // ניסיון לפרסר תאריך בפורמט DD/MM/YYYY
-          const parts = dateStr.split('/')
-          if (parts.length === 3) {
-            date = new Date(+parts[2], +parts[1] - 1, +parts[0]).toISOString()
-          } else {
-            date = new Date(dateStr).toISOString()
-          }
-        } else {
-          date = new Date().toISOString()
-        }
-      } catch (error) {
-        console.warn('Failed to parse date:', dateStr)
-        date = new Date().toISOString()
-      }
-
-      // טיפול בסכום
-      let amount = 0
-      try {
-        if (amountStr) {
-          // הסרת תווים מיוחדים והמרה למספר
-          const cleanAmount = amountStr.toString()
-            .replace(/[^\d.-]/g, '')
-            .replace(/,/g, '')
-          amount = Number(cleanAmount)
-        }
-      } catch (error) {
-        console.warn('Failed to parse amount:', amountStr)
-      }
-
-      // קביעת סוג העסקה
-      const type = amount >= 0 ? 'income' : 'expense'
-      amount = Math.abs(amount)
-
-      const transaction: ImportedTransaction = {
-        description: description || '',
-        amount,
-        date,
-        category: category || 'other',
-        type: type as TransactionType,
-        status: status || 'completed'
-      }
-
-      console.log('Created transaction:', transaction)
-      return transaction
-    }).filter(t => {
-      if (!t.description || t.amount === 0) {
-        console.warn('Filtered out transaction:', t)
-        return false
-      }
-      return true
-    })
-  }
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     acceptedFiles.forEach((file) => {
@@ -131,23 +33,19 @@ const Import: React.FC = () => {
         try {
           console.log('File loaded:', file.name)
           let transactions
+          
           if (file.name.endsWith('.json')) {
-            console.log('Processing JSON file')
-            transactions = JSON.parse(reader.result as string)
+            transactions = processJsonFile(reader.result as string)
           } else {
-            console.log('Processing Excel file')
             transactions = processExcelFile(reader.result as ArrayBuffer)
           }
           
-          console.log('Processed transactions:', transactions)
-          
           if (transactions && transactions.length > 0) {
-            console.log('Importing transactions:', transactions.length)
             importTransactions(transactions)
             toast({
               title: 'ייבוא הצליח',
               description: `יובאו ${transactions.length} עסקאות בהצלחה`,
-              duration: 3000 // ההודעה תעלם אחרי 3 שניות
+              duration: 3000
             })
           } else {
             toast({
