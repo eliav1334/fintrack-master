@@ -1,4 +1,3 @@
-
 import React from "react";
 import {
   Dialog,
@@ -9,12 +8,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { formatCurrency } from "@/lib/utils";
 
 interface DeleteTransactionDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
   isForAllIncome?: boolean;
+  transactionDescription?: string;
+  transactionAmount?: number;
 }
 
 const DeleteTransactionDialog: React.FC<DeleteTransactionDialogProps> = ({
@@ -22,18 +24,20 @@ const DeleteTransactionDialog: React.FC<DeleteTransactionDialogProps> = ({
   onClose,
   onConfirm,
   isForAllIncome = false,
+  transactionDescription,
+  transactionAmount,
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>
             {isForAllIncome ? "מחיקת כל עסקאות ההכנסה" : "מחיקת עסקה"}
           </DialogTitle>
           <DialogDescription>
             {isForAllIncome
-              ? "האם אתה בטוח שברצונך למחוק את כל עסקאות ההכנסה? פעולה זו אינה ניתנת לביטול."
-              : "האם אתה בטוח שברצונך למחוק עסקה זו? פעולה זו אינה ניתנת לביטול."}
+              ? "האם אתה בטוח שברצונך למחוק את כל עסקאות ההכנסה? פעולה זו אינה הפיכה."
+              : `האם אתה בטוח שברצונך למחוק את העסקה "${transactionDescription}" בסכום ${formatCurrency(transactionAmount || 0)}? פעולה זו אינה הפיכה.`}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

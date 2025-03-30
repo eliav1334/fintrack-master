@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,6 +12,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Transaction } from "@/types";
 import * as XLSX from "xlsx";
 import { ReportTypesSheet } from "./ReportTypesSheet";
+import { he } from "date-fns/locale";
 
 interface ExportOptions {
   format: "excel" | "csv" | "pdf";
@@ -138,6 +138,8 @@ export const AdvancedReportView: React.FC = () => {
                     to: range?.to 
                   })}
                   numberOfMonths={2}
+                  locale={he}
+                  dir="rtl"
                 />
               </PopoverContent>
             </Popover>

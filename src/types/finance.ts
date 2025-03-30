@@ -1,18 +1,8 @@
-export type TransactionType = 'income' | 'expense' | 'הכנסה' | 'הוצאה'
+export type TransactionType = 'הכנסה' | 'הוצאה'
 
-export type TransactionStatus = 'pending' | 'completed' | 'cancelled' | 'ממתין' | 'הושלם' | 'בוטל'
+export type TransactionStatus = 'הושלם' | 'ממתין' | 'בוטל'
 
 export type TransactionCategory =
-  | 'housing'
-  | 'food'
-  | 'transportation'
-  | 'utilities'
-  | 'healthcare'
-  | 'entertainment'
-  | 'shopping'
-  | 'education'
-  | 'savings'
-  | 'other'
   | 'דיור'
   | 'מזון'
   | 'תחבורה'
@@ -32,6 +22,10 @@ export interface Transaction {
   type: TransactionType
   category: TransactionCategory
   status: TransactionStatus
+  notes?: string
+  createdAt?: string
+  businessName?: string
+  transactionType?: string
 }
 
 export type ImportedTransaction = Omit<Transaction, 'id'>
@@ -47,6 +41,11 @@ export interface MonthlyComparison {
   expenseChange: number
 }
 
+export interface BudgetException {
+  category: TransactionCategory
+  amount: number
+}
+
 export interface FinancialSummary {
   totalIncome: number
   totalExpenses: number
@@ -54,6 +53,7 @@ export interface FinancialSummary {
   monthlyComparison: MonthlyComparison
   largestExpenseCategory: CategorySummary
   expensesByCategory: CategorySummary[]
+  budgetExceptions?: BudgetException[]
 }
 
 export interface Budget {

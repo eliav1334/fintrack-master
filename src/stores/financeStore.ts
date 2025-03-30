@@ -119,18 +119,31 @@ const storeCreator = (set: any, get: any): FinanceStore => ({
 
   importTransactions: (transactions: ImportedTransaction[]) => {
     const newTransactions = transactions
-      .filter(t => t.description && t.amount !== 0)
+      .filter(t => t.amount !== undefined && t.date)
       .map((transaction) => ({
         ...transaction,
         id: generateId('transaction'),
-        category: normalizeTransactionCategory(transaction.category),
-        type: normalizeTransactionType(transaction.type),
-        status: normalizeTransactionStatus(transaction.status)
+        category: normalizeTransactionCategory(transaction.category || 'other'),
+        type: transaction.type || normalizeTransactionType(transaction.type || (transaction.amount > 0 ? 'expense' : 'income')),
+        status: normalizeTransactionStatus(transaction.status || 'completed'),
+        description: transaction.description || transaction.businessName || 'ללא תיאור'
       }))
-    set((state: FinanceStore) => ({
-      transactions: [...state.transactions, ...newTransactions]
-    }))
-    get().calculateSummary()
+
+    console.log('Importing transactions:', newTransactions)
+    
+    set((state: FinanceStore) => {
+      const updatedTransactions = [...state.transactions, ...newTransactions]
+      console.log('Updated transactions:', updatedTransactions)
+      return {
+        transactions: updatedTransactions
+      }
+    })
+    
+    // חישוב מחדש של הסיכום
+    setTimeout(() => {
+      get().calculateSummary()
+      console.log('Summary after import:', get().summary)
+    }, 0)
   },
 
   calculateSummary: () => {
@@ -140,6 +153,28 @@ const storeCreator = (set: any, get: any): FinanceStore => ({
     const currentYear = now.getFullYear()
     const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1
     const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear
+
+    // אם אין עסקאות, נאפס את הסיכום
+    if (transactions.length === 0) {
+      set({
+        summary: {
+          totalIncome: 0,
+          totalExpenses: 0,
+          balance: 0,
+          monthlyComparison: {
+            incomeChange: 0,
+            expenseChange: 0
+          },
+          largestExpenseCategory: {
+            category: 'other',
+            amount: 0,
+            percentage: 0
+          },
+          expensesByCategory: []
+        }
+      })
+      return
+    }
 
     const currentMonthTransactions = transactions.filter((t: Transaction) => {
       const date = new Date(t.date)
@@ -186,25 +221,29 @@ const storeCreator = (set: any, get: any): FinanceStore => ({
       { category: 'other' as TransactionCategory, amount: 0, percentage: 0 }
     )
 
-    set({
-      summary: {
-        totalIncome: currentTotals.income,
-        totalExpenses: currentTotals.expenses,
-        balance: currentTotals.income - currentTotals.expenses,
-        monthlyComparison: {
-          incomeChange:
-            lastTotals.income === 0
-              ? 0
-              : ((currentTotals.income - lastTotals.income) / lastTotals.income) * 100,
-          expenseChange:
-            lastTotals.expenses === 0
-              ? 0
-              : ((currentTotals.expenses - lastTotals.expenses) / lastTotals.expenses) * 100
-        },
-        largestExpenseCategory,
-        expensesByCategory: categorySummaries
-      }
-    })
+    const newSummary = {
+      totalIncome: currentTotals.income,
+      totalExpenses: currentTotals.expenses,
+      balance: currentTotals.income - currentTotals.expenses,
+      monthlyComparison: {
+        incomeChange:
+          lastTotals.income === 0
+            ? 0
+            : ((currentTotals.income - lastTotals.income) / lastTotals.income) * 100,
+        expenseChange:
+          lastTotals.expenses === 0
+            ? 0
+            : ((currentTotals.expenses - lastTotals.expenses) / lastTotals.expenses) * 100
+      },
+      largestExpenseCategory,
+      expensesByCategory: categorySummaries
+    }
+
+    // בדיקה אם הסיכום השתנה
+    const currentSummary = get().summary
+    if (JSON.stringify(currentSummary) !== JSON.stringify(newSummary)) {
+      set({ summary: newSummary })
+    }
   },
 
   exportData: () => {
@@ -242,12 +281,7 @@ export const useFinanceStore = create<FinanceStore>()(
         try {
           const data = localStorage.getItem(name)
           if (data) {
-            const parsed = JSON.parse(data)
-            if (parsed.state) {
-              parsed.state.transactions = []
-              parsed.state.summary = null
-            }
-            return parsed
+            return JSON.parse(data)
           }
         } catch (error) {
           console.error('Error getting data from storage:', error)

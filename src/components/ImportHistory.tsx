@@ -1,17 +1,16 @@
-
 import React, { useState, useEffect } from "react";
-import { useFinance } from "@/contexts/FinanceContext";
+import { useFinanceStore } from "@/stores/financeStore";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertCircle, ArrowUpDown, FileText, Trash, Info } from "lucide-react";
-import { Transaction } from "@/types";
+import type { Transaction } from "@/types/finance";
 import { detectDuplicateTransactions } from "@/hooks/finance/storage/dataValidation";
 
 const ImportHistory = () => {
-  const { state, deleteTransaction } = useFinance();
+  const { transactions, deleteTransaction } = useFinanceStore();
   const [selectedImport, setSelectedImport] = useState<{
     date: string;
     source: string;
@@ -22,14 +21,14 @@ const ImportHistory = () => {
   
   // בדיקת כפילויות בטעינה ראשונית
   useEffect(() => {
-    const count = detectDuplicateTransactions(state.transactions);
+    const count = detectDuplicateTransactions(transactions);
     setDuplicatesCount(count);
-  }, [state.transactions]);
+  }, [transactions]);
   
   // ארגון העסקאות לפי קבוצות ייבוא
   const imports = React.useMemo(() => {
     // חיפוש עסקאות שיובאו (שיש להן הערה המציינת ייבוא)
-    const importedTransactions = state.transactions.filter(
+    const importedTransactions = transactions.filter(
       tx => tx.notes?.includes('יובא מ')
     );
     
@@ -78,7 +77,7 @@ const ImportHistory = () => {
       const dateB = new Date(b.date).getTime();
       return dateB - dateA;
     });
-  }, [state.transactions]);
+  }, [transactions]);
   
   // פונקציה לביטול ייבוא
   const handleCancelImport = () => {
@@ -198,13 +197,13 @@ const ImportHistory = () => {
                     </div>
                   </div>
                   <div className="flex justify-start gap-4 mt-2">
-                    <div className="text-finance-income">
-                      <span className="text-sm">הכנסות: </span>
-                      <span className="font-medium">{formatCurrency(income)}</span>
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">הכנסות:</span>{' '}
+                      <span className="text-green-600 font-medium">{formatCurrency(income)}</span>
                     </div>
-                    <div className="text-finance-expense">
-                      <span className="text-sm">הוצאות: </span>
-                      <span className="font-medium">{formatCurrency(expense)}</span>
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">הוצאות:</span>{' '}
+                      <span className="text-red-600 font-medium">{formatCurrency(expense)}</span>
                     </div>
                   </div>
                 </div>
@@ -213,90 +212,52 @@ const ImportHistory = () => {
           </div>
         </CardContent>
       </Card>
-      
-      {/* דיאלוג תצוגת עסקאות */}
-      <Dialog open={!!selectedImport && !showConfirmDialog} onOpenChange={open => !open && setSelectedImport(null)}>
-        <DialogContent className="sm:max-w-[700px] h-[80vh] flex flex-col">
+
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>עסקאות מיובאות</DialogTitle>
+            <DialogTitle>אישור ביטול ייבוא</DialogTitle>
             <DialogDescription>
-              {selectedImport?.source} | {selectedImport?.date && formatDate(selectedImport.date)} | {selectedImport?.transactions.length} עסקאות
+              האם אתה בטוח שברצונך לבטל את הייבוא? פעולה זו תמחק את כל העסקאות שיובאו בקבוצה זו.
             </DialogDescription>
           </DialogHeader>
-          
-          <ScrollArea className="flex-1 mt-4">
-            <div className="space-y-2">
-              {selectedImport?.transactions.map(tx => (
-                <div key={tx.id} className="border p-3 rounded-md">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-medium">{tx.description}</p>
-                      <p className="text-sm text-muted-foreground">{formatDate(tx.date)}</p>
-                    </div>
-                    <p className={tx.type === 'income' ? 'text-finance-income' : 'text-finance-expense'}>
-                      {formatCurrency(tx.amount)}
-                    </p>
-                  </div>
-                  {tx.notes && (
-                    <p className="text-xs text-muted-foreground mt-1">{tx.notes}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </ScrollArea>
-          
-          <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={() => setSelectedImport(null)}>
-              סגור
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowConfirmDialog(false)}>
+              ביטול
             </Button>
-            <Button 
-              variant="destructive" 
-              onClick={() => {
-                setShowConfirmDialog(true);
-              }}
-            >
-              בטל ייבוא
+            <Button variant="destructive" onClick={handleCancelImport}>
+              אישור מחיקה
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
-      {/* דיאלוג אישור ביטול */}
-      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <DialogContent className="sm:max-w-[500px]">
+
+      <Dialog open={!!selectedImport && !showConfirmDialog} onOpenChange={() => setSelectedImport(null)}>
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>אישור ביטול ייבוא</DialogTitle>
-            <DialogDescription>
-              האם אתה בטוח שברצונך לבטל את הייבוא של {selectedImport?.transactions.length} עסקאות?
-            </DialogDescription>
+            <DialogTitle>
+              פירוט עסקאות - {selectedImport?.source} | {selectedImport?.date && formatDate(selectedImport.date)}
+            </DialogTitle>
           </DialogHeader>
-          
-          <div className="py-4">
-            <div className="bg-orange-50 dark:bg-orange-950/20 p-3 rounded-md flex gap-2">
-              <AlertCircle className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-orange-800 dark:text-orange-300">פעולה זו אינה ניתנת לביטול</p>
-                <p className="text-xs text-orange-700 dark:text-orange-400 mt-1">
-                  כל העסקאות שיובאו בייבוא זה יימחקו לצמיתות. ניתן לייבא אותן מחדש מהקובץ המקורי.
-                </p>
-              </div>
+          <ScrollArea className="h-[400px] mt-4">
+            <div className="space-y-2">
+              {selectedImport?.transactions.map((tx, index) => (
+                <div key={index} className="p-3 border rounded">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium">{tx.description}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {formatDate(tx.date)}
+                      </p>
+                    </div>
+                    <div className={`font-medium ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                      {formatCurrency(tx.amount)}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-          
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setShowConfirmDialog(false)}
-            >
-              ביטול
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleCancelImport}
-            >
-              אני מאשר/ת
-            </Button>
-          </DialogFooter>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     </>

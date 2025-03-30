@@ -1,24 +1,22 @@
-
 import React, { useState } from "react";
-import { Transaction, TransactionCategory, TransactionType } from "@/types/finance";
+import { Transaction, TransactionCategory, TransactionType, TransactionStatus } from "@/types/finance";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useFinance } from "@/context/FinanceContext";
-import { Check, X } from "lucide-react";
 
 interface TransactionFormProps {
   mode: "create" | "edit";
   transaction?: Transaction;
   children: React.ReactNode;
+  onSubmit?: (transaction: Omit<Transaction, "id">) => void;
 }
 
-export const TransactionForm = ({ mode, transaction, children }: TransactionFormProps) => {
+export const TransactionForm = ({ mode, transaction, children, onSubmit }: TransactionFormProps) => {
   const { toast } = useToast();
   const { addTransaction, updateTransaction } = useFinance();
   const [open, setOpen] = useState(false);
@@ -29,14 +27,9 @@ export const TransactionForm = ({ mode, transaction, children }: TransactionForm
     amount: "",
     date: new Date().toISOString().split("T")[0],
     category: "אחר" as TransactionCategory,
-    type: "expense" as TransactionType,
-    status: "הושלם" as "הושלם" | "מתוכנן" | "בוטל",
+    type: "הוצאה" as TransactionType,
+    status: "הושלם" as TransactionStatus,
     notes: "",
-    recurrent: false,
-    recurrencePattern: "monthly" as "weekly" | "monthly" | "yearly" | undefined,
-    hasInstallments: false,
-    currentInstallment: "1",
-    totalInstallments: "1",
   };
   
   // אתחול מצב הטופס לפי המידע מהעסקה אם קיימת
@@ -50,19 +43,10 @@ export const TransactionForm = ({ mode, transaction, children }: TransactionForm
           type: transaction.type,
           status: transaction.status,
           notes: transaction.notes || "",
-          recurrent: transaction.recurrent || false,
-          recurrencePattern: transaction.recurrencePattern,
-          hasInstallments: transaction.installments ? true : false,
-          currentInstallment: transaction.installments ? transaction.installments.current.toString() : "1",
-          totalInstallments: transaction.installments ? transaction.installments.total.toString() : "1",
         }
       : defaultFormState
   );
-  
-  const handleChange = (key: string, value: any) => {
-    setFormState((prev) => ({ ...prev, [key]: value }));
-  };
-  
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -75,17 +59,11 @@ export const TransactionForm = ({ mode, transaction, children }: TransactionForm
         type: formState.type,
         status: formState.status,
         notes: formState.notes || undefined,
-        recurrent: formState.recurrent || undefined,
-        recurrencePattern: formState.recurrent ? formState.recurrencePattern : undefined,
-        installments: formState.hasInstallments
-          ? {
-              current: parseInt(formState.currentInstallment),
-              total: parseInt(formState.totalInstallments),
-            }
-          : undefined,
       };
       
-      if (mode === "create") {
+      if (onSubmit) {
+        onSubmit(transactionData);
+      } else if (mode === "create") {
         addTransaction(transactionData);
         toast({
           title: "העסקה נוספה בהצלחה",
@@ -114,7 +92,7 @@ export const TransactionForm = ({ mode, transaction, children }: TransactionForm
       });
     }
   };
-  
+
   return (
     <>
       <div onClick={() => setOpen(true)}>{children}</div>
@@ -140,7 +118,7 @@ export const TransactionForm = ({ mode, transaction, children }: TransactionForm
                 <Input
                   id="description"
                   value={formState.description}
-                  onChange={(e) => handleChange("description", e.target.value)}
+                  onChange={(e) => setFormState(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="למשל: קניות בסופר"
                   required
                 />
@@ -153,7 +131,7 @@ export const TransactionForm = ({ mode, transaction, children }: TransactionForm
                   type="number"
                   step="0.01"
                   value={formState.amount}
-                  onChange={(e) => handleChange("amount", e.target.value)}
+                  onChange={(e) => setFormState(prev => ({ ...prev, amount: e.target.value }))}
                   placeholder="0.00"
                   required
                 />
@@ -165,23 +143,23 @@ export const TransactionForm = ({ mode, transaction, children }: TransactionForm
                   id="date"
                   type="date"
                   value={formState.date}
-                  onChange={(e) => handleChange("date", e.target.value)}
+                  onChange={(e) => setFormState(prev => ({ ...prev, date: e.target.value }))}
                   required
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="type">סוג העסקה *</Label>
+                <Label htmlFor="type">סוג עסקה *</Label>
                 <Select
                   value={formState.type}
-                  onValueChange={(value) => handleChange("type", value)}
+                  onValueChange={(value) => setFormState(prev => ({ ...prev, type: value as TransactionType }))}
                 >
                   <SelectTrigger id="type">
                     <SelectValue placeholder="בחר סוג עסקה" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="expense">הוצאה</SelectItem>
-                    <SelectItem value="income">הכנסה</SelectItem>
+                    <SelectItem value="הכנסה">הכנסה</SelectItem>
+                    <SelectItem value="הוצאה">הוצאה</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -190,7 +168,7 @@ export const TransactionForm = ({ mode, transaction, children }: TransactionForm
                 <Label htmlFor="category">קטגוריה *</Label>
                 <Select
                   value={formState.category}
-                  onValueChange={(value) => handleChange("category", value as TransactionCategory)}
+                  onValueChange={(value) => setFormState(prev => ({ ...prev, category: value as TransactionCategory }))}
                 >
                   <SelectTrigger id="category">
                     <SelectValue placeholder="בחר קטגוריה" />
@@ -199,9 +177,12 @@ export const TransactionForm = ({ mode, transaction, children }: TransactionForm
                     <SelectItem value="דיור">דיור</SelectItem>
                     <SelectItem value="מזון">מזון</SelectItem>
                     <SelectItem value="תחבורה">תחבורה</SelectItem>
-                    <SelectItem value="בידור">בידור</SelectItem>
                     <SelectItem value="חשבונות">חשבונות</SelectItem>
-                    <SelectItem value="הכנסה">הכנסה</SelectItem>
+                    <SelectItem value="בריאות">בריאות</SelectItem>
+                    <SelectItem value="בידור">בידור</SelectItem>
+                    <SelectItem value="קניות">קניות</SelectItem>
+                    <SelectItem value="חינוך">חינוך</SelectItem>
+                    <SelectItem value="חסכונות">חסכונות</SelectItem>
                     <SelectItem value="אחר">אחר</SelectItem>
                   </SelectContent>
                 </Select>
@@ -211,111 +192,43 @@ export const TransactionForm = ({ mode, transaction, children }: TransactionForm
                 <Label htmlFor="status">סטטוס *</Label>
                 <Select
                   value={formState.status}
-                  onValueChange={(value) => handleChange("status", value)}
+                  onValueChange={(value) => setFormState(prev => ({ ...prev, status: value as TransactionStatus }))}
                 >
                   <SelectTrigger id="status">
                     <SelectValue placeholder="בחר סטטוס" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="הושלם">הושלם</SelectItem>
-                    <SelectItem value="מתוכנן">מתוכנן</SelectItem>
+                    <SelectItem value="ממתין">ממתין</SelectItem>
                     <SelectItem value="בוטל">בוטל</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="recurrent" className="cursor-pointer">עסקה חוזרת</Label>
-                <Switch
-                  id="recurrent"
-                  checked={formState.recurrent}
-                  onCheckedChange={(checked) => handleChange("recurrent", checked)}
+              
+              <div className="space-y-2 col-span-2">
+                <Label htmlFor="notes">הערות</Label>
+                <Textarea
+                  id="notes"
+                  value={formState.notes}
+                  onChange={(e) => setFormState(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="הוסף הערות נוספות..."
                 />
               </div>
-              
-              {formState.recurrent && (
-                <div className="pt-2">
-                  <Label htmlFor="recurrence-pattern">תדירות</Label>
-                  <Select
-                    value={formState.recurrencePattern}
-                    onValueChange={(value) => handleChange("recurrencePattern", value)}
-                  >
-                    <SelectTrigger id="recurrence-pattern">
-                      <SelectValue placeholder="בחר תדירות" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="weekly">שבועי</SelectItem>
-                      <SelectItem value="monthly">חודשי</SelectItem>
-                      <SelectItem value="yearly">שנתי</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
             </div>
             
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="has-installments" className="cursor-pointer">תשלומים</Label>
-                <Switch
-                  id="has-installments"
-                  checked={formState.hasInstallments}
-                  onCheckedChange={(checked) => handleChange("hasInstallments", checked)}
-                />
-              </div>
-              
-              {formState.hasInstallments && (
-                <div className="grid grid-cols-2 gap-4 pt-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="current-installment">תשלום נוכחי</Label>
-                    <Input
-                      id="current-installment"
-                      type="number"
-                      min="1"
-                      value={formState.currentInstallment}
-                      onChange={(e) => handleChange("currentInstallment", e.target.value)}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="total-installments">סה"כ תשלומים</Label>
-                    <Input
-                      id="total-installments"
-                      type="number"
-                      min="1"
-                      value={formState.totalInstallments}
-                      onChange={(e) => handleChange("totalInstallments", e.target.value)}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="notes">הערות</Label>
-              <Textarea
-                id="notes"
-                value={formState.notes}
-                onChange={(e) => handleChange("notes", e.target.value)}
-                placeholder="הערות נוספות על העסקה"
-                rows={3}
-              />
-            </div>
-            
-            <DialogFooter className="flex justify-between mt-6">
+            <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                <X className="h-4 w-4 mr-2" />
                 ביטול
               </Button>
               <Button type="submit">
-                <Check className="h-4 w-4 mr-2" />
-                {mode === "create" ? "הוספת עסקה" : "עדכון עסקה"}
+                {mode === "create" ? "הוסף עסקה" : "שמור שינויים"}
               </Button>
-            </DialogFooter>
+            </div>
           </form>
         </DialogContent>
       </Dialog>
     </>
   );
 };
+
+export default TransactionForm;

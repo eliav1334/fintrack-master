@@ -1,77 +1,66 @@
 import { ImportedTransaction, TransactionCategory, TransactionStatus, TransactionType } from '@/types/finance'
 
-// מיפוי קטגוריות מעברית לאנגלית
+// מיפוי קטגוריות
 const categoryMapping: Record<string, TransactionCategory> = {
-  'דיור': 'housing',
-  'מזון': 'food',
-  'תחבורה': 'transportation',
-  'חשבונות': 'utilities',
-  'בריאות': 'healthcare',
-  'בידור': 'entertainment',
-  'קניות': 'shopping',
-  'חינוך': 'education',
-  'חסכונות': 'savings',
-  'אחר': 'other',
-  // גם באנגלית
-  'housing': 'housing',
-  'food': 'food',
-  'transportation': 'transportation',
-  'utilities': 'utilities',
-  'healthcare': 'healthcare',
-  'entertainment': 'entertainment',
-  'shopping': 'shopping',
-  'education': 'education',
-  'savings': 'savings',
-  'other': 'other'
+  'דיור': 'דיור',
+  'מזון': 'מזון',
+  'תחבורה': 'תחבורה',
+  'חשבונות': 'חשבונות',
+  'בריאות': 'בריאות',
+  'בידור': 'בידור',
+  'קניות': 'קניות',
+  'חינוך': 'חינוך',
+  'חסכונות': 'חסכונות',
+  'אחר': 'אחר'
 }
 
-// מיפוי סטטוס מעברית לאנגלית
+// מיפוי סטטוס
 const statusMapping: Record<string, TransactionStatus> = {
-  'ממתין': 'pending',
-  'הושלם': 'completed',
-  'בוטל': 'cancelled',
-  // גם באנגלית
-  'pending': 'pending',
-  'completed': 'completed',
-  'cancelled': 'cancelled'
+  'ממתין': 'ממתין',
+  'הושלם': 'הושלם',
+  'בוטל': 'בוטל'
 }
 
-// מיפוי סוג עסקה מעברית לאנגלית
+// מיפוי סוג עסקה
 const typeMapping: Record<string, TransactionType> = {
-  'הכנסה': 'income',
-  'הוצאה': 'expense',
-  // גם באנגלית
-  'income': 'income',
-  'expense': 'expense'
+  'הכנסה': 'הכנסה',
+  'הוצאה': 'הוצאה'
 }
 
 // המרת קטגוריה לערך תקין
 export const normalizeCategory = (category: string | undefined): TransactionCategory => {
-  if (!category) return 'other'
+  if (!category) return 'אחר'
   
-  const normalizedCategory = categoryMapping[category.toLowerCase()]
-  return normalizedCategory || 'other'
+  const trimmedCategory = category.trim()
+  const normalizedCategory = categoryMapping[trimmedCategory]
+  
+  if (!normalizedCategory) {
+    console.log('Category not found in mapping:', category)
+    return 'אחר'
+  }
+  
+  return normalizedCategory
 }
 
 // המרת סטטוס לערך תקין
 export const normalizeStatus = (status: string | undefined): TransactionStatus => {
-  if (!status) return 'completed'
+  if (!status) return 'הושלם'
   
-  const normalizedStatus = statusMapping[status.toLowerCase()]
-  return normalizedStatus || 'completed'
+  const normalizedStatus = statusMapping[status]
+  return normalizedStatus || 'הושלם'
 }
 
 // המרת סוג עסקה לערך תקין
 export const normalizeType = (type: string | undefined, amount?: number): TransactionType => {
   // אם יש סכום, נקבע את סוג העסקה לפיו
   if (amount !== undefined) {
-    return amount >= 0 ? 'income' : 'expense'
+    return amount >= 0 ? 'הכנסה' : 'הוצאה'
   }
 
-  if (!type) return 'expense'
+  if (!type) return 'הוצאה'
   
-  const normalizedType = typeMapping[type.toLowerCase()]
-  return normalizedType || 'expense'
+  const normalizedType = typeMapping[type]
+  return normalizedType || 'הוצאה'
 }
 
 // בדיקת תקינות עסקה

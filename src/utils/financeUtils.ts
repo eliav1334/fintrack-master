@@ -1,7 +1,7 @@
+import { Transaction, Budget, FinancialSummary, TransactionCategory, BudgetException } from "@/types/finance";
+import { normalizeCategory } from "@/services/import/importUtils";
 
-import { Transaction, Budget, FinancialSummary, TransactionCategory } from "@/types/finance";
-
-export const getFinancialSummary = (transactions: Transaction[]): FinancialSummary => {
+export const getFinancialSummary = (transactions: Transaction[], budgets?: Budget[]): FinancialSummary => {
   const currentDate = new Date();
   const currentMonth = currentDate.getMonth();
   const currentYear = currentDate.getFullYear();
@@ -27,14 +27,15 @@ export const getFinancialSummary = (transactions: Transaction[]): FinancialSumma
   currentMonthTransactions
     .filter((t) => t.type === "expense")
     .forEach((t) => {
-      if (expensesByCategory[t.category]) {
-        expensesByCategory[t.category] += t.amount;
+      const normalizedCategory = normalizeCategory(t.category);
+      if (expensesByCategory[normalizedCategory]) {
+        expensesByCategory[normalizedCategory] += t.amount;
       } else {
-        expensesByCategory[t.category] = t.amount;
+        expensesByCategory[normalizedCategory] = t.amount;
       }
     });
 
-  let largestExpenseCategory: TransactionCategory = "אחר";
+  let largestExpenseCategory: TransactionCategory = "other";
   let largestExpenseAmount = 0;
 
   Object.entries(expensesByCategory).forEach(([category, amount]) => {
@@ -81,6 +82,25 @@ export const getFinancialSummary = (transactions: Transaction[]): FinancialSumma
       ? ((totalExpenses - prevMonthExpenses) / prevMonthExpenses) * 100
       : 0;
 
+  // חישוב חריגות תקציב
+  const budgetExceptions: BudgetException[] = [];
+  if (budgets) {
+    const monthlyBudgets = budgets.filter(
+      (b) => !b.period || b.period === "monthly"
+    );
+
+    monthlyBudgets.forEach((budget) => {
+      const normalizedCategory = normalizeCategory(budget.category);
+      const categoryExpense = expensesByCategory[normalizedCategory] || 0;
+      if (categoryExpense > budget.amount) {
+        budgetExceptions.push({
+          category: normalizedCategory,
+          amount: categoryExpense - budget.amount
+        });
+      }
+    });
+  }
+
   return {
     totalIncome,
     totalExpenses,
@@ -95,11 +115,10 @@ export const getFinancialSummary = (transactions: Transaction[]): FinancialSumma
     },
     expensesByCategory: formattedExpensesByCategory,
     monthlyComparison: {
-      prevMonthIncome,
-      prevMonthExpenses,
       incomeChange,
       expenseChange,
     },
+    budgetExceptions: budgetExceptions.length > 0 ? budgetExceptions : undefined
   };
 };
 
@@ -113,73 +132,73 @@ export const defaultTransactions: Transaction[] = [
     description: "שכירות",
     date: "2023-06-01",
     amount: 1200,
-    category: "דיור",
+    category: "housing",
     type: "expense",
-    status: "הושלם",
+    status: "completed",
   },
   {
     id: "2",
     description: "משכורת",
     date: "2023-06-05",
     amount: 5430,
-    category: "הכנסה",
+    category: "other",
     type: "income",
-    status: "הושלם",
+    status: "completed",
   },
   {
     id: "3",
     description: "סופרמרקט",
     date: "2023-06-08",
     amount: 230,
-    category: "מזון",
+    category: "food",
     type: "expense",
-    status: "הושלם",
+    status: "completed",
   },
   {
     id: "4",
     description: "תדלוק",
     date: "2023-06-12",
     amount: 150,
-    category: "תחבורה",
+    category: "transportation",
     type: "expense",
-    status: "הושלם",
+    status: "completed",
   },
   {
     id: "5",
     description: "נטפליקס",
     date: "2023-06-15",
     amount: 45,
-    category: "בידור",
+    category: "entertainment",
     type: "expense",
-    status: "הושלם",
+    status: "completed",
   },
 ];
 
 export const defaultBudgets: Budget[] = [
   {
     id: "1",
-    category: "דיור",
+    category: "housing",
     amount: 1500,
     period: "monthly",
     currentSpent: 1200,
   },
   {
     id: "2",
-    category: "מזון",
+    category: "food",
     amount: 1000,
     period: "monthly",
     currentSpent: 800,
   },
   {
     id: "3",
-    category: "תחבורה",
+    category: "transportation",
     amount: 600,
     period: "monthly",
     currentSpent: 500,
   },
   {
     id: "4",
-    category: "בידור",
+    category: "entertainment",
     amount: 400,
     period: "monthly",
     currentSpent: 300,

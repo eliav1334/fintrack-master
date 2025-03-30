@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { format, subMonths, addMonths, getYear, setMonth } from "date-fns";
 import { he } from "date-fns/locale";
@@ -135,9 +134,10 @@ const MonthPicker: React.FC<MonthPickerProps> = ({ selectedDate, onChange }) => 
                 }}
                 className={cn("p-3 pointer-events-auto")}
                 locale={he}
+                dir="rtl"
                 month={selectedDate}
                 onMonthChange={onChange}
-                captionLayout="dropdown-buttons"
+                captionLayout="dropdown"
                 fromMonth={new Date(2020, 0)}
                 toMonth={new Date(2025, 11)}
               />

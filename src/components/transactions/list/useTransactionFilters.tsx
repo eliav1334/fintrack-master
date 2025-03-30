@@ -1,47 +1,44 @@
+import { useState, useMemo } from 'react';
+import { Transaction as FinanceTransaction, TransactionCategory } from '@/types/finance';
+import type { Transaction, CategoryType } from "@/modules/core/finance/types";
 
-import { useState, useEffect } from "react";
-import { Transaction } from "@/types";
-import { startOfMonth, endOfMonth } from "date-fns";
-import { useSearchParams } from "react-router-dom";
+interface UseTransactionFiltersProps {
+  transactions: Transaction[];
+  categories: CategoryType[];
+  selectedMonth: Date;
+}
 
-export const useTransactionFilters = (transactions: Transaction[]) => {
+export const useTransactionFilters = ({ transactions, categories, selectedMonth }: UseTransactionFiltersProps) => {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("all");
-  const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
-  
-  // URL parameter handling
-  const [searchParams] = useSearchParams();
-  const monthParam = searchParams.get('month');
-  
-  useEffect(() => {
-    if (monthParam) {
-      try {
-        const dateFromParam = new Date(monthParam);
-        if (!isNaN(dateFromParam.getTime())) {
-          setSelectedMonth(dateFromParam);
-        }
-      } catch (error) {
-        console.error("שגיאה בפרמטר החודש:", error);
-      }
-    }
-  }, [monthParam]);
 
-  const resetFilters = () => {
-    setSearchTerm("");
-    setCategoryFilter("all");
-    setTypeFilter("all");
-    setDateFilter("all");
+  const mapTransactionsToFinanceType = (transactions: Transaction[]): FinanceTransaction[] => {
+    return transactions.map(tx => {
+      const category = categories.find((cat: CategoryType) => cat.id === tx.categoryId);
+      const categoryName = category?.name as TransactionCategory || 'אחר';
+      return {
+        id: tx.id,
+        date: tx.date,
+        amount: tx.amount,
+        description: tx.description,
+        type: tx.type,
+        category: categoryName,
+        status: 'הושלם',
+        notes: tx.notes,
+        createdAt: tx.createdAt
+      };
+    });
   };
 
-  const filterTransactions = () => {
+  const filteredTransactions = useMemo(() => {
     let filtered = [...transactions];
 
     // Filter by selected month
     if (selectedMonth) {
-      const firstDayOfMonth = startOfMonth(selectedMonth);
-      const lastDayOfMonth = endOfMonth(selectedMonth);
+      const firstDayOfMonth = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1);
+      const lastDayOfMonth = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0);
       
       filtered = filtered.filter(tx => {
         const txDate = new Date(tx.date);
@@ -49,7 +46,6 @@ export const useTransactionFilters = (transactions: Transaction[]) => {
       });
     }
 
-    // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter(
         (tx) =>
@@ -57,17 +53,17 @@ export const useTransactionFilters = (transactions: Transaction[]) => {
       );
     }
 
-    // Filter by category
     if (categoryFilter !== "all") {
-      filtered = filtered.filter((tx) => tx.categoryId === categoryFilter);
+      filtered = filtered.filter((tx) => {
+        const category = categories.find((cat: CategoryType) => cat.id === tx.categoryId);
+        return category?.name === categoryFilter;
+      });
     }
 
-    // Filter by transaction type
     if (typeFilter !== "all") {
       filtered = filtered.filter((tx) => tx.type === typeFilter);
     }
 
-    // Filter by date range
     if (dateFilter !== "all") {
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -93,8 +89,26 @@ export const useTransactionFilters = (transactions: Transaction[]) => {
       });
     }
 
-    // Sort by date (newest first)
-    return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return mapTransactionsToFinanceType(filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+  }, [transactions, categories, selectedMonth, searchTerm, categoryFilter, typeFilter, dateFilter]);
+
+  const monthlyIncomeInCurrentMonth = useMemo(() => 
+    filteredTransactions.filter(tx => 
+      tx.type === 'הכנסה' && tx.description === "משכורת חודשית קבועה"
+    ),
+    [filteredTransactions]
+  );
+
+  const hasIncomeTransactions = useMemo(() => 
+    transactions.some(tx => tx.type === 'הכנסה'),
+    [transactions]
+  );
+
+  const resetFilters = () => {
+    setSearchTerm("");
+    setCategoryFilter("all");
+    setTypeFilter("all");
+    setDateFilter("all");
   };
 
   return {
@@ -106,10 +120,9 @@ export const useTransactionFilters = (transactions: Transaction[]) => {
     setTypeFilter,
     dateFilter,
     setDateFilter,
-    selectedMonth,
-    setSelectedMonth,
+    filteredTransactions,
+    monthlyIncomeInCurrentMonth,
+    hasIncomeTransactions,
     resetFilters,
-    filterTransactions,
-    hasFilters: searchTerm !== "" || categoryFilter !== "all" || typeFilter !== "all" || dateFilter !== "all"
   };
 };
