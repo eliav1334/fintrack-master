@@ -6,17 +6,11 @@ import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 
-// פונקציה לפורמט של סכום
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('he-IL', {
     style: 'currency',
     currency: 'ILS'
   }).format(amount)
-}
-
-// פונקציה לתרגום קטגוריות
-const translateCategory = (category: string) => {
-  return category;
 }
 
 const categoryIcons: Record<string, any> = {
@@ -28,6 +22,11 @@ const categoryIcons: Record<string, any> = {
   'בידור': <Gamepad2 className="h-5 w-5 text-pink-500" />,
   'קניות': <Receipt className="h-5 w-5 text-pink-500" />,
   'חינוך': <Book className="h-5 w-5 text-pink-500" />,
+  'חסכונות': <CircleDollarSign className="h-5 w-5 text-emerald-500" />,
+  'ביגוד והנעלה': <Receipt className="h-5 w-5 text-purple-500" />,
+  'משכורת': <Wallet className="h-5 w-5 text-green-600" />,
+  'פרילנס': <TrendingUp className="h-5 w-5 text-blue-600" />,
+  'השקעות': <PieChart className="h-5 w-5 text-yellow-600" />,
   'אחר': <MoreHorizontal className="h-5 w-5 text-gray-500" />
 }
 
@@ -135,7 +134,7 @@ const Dashboard: React.FC = () => {
           <CardContent>
             <div className="text-2xl font-bold flex items-center gap-2">
               {categoryIcons[summary.largestExpenseCategory.category]}
-              <span>{translateCategory(summary.largestExpenseCategory.category)}</span>
+              <span>{summary.largestExpenseCategory.category}</span>
             </div>
             <p className="text-xs text-muted-foreground">
               {formatCurrency(summary.largestExpenseCategory.amount)} (
@@ -157,7 +156,7 @@ const Dashboard: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {categoryIcons[category.category]}
-                    <span className="font-medium">{translateCategory(category.category)}</span>
+                    <span className="font-medium">{category.category}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span>{formatCurrency(category.amount)}</span>
@@ -183,7 +182,7 @@ const Dashboard: React.FC = () => {
                 <div key={exception.category} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {categoryIcons[exception.category]}
-                    <span className="font-medium">{translateCategory(exception.category)}</span>
+                    <span className="font-medium">{exception.category}</span>
                   </div>
                   <div className="flex items-center gap-2 text-red-500">
                     <span>חריגה של {formatCurrency(exception.amount)}</span>

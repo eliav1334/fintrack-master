@@ -1,6 +1,6 @@
-export type TransactionType = 'הכנסה' | 'הוצאה'
+export type TransactionType = 'income' | 'expense'
 
-export type TransactionStatus = 'הושלם' | 'ממתין' | 'בוטל'
+export type TransactionStatus = 'completed' | 'pending' | 'cancelled'
 
 export type TransactionCategory =
   | 'דיור'
@@ -12,6 +12,10 @@ export type TransactionCategory =
   | 'קניות'
   | 'חינוך'
   | 'חסכונות'
+  | 'ביגוד והנעלה'
+  | 'משכורת'
+  | 'פרילנס'
+  | 'השקעות'
   | 'אחר'
 
 export interface Transaction {

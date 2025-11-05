@@ -6,64 +6,49 @@ import {
   FinancialSummary,
   TransactionCategory,
   TransactionType,
-  TransactionStatus
+  TransactionStatus,
+  Budget
 } from '@/types/finance'
 import { generateId } from '@/utils/generateId'
 
-const categoryTranslations: Record<string, string> = {
-  'income': 'הכנסה',
-  'housing': 'דיור',
-  'food': 'מזון',
-  'transportation': 'תחבורה',
-  'utilities': 'חשבונות',
-  'healthcare': 'בריאות',
-  'entertainment': 'בידור',
-  'other': 'אחר'
-}
-
-const normalizeTransactionType = (type: string): TransactionType => {
-  if (type === 'הכנסה' || type === 'income') return 'income'
-  return 'expense'
-}
-
 const normalizeTransactionCategory = (category: string): TransactionCategory => {
-  const normalized = category.toLowerCase().trim()
-  if (Object.keys(categoryTranslations).includes(normalized)) {
+  const normalized = category.trim()
+  const validCategories: TransactionCategory[] = [
+    'דיור', 'מזון', 'תחבורה', 'חשבונות', 'בריאות', 'בידור',
+    'קניות', 'חינוך', 'חסכונות', 'ביגוד והנעלה', 'משכורת',
+    'פרילנס', 'השקעות', 'אחר'
+  ]
+
+  if (validCategories.includes(normalized as TransactionCategory)) {
     return normalized as TransactionCategory
   }
-  // נסה למצוא תרגום הפוך
-  const reversedCategory = Object.entries(categoryTranslations)
-    .find(([_, value]) => value === normalized)?.[0]
-  
-  if (reversedCategory) {
-    return reversedCategory as TransactionCategory
-  }
-  
-  return 'other'
-}
 
-const normalizeTransactionStatus = (status: string): TransactionStatus => {
-  const normalized = status.toLowerCase().trim()
-  switch (normalized) {
-    case 'pending':
-    case 'ממתין':
-      return 'pending'
-    case 'cancelled':
-    case 'בוטל':
-      return 'cancelled'
-    default:
-      return 'completed'
-  }
+  return 'אחר'
 }
 
 interface FinanceStore {
   transactions: Transaction[]
+  budgets: Budget[]
   summary: FinancialSummary | null
+  currentPage: number
+  itemsPerPage: number
+
+  // Transactions
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void
   updateTransaction: (id: string, transaction: Partial<Transaction>) => void
   deleteTransaction: (id: string) => void
   importTransactions: (transactions: ImportedTransaction[]) => void
+
+  // Budgets
+  addBudget: (budget: Omit<Budget, 'id'>) => void
+  updateBudget: (id: string, budget: Partial<Budget>) => void
+  deleteBudget: (id: string) => void
+
+  // Summary & Pagination
   calculateSummary: () => void
+  setCurrentPage: (page: number) => void
+
+  // Data management
   exportData: () => string
   importData: (data: string) => void
   resetStore: () => void
@@ -77,15 +62,17 @@ interface CategorySummaryTemp {
 
 const storeCreator = (set: any, get: any): FinanceStore => ({
   transactions: [],
+  budgets: [],
   summary: null,
+  currentPage: 1,
+  itemsPerPage: 15,
 
   addTransaction: (transaction: Omit<Transaction, 'id'>) => {
     const newTransaction = {
       ...transaction,
       id: generateId('transaction'),
       category: normalizeTransactionCategory(transaction.category),
-      type: normalizeTransactionType(transaction.type),
-      status: normalizeTransactionStatus(transaction.status)
+      createdAt: new Date().toISOString()
     }
     set((state: FinanceStore) => ({
       transactions: [...state.transactions, newTransaction]
@@ -100,9 +87,7 @@ const storeCreator = (set: any, get: any): FinanceStore => ({
           ? {
               ...t,
               ...transaction,
-              category: transaction.category ? normalizeTransactionCategory(transaction.category) : t.category,
-              type: transaction.type ? normalizeTransactionType(transaction.type) : t.type,
-              status: transaction.status ? normalizeTransactionStatus(transaction.status) : t.status
+              category: transaction.category ? normalizeTransactionCategory(transaction.category) : t.category
             }
           : t
       )
@@ -123,14 +108,15 @@ const storeCreator = (set: any, get: any): FinanceStore => ({
       .map((transaction) => ({
         ...transaction,
         id: generateId('transaction'),
-        category: normalizeTransactionCategory(transaction.category || 'other'),
-        type: transaction.type || normalizeTransactionType(transaction.type || (transaction.amount > 0 ? 'expense' : 'income')),
-        status: normalizeTransactionStatus(transaction.status || 'completed'),
-        description: transaction.description || transaction.businessName || 'ללא תיאור'
+        category: normalizeTransactionCategory(transaction.category || 'אחר'),
+        type: transaction.type || 'expense',
+        status: transaction.status || 'completed',
+        description: transaction.description || transaction.businessName || 'ללא תיאור',
+        createdAt: new Date().toISOString()
       }))
 
     console.log('Importing transactions:', newTransactions)
-    
+
     set((state: FinanceStore) => {
       const updatedTransactions = [...state.transactions, ...newTransactions]
       console.log('Updated transactions:', updatedTransactions)
@@ -138,12 +124,42 @@ const storeCreator = (set: any, get: any): FinanceStore => ({
         transactions: updatedTransactions
       }
     })
-    
-    // חישוב מחדש של הסיכום
+
     setTimeout(() => {
       get().calculateSummary()
       console.log('Summary after import:', get().summary)
     }, 0)
+  },
+
+  // Budget management
+  addBudget: (budget: Omit<Budget, 'id'>) => {
+    const newBudget = {
+      ...budget,
+      id: generateId('budget'),
+      currentSpent: 0
+    }
+    set((state: FinanceStore) => ({
+      budgets: [...state.budgets, newBudget]
+    }))
+  },
+
+  updateBudget: (id: string, budget: Partial<Budget>) => {
+    set((state: FinanceStore) => ({
+      budgets: state.budgets.map((b) =>
+        b.id === id ? { ...b, ...budget } : b
+      )
+    }))
+  },
+
+  deleteBudget: (id: string) => {
+    set((state: FinanceStore) => ({
+      budgets: state.budgets.filter((b) => b.id !== id)
+    }))
+  },
+
+  // Pagination
+  setCurrentPage: (page: number) => {
+    set({ currentPage: page })
   },
 
   calculateSummary: () => {
@@ -166,7 +182,7 @@ const storeCreator = (set: any, get: any): FinanceStore => ({
             expenseChange: 0
           },
           largestExpenseCategory: {
-            category: 'other',
+            category: 'אחר',
             amount: 0,
             percentage: 0
           },
@@ -218,7 +234,7 @@ const storeCreator = (set: any, get: any): FinanceStore => ({
 
     const largestExpenseCategory = categorySummaries.reduce(
       (max, current) => (current.amount > max.amount ? current : max),
-      { category: 'other' as TransactionCategory, amount: 0, percentage: 0 }
+      { category: 'אחר' as TransactionCategory, amount: 0, percentage: 0 }
     )
 
     const newSummary = {
@@ -247,8 +263,11 @@ const storeCreator = (set: any, get: any): FinanceStore => ({
   },
 
   exportData: () => {
+    const { transactions, budgets } = get()
     return JSON.stringify({
-      transactions: get().transactions
+      transactions,
+      budgets,
+      exportDate: new Date().toISOString()
     })
   },
 
@@ -256,8 +275,14 @@ const storeCreator = (set: any, get: any): FinanceStore => ({
     try {
       const parsed = JSON.parse(data)
       if (parsed.transactions) {
-        set({ transactions: [] }) // נקה את העסקאות הקיימות
+        set({
+          transactions: [],
+          budgets: []
+        })
         get().importTransactions(parsed.transactions)
+        if (parsed.budgets) {
+          set({ budgets: parsed.budgets })
+        }
       }
     } catch (error) {
       console.error('Error importing data:', error)
@@ -267,7 +292,9 @@ const storeCreator = (set: any, get: any): FinanceStore => ({
   resetStore: () => {
     set({
       transactions: [],
-      summary: null
+      budgets: [],
+      summary: null,
+      currentPage: 1
     })
   }
 })

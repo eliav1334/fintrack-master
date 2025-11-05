@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useFinanceStore } from '@/stores/financeStore'
 import { TransactionTable } from '@/components/transactions/list'
 import { Card, CardContent } from '@/components/ui/card'
@@ -10,12 +10,21 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { TransactionForm } from '@/components/transactions/TransactionForm'
-import { Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { Transaction } from '@/types/finance'
 import { DeleteTransactionDialog } from '@/components/transactions/list'
 
 const Transactions: React.FC = () => {
-  const { transactions, addTransaction, updateTransaction, deleteTransaction } = useFinanceStore()
+  const {
+    transactions,
+    addTransaction,
+    updateTransaction,
+    deleteTransaction,
+    currentPage,
+    itemsPerPage,
+    setCurrentPage
+  } = useFinanceStore()
+
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
   const [deleteDialogState, setDeleteDialogState] = useState<{
@@ -29,6 +38,16 @@ const Transactions: React.FC = () => {
     description: '',
     amount: 0
   })
+
+  // Pagination logic
+  const totalPages = Math.ceil(transactions.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedTransactions = useMemo(() => {
+    return transactions
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(startIndex, endIndex)
+  }, [transactions, startIndex, endIndex])
 
   const handleAdd = (transaction: Omit<Transaction, 'id'>) => {
     addTransaction(transaction)
@@ -78,13 +97,45 @@ const Transactions: React.FC = () => {
       <Card>
         <CardContent className="p-0">
           <TransactionTable
-            transactions={transactions}
+            transactions={paginatedTransactions}
             onEdit={handleEdit}
             onDelete={handleDelete}
             formatCurrency={formatCurrency}
           />
         </CardContent>
       </Card>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            מציג {startIndex + 1}-{Math.min(endIndex, transactions.length)} מתוך {transactions.length} עסקאות
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              <ChevronRight className="h-4 w-4" />
+              הקודם
+            </Button>
+            <span className="text-sm">
+              עמוד {currentPage} מתוך {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              הבא
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent>
