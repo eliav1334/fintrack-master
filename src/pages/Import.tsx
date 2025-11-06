@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { FileUp, Upload, History } from 'lucide-react'
 import { processExcelFile } from '@/services/import/excelImporter'
 import { processJsonFile } from '@/services/import/jsonImporter'
+import { parseIsracardMaxFile, isIsracardMaxFile } from '@/utils/parser/isracardMaxParser'
 import { Button } from '@/components/ui/button'
 import ImportHistory from '@/components/ImportHistory'
 import { format } from 'date-fns'
@@ -20,75 +21,71 @@ const Import: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'import' | 'history'>('import')
   const [importedTransactions, setImportedTransactions] = useState<Transaction[]>([])
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    acceptedFiles.forEach((file) => {
-      const reader = new FileReader()
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    for (const file of acceptedFiles) {
+      try {
+        console.log('Processing file:', file.name)
+        let transactions
 
-      reader.onabort = () => toast({
-        title: 'שגיאה',
-        description: 'קריאת הקובץ הופסקה',
-        variant: 'destructive',
-        duration: 3000
-      })
+        if (file.name.endsWith('.json')) {
+          // Handle JSON files
+          const text = await file.text()
+          transactions = processJsonFile(text)
+        } else {
+          // Check if this is an Isracard Max file
+          const isIsracardMax = await isIsracardMaxFile(file)
+          console.log('Is Isracard Max file:', isIsracardMax)
 
-      reader.onerror = () => toast({
-        title: 'שגיאה',
-        description: 'אירעה שגיאה בקריאת הקובץ',
-        variant: 'destructive',
-        duration: 3000
-      })
+          if (isIsracardMax) {
+            // Use specialized Isracard Max parser
+            console.log('Using Isracard Max parser')
+            transactions = await parseIsracardMaxFile(file)
 
-      reader.onload = () => {
-        try {
-          console.log('File loaded:', file.name)
-          let transactions
-          
-          if (file.name.endsWith('.json')) {
-            transactions = processJsonFile(reader.result as string)
-          } else {
-            transactions = processExcelFile(reader.result as ArrayBuffer)
-          }
-          
-          if (transactions && transactions.length > 0) {
-            const transactionsWithIds = transactions.map(tx => ({
-              ...tx,
-              id: generateId('transaction')
-            }))
-            
-            setImportedTransactions(transactionsWithIds)
-            
-            importTransactions(transactionsWithIds)
-            
             toast({
-              title: 'ייבוא הצליח',
-              description: `יובאו ${transactions.length} עסקאות בהצלחה`,
+              title: 'זוהה קובץ ישרכרט מקס',
+              description: 'משתמש במנתח המיוחד לקבצי ישרכרט מקס',
               duration: 3000
             })
           } else {
-            toast({
-              title: 'שגיאה',
-              description: 'לא נמצאו עסקאות בקובץ',
-              variant: 'destructive',
-              duration: 3000
-            })
+            // Use generic Excel parser
+            console.log('Using generic Excel parser')
+            const arrayBuffer = await file.arrayBuffer()
+            transactions = processExcelFile(arrayBuffer)
           }
-        } catch (error) {
-          console.error('Error importing file:', error)
+        }
+
+        if (transactions && transactions.length > 0) {
+          const transactionsWithIds = transactions.map(tx => ({
+            ...tx,
+            id: generateId('transaction')
+          }))
+
+          setImportedTransactions(transactionsWithIds)
+          importTransactions(transactionsWithIds)
+
+          toast({
+            title: 'ייבוא הצליח',
+            description: `יובאו ${transactions.length} עסקאות בהצלחה`,
+            duration: 3000
+          })
+        } else {
           toast({
             title: 'שגיאה',
-            description: 'הקובץ אינו בפורמט תקין',
+            description: 'לא נמצאו עסקאות בקובץ',
             variant: 'destructive',
             duration: 3000
           })
         }
+      } catch (error) {
+        console.error('Error importing file:', error)
+        toast({
+          title: 'שגיאה',
+          description: error instanceof Error ? error.message : 'הקובץ אינו בפורמט תקין',
+          variant: 'destructive',
+          duration: 3000
+        })
       }
-
-      if (file.name.endsWith('.json')) {
-        reader.readAsText(file)
-      } else {
-        reader.readAsArrayBuffer(file)
-      }
-    })
+    }
   }, [importTransactions, toast])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -154,6 +151,8 @@ const Import: React.FC = () => {
               <CardTitle>ייבוא נתונים</CardTitle>
               <CardDescription>
                 גרור קובץ אקסל או JSON או לחץ כדי לבחור קובץ לייבוא
+                <br />
+                תומך בקבצי ייצוא מישרכרט מקס עם זיהוי אוטומטי
               </CardDescription>
             </CardHeader>
             <CardContent>
